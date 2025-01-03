@@ -1,6 +1,7 @@
 import json
 import os
 from urllib.parse import quote_plus
+from dotenv import load_dotenv
 # app.py
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,8 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# データベースのURLを設定
-DATABASE_URL = "mysql+pymysql://dbmasteruser:D%<WBLKR9!,ZNT1gNzxIU#*,D_xU?48q@ls-c473c9825c62e9efe33c74c6f241de905c9d5e8d.cxcecqy6s31q.ap-northeast-1.rds.amazonaws.com:3306/japanese_learn"
+# .envファイルから環境変数を読み込み
+load_dotenv()
+
+# DATABASE_URLを環境変数から取得
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # SQLAlchemyのエンジンを作成
 engine = create_engine(DATABASE_URL)
