@@ -1,0 +1,6 @@
+fastapi[all]==0.99.0
+mangum==0.11.0
+pydantic
+pydantic-core
+sqlalchemy==2.0.27
+pymysql
