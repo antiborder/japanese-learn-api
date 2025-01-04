@@ -39,3 +39,8 @@ ENV/
 
 *.zip
 *.git
+
+# Compiled python files
+*.so
+*.pyd
+*.dll
