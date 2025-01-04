@@ -4,3 +4,4 @@ pydantic
 pydantic-core
 sqlalchemy==2.0.27
 pymysql
+python-dotenv

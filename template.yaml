@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Resources:
+  MyFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 10
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /  # ルートエンドポイントを明示的に指定
+            Method: ANY
+        TestApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        
