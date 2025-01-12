@@ -4,20 +4,41 @@ Resources:
   MyFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: app.handler
-      Runtime: python3.12
+      Handler: app.main.handler
+      Runtime: python3.9
       CodeUri: .
-      MemorySize: 128
-      Timeout: 10
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          DATABASE_URL: "mysql+pymysql://dbmasteruser:D%<WBLKR9!,ZNT1gNzxIU#*,D_xU?48q@ls-c473c9825c62e9efe33c74c6f241de905c9d5e8d.cxcecqy6s31q.ap-northeast-1.rds.amazonaws.com:3306/japanese_learn"
       Events:
-        Api:
+        ApiV1Words:
           Type: Api
           Properties:
-            Path: /  # ルートエンドポイントを明示的に指定
+            Path: /api/v1/words
             Method: ANY
-        TestApi:
+        ApiV1WordsId:
           Type: Api
           Properties:
-            Path: /{proxy+}
+            Path: /api/v1/words/{word_id}
             Method: ANY
+        ApiDocs:
+          Type: Api
+          Properties:
+            Path: /docs
+            Method: GET
+        ApiOpenAPI:
+          Type: Api
+          Properties:
+            Path: /openapi.json
+            Method: GET
+      # Policies:
+        # - VPCAccessPolicy: {}
+      # VpcConfig:
+      #   SecurityGroupIds:
+      #     - sg-0123456789abcdef0  # RDSのセキュリティグループID
+      #   SubnetIds:
+      #     - subnet-0123456789abcdef0  # プライベートサブネットID
+      #     - subnet-0123456789abcdef1  # プライベートサブネットID
         

@@ -1,16 +1,16 @@
+from typing import Optional
 from pydantic import BaseModel
 
 class WordBase(BaseModel):
-    name: str | None = None
-    hiragana: str
-    romanian: str | None = None
+    name: Optional[str] = None
+    romanian: Optional[str] = None
     is_katakana: bool = False
-    level: str | None = None
-    english: str | None = None
-    vietnamese: str | None = None
-    lexical_category: str | None = None
-    accent_up: int | None = None
-    accent_down: int | None = None
+    level: Optional[str] = None
+    english: Optional[str] = None
+    vietnamese: Optional[str] = None
+    lexical_category: Optional[str] = None
+    accent_up: Optional[int] = None
+    accent_down: Optional[int] = None
 
 class WordCreate(WordBase):
     pass

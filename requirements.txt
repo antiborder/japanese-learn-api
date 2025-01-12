@@ -1,7 +1,6 @@
-fastapi[all]==0.99.0
+fastapi==0.99.0
 mangum==0.11.0
 pydantic==1.10.9
-pydantic-core
 sqlalchemy==2.0.27
 pymysql
 python-dotenv
