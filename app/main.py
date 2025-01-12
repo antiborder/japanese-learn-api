@@ -8,7 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from app.api.v1.endpoints import word
 
-app = FastAPI()
+app = FastAPI(
+    title="Japanese Learn API",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1},
+    redirect_slashes=True
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,4 +27,8 @@ app.add_middleware(
 
 app.include_router(word.router, prefix="/api/v1")
 
-handler = Mangum(app)
+# Mangumハンドラーの設定
+handler = Mangum(
+    app,
+    lifespan="off"
+)
