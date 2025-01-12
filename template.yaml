@@ -16,13 +16,13 @@ Resources:
         ApiV1Words:
           Type: Api
           Properties:
-            Path: /api/v1/words
-            Method: ANY
+            Path: /Prod/api/v1/words
+            Method: get
         ApiV1WordsId:
           Type: Api
           Properties:
-            Path: /api/v1/words/{word_id}
-            Method: ANY
+            Path: /Prod/api/v1/words/{word_id}
+            Method: get
         ApiDocs:
           Type: Api
           Properties:

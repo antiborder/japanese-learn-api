@@ -25,7 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(word.router, prefix="/api/v1")
+app.include_router(word.router, prefix="/Prod/api/v1")
 
 # Mangumハンドラーの設定
 handler = Mangum(

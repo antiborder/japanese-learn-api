@@ -25,16 +25,14 @@ def create_word(word: WordCreate, db: Session = Depends(get_db)):
 @router.get("/words", response_model=List[Word])
 def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     try:
-        logger.info("Fetching words with skip=%d and limit=%d", skip, limit)  # INFOログ
+        logger.info("Fetching words with skip=%d and limit=%d", skip, limit)
+        logger.info("Database session: %s", db)
         words = word_crud.get_words(db, skip=skip, limit=limit)
-        if not words:  # 空リストの場合
-            logger.warning("No words found")  # 警告ログ
-            raise HTTPException(status_code=404, detail="No words found")
-        logger.info("Fetched %d words", len(words))  # INFOログ
+        logger.info("Query result: %s", words)
         return words
     except Exception as e:
-        logger.error("Error reading words: %s", str(e))  # エラーログ
-        logger.error("Stack trace: %s", traceback.format_exc())  # スタックトレースをログに出力
+        logger.error("Error reading words: %s", str(e))
+        logger.error("Stack trace: %s", traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/words/{word_id}", response_model=Word)
