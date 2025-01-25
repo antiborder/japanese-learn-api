@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from app.api.v1.endpoints import word
+from app.api.v1.endpoints import kanji
 
 app = FastAPI(
     title="Japanese Learn API",
@@ -25,7 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(word.router, prefix="/Prod/api/v1")
+app.include_router(word.router, prefix="/api/v1")
+app.include_router(kanji.router, prefix="/api/v1")
 
 # Mangumハンドラーの設定
 handler = Mangum(

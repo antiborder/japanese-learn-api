@@ -1,0 +1,28 @@
+from sqlalchemy.orm import Session
+from app.models.kanji import Kanji
+from app.schemas.kanji import KanjiCreate
+import logging
+
+# ロガーの設定
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def get_kanji(db: Session, kanji_id: int):
+    return db.query(Kanji).filter(Kanji.id == kanji_id).first()
+
+def get_kanjis(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(Kanji).offset(skip).limit(limit).all()
+
+def create_kanji(db: Session, kanji: KanjiCreate):
+    try:
+        db_kanji = Kanji(**kanji.dict())
+        db.add(db_kanji)
+        db.commit()
+        db.refresh(db_kanji)
+        return db_kanji
+    except Exception as e:
+        logger.error("Error saving kanji to database: %s", str(e))
+        raise
+
+def get_kanji_by_character(db: Session, character: str):
+    return db.query(Kanji).filter(Kanji.character == character).all()

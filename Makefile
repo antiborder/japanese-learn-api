@@ -17,7 +17,7 @@ package:
 	docker cp my_lambda_env:/lambda.zip .
 
 upload:
-	aws lambda update-function-code --function-name japanese-learn-api --zip-file fileb://lambda.zip
+	aws lambda update-function-code --function-name japanese-learn-lambdaJapaneseLearn-UzpN0784du5X --zip-file fileb://lambda.zip
 
 help:
 	@echo "使用可能なコマンド:"

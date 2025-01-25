@@ -3,7 +3,8 @@ from pydantic import BaseModel
 
 class WordBase(BaseModel):
     name: Optional[str] = None
-    romanian: Optional[str] = None
+    hiragana: Optional[str] = None
+    romaji: Optional[str] = None
     is_katakana: bool = False
     level: Optional[str] = None
     english: Optional[str] = None

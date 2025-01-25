@@ -7,7 +7,6 @@ class Word(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=True)    
     hiragana = Column(String(255), nullable=False)
-    romanian = Column(String(255), nullable=True)
     is_katakana = Column(Boolean, default=False)
     level = Column(String(50), nullable=True)
     english = Column(String(255), nullable=True)
