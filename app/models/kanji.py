@@ -11,3 +11,4 @@ class Kanji(Base):
     strokes = Column(Integer, nullable=True)  # 画数
     onyomi = Column(String(255), nullable=True)  # 音読み
     kunyomi = Column(String(255), nullable=True)  # 訓読み
+    level = Column(String(50), nullable=True)  # 新しく追加したlevelフィールド

@@ -43,10 +43,8 @@ def read_word(word_id: int, db: Session = Depends(get_db)):
         if db_word is None:
             raise HTTPException(status_code=404, detail="Word not found")
         
-        # 各wordにromajiを追加
         db_word.romaji = convert_hiragana_to_romaji(db_word.hiragana)
         
-        # 変換したromajiを返す
         return {
             "id": db_word.id,
             "name": db_word.name,
