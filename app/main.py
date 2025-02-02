@@ -6,8 +6,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
-from app.api.v1.endpoints import word
-from app.api.v1.endpoints import kanji
+from app.api.v1.endpoints import word, kanji, component
+from app.logging_config import setup_logging
+
+# ログ設定を呼び出す
+setup_logging()
 
 app = FastAPI(
     title="Japanese Learn API",
@@ -28,6 +31,7 @@ app.add_middleware(
 
 app.include_router(word.router, prefix="/api/v1")
 app.include_router(kanji.router, prefix="/api/v1")
+app.include_router(component.router, prefix="/api/v1")
 
 # Mangumハンドラーの設定
 handler = Mangum(
