@@ -7,10 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from app.api.v1.endpoints import word, kanji, component
-from app.logging_config import setup_logging
 
-# ログ設定を呼び出す
-setup_logging()
 
 app = FastAPI(
     title="Japanese Learn API",

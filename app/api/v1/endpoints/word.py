@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from app.crud import word as word_crud
+from app.crud import word_crud as word_crud
 from app.schemas.word import Word, WordCreate
 from app.database import get_db
 import logging
@@ -61,3 +61,7 @@ def read_word(word_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error("Error reading word with ID %d: %s", word_id, str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+@router.get("/words/kanjis/{kanji_id}", response_model=List[Word])
+def read_words_by_kanji_id(kanji_id: int, db: Session = Depends(get_db)):
+    return word_crud.get_words_by_kanji_id(db, kanji_id=kanji_id)
