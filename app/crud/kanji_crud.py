@@ -1,11 +1,9 @@
 from sqlalchemy.orm import Session
 from app.models.kanji_component import Kanji
 from app.schemas.kanji_component import KanjiCreate
-from app.service import kanji_service
 
 
 import logging
-from sqlalchemy import text
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)

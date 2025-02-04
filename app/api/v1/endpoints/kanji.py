@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi.responses import StreamingResponse
@@ -6,9 +6,11 @@ from app.crud import kanji_crud as kanji_crud
 from app.service import kanji_service
 from app.schemas.kanji_component import Kanji, KanjiCreate
 from app.database import get_db
-
+from app.crud import component_crud as component_crud
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/kanjis", response_model=Kanji)
 def create_kanji(kanji: KanjiCreate, db: Session = Depends(get_db)):
@@ -37,3 +39,9 @@ def read_kanji_by_character(character: str, db: Session = Depends(get_db)):
 def export_kanjis_to_csv(db: Session = Depends(get_db)):
     output = kanji_service.generate_kanji_csv(db)  # kanji_serviceの関数を呼び出す
     return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=kanjis.csv"})
+
+
+@router.post("/kanjis/import/csv")
+async def import_kanjis_from_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    contents = await file.read()
+    return kanji_service.import_kanjis_from_csv(contents, db)
