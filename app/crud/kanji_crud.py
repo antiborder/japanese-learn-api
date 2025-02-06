@@ -17,8 +17,8 @@ def get_kanji(db: Session, kanji_id: int):
     return db.query(Kanji).filter(Kanji.id == kanji_id).first()
 
 
-def get_kanjis(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Kanji).offset(skip).limit(limit).all()
+def get_kanjis(db: Session):
+    return db.query(Kanji).all()
 
 
 def create_kanji(db: Session, kanji: KanjiCreate):
@@ -34,4 +34,11 @@ def create_kanji(db: Session, kanji: KanjiCreate):
 
 
 def get_kanji_by_character(db: Session, character: str):
-    return db.query(Kanji).filter(Kanji.character == character).all()
+    return db.query(Kanji).filter(Kanji.character == character).first()
+
+
+def update_kanji(db: Session, existing_kanji: Kanji, kanji_data: dict):
+    for key, value in kanji_data.items():
+        setattr(existing_kanji, key, value)
+    db.commit()  # 変更をコミット
+    return existing_kanji

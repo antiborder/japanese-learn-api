@@ -23,3 +23,5 @@ def create_component(db: Session, component: ComponentCreate):
     db.refresh(db_component)
     return db_component
 
+def get_component_by_character(db: Session, character: str):
+    return db.query(Component).filter(Component.character == character).first()

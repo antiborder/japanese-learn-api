@@ -30,7 +30,7 @@ def read_kanji(kanji_id: int, db: Session = Depends(get_db)):
     return kanji
 
 
-@router.get("/kanjis/character/{character}", response_model=List[Kanji])
+@router.get("/kanjis/character/{character}", response_model=Kanji)
 def read_kanji_by_character(character: str, db: Session = Depends(get_db)):
     return kanji_crud.get_kanji_by_character(db, character=character)
 
