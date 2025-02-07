@@ -19,7 +19,7 @@ def create_kanji(kanji: KanjiCreate, db: Session = Depends(get_db)):
 
 @router.get("/kanjis", response_model=List[Kanji])
 def read_kanjis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return kanji_crud.get_kanjis(db, skip=skip, limit=limit)
+    return kanji_crud.get_kanjis(db)
 
 
 @router.get("/kanjis/{kanji_id}", response_model=Kanji)

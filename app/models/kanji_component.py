@@ -16,7 +16,7 @@ class Kanji(Base):
     level = Column(String(50), nullable=True)
 
     components = relationship("Component", secondary="kanji_component", back_populates="kanjis", overlaps="kanjis")
-    kanji_component = relationship("KanjiComponent", back_populates="kanji")
+    kanji_component = relationship("KanjiComponent", back_populates="kanji", overlaps="components")
 
 
 class Component(Base):
@@ -29,7 +29,7 @@ class Component(Base):
     vi = Column(String(255), nullable=True)
 
     kanjis = relationship("Kanji", secondary="kanji_component", back_populates="components", overlaps="components")
-    kanji_component = relationship("KanjiComponent", back_populates="component")
+    kanji_component = relationship("KanjiComponent", back_populates="component", overlaps="kanjis")
 
 
 class KanjiComponent(Base):

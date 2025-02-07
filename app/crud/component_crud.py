@@ -25,3 +25,14 @@ def create_component(db: Session, component: ComponentCreate):
 
 def get_component_by_character(db: Session, character: str):
     return db.query(Component).filter(Component.character == character).first()
+
+def update_component(db: Session, existing_component: Component, component_data: dict):
+    for key, value in component_data.items():
+        setattr(existing_component, key, value)
+    db.commit()  # 変更をコミット
+    return existing_component
+
+def relate_component_to_kanji(db: Session, kanji, component):
+    kanji.components.append(component)
+    db.commit()
+
