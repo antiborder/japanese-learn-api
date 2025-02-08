@@ -7,6 +7,10 @@ from app.database import get_db
 import logging
 import traceback
 from app.utils.utils import convert_hiragana_to_romaji
+from app.service import word_service
+from fastapi.responses import Response, StreamingResponse
+import io
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,3 +69,14 @@ def read_word(word_id: int, db: Session = Depends(get_db)):
 @router.get("/words/kanjis/{kanji_id}", response_model=List[Word])
 def read_words_by_kanji_id(kanji_id: int, db: Session = Depends(get_db)):
     return word_crud.get_words_by_kanji_id(db, kanji_id=kanji_id)
+
+
+@router.get("/words/{word_id}/audio")
+def get_word_audio(word_id: int, db: Session = Depends(get_db)):
+    try:
+        audio_content = word_service.get_audio_from_s3(word_id)
+        return StreamingResponse(io.BytesIO(audio_content), media_type="audio/mpeg")  # StreamingResponseを使用
+    except HTTPException as e:
+        raise e  # 既存のHTTPExceptionを再スロー
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
