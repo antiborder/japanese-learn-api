@@ -1,7 +1,7 @@
 import boto3
 import os
 from fastapi import HTTPException
-from app.integrations.aws import get_audio_from_s3
+from app.integrations.aws import get_audio
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ s3_client = boto3.client(
     region_name=os.getenv("AWS_REGION")
 )
 
-def get_audio(word_id: int):
+def get_audio_from_s3(word_id: int):
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
         object_key = f"sounds/{word_id}.mp3"  # 例: sounds/1.mp3
