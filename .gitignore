@@ -44,3 +44,6 @@ ENV/
 *.so
 *.pyd
 *.dll
+
+# Google keys
+google-tts-key.json

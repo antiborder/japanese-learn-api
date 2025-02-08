@@ -72,7 +72,7 @@ def read_words_by_kanji_id(kanji_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/words/{word_id}/audio")
-def get_word_audio(word_id: int, db: Session = Depends(get_db)):
+def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
     try:
         audio_content = word_service.get_audio(word_id, db)
         return StreamingResponse(io.BytesIO(audio_content), media_type="audio/mpeg")  # StreamingResponseを使用

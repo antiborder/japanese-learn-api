@@ -14,7 +14,7 @@ def get_audio(word_id: int, db: Session):
     except HTTPException as e:
         if e.status_code == 404:  # S3に音声ファイルがない場合
             word = word_crud.get_word(db, word_id)
-            audio_content = synthesize_speech(word.name) # Google Text-to-Speechを使用して音声を生成
+            audio_content = synthesize_speech(word.hiragana) # Google Text-to-Speechを使用して音声を生成
             aws.save_word_audio_to_s3(word_id, audio_content) # 音声をS3に保存
             return audio_content
         raise
