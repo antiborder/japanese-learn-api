@@ -1,23 +1,20 @@
-import boto3
-import os
 from fastapi import HTTPException
-from app.integrations.aws import get_word_audio
+from app.integrations import aws
+from app.crud import word_crud
+from sqlalchemy.orm import Session
+from app.integrations.google import synthesize_speech  # google.pyからインポート
 import logging
 
 logger = logging.getLogger(__name__)
 
-
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
-    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-    region_name=os.getenv("AWS_REGION")
-)
-
-def get_audio_from_s3(word_id: int):
+def get_audio(word_id: int, db: Session):
     try:
-        bucket_name = os.getenv("S3_BUCKET_NAME")
-        audio_content = get_word_audio(bucket_name, word_id)
+        audio_content = aws.get_word_audio_from_s3(word_id)
         return audio_content
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException as e:
+        if e.status_code == 404:  # S3に音声ファイルがない場合
+            word = word_crud.get_word(db, word_id)
+            audio_content = synthesize_speech(word.name) # Google Text-to-Speechを使用して音声を生成
+            aws.save_word_audio_to_s3(word_id, audio_content) # 音声をS3に保存
+            return audio_content
+        raise
