@@ -2,7 +2,7 @@ import boto3
 import os
 from fastapi import HTTPException
 
-
+# S3クライアントの設定
 s3_client = boto3.client(
     's3',
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
@@ -10,15 +10,10 @@ s3_client = boto3.client(
     region_name=os.getenv("AWS_REGION")
 )
 
-def get_audio_from_s3(word_id: int):
-    bucket_name = os.getenv("S3_BUCKET_NAME")
-    object_key = f"sounds/{word_id}.mp3"  # 例: sounds/1.mp3
-
+def get_audio(bucket_name: str, object_key: str):
     try:
-        # S3からオブジェクトを取得
         response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
         audio_content = response['Body'].read()
-
         return audio_content  # 音声データを直接返す
 
     except s3_client.exceptions.NoSuchKey:

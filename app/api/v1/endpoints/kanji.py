@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from fastapi.responses import StreamingResponse
 from app.crud import kanji_crud as kanji_crud
-from app.service import kanji_service
+from app.services import kanji_service
 from app.schemas.kanji_component import Kanji, KanjiCreate
 from app.database import get_db
 from app.crud import component_crud as component_crud
@@ -11,6 +11,7 @@ import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
 
 @router.post("/kanjis", response_model=Kanji)
 def create_kanji(kanji: KanjiCreate, db: Session = Depends(get_db)):
