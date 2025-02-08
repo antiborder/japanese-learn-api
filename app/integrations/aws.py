@@ -10,11 +10,13 @@ s3_client = boto3.client(
     region_name=os.getenv("AWS_REGION")
 )
 
-def get_audio(bucket_name: str, object_key: str):
+def get_word_audio(bucket_name: str, word_id: int):
     try:
+        object_key = f"sounds/words/{word_id}.mp3"
+        print(object_key)
         response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
         audio_content = response['Body'].read()
-        return audio_content  # 音声データを直接返す
+        return audio_content
 
     except s3_client.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail="Audio file not found")
