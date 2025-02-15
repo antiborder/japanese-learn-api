@@ -5,12 +5,19 @@ from fastapi import HTTPException
 
 # S3クライアントの設定
 bucket_name = os.getenv("S3_BUCKET_NAME")
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
-    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-    region_name=os.getenv("AWS_REGION")
-)
+
+if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("AWS_REGION")
+    )
+else:
+    s3_client = boto3.client(
+        's3',
+        region_name=os.getenv("AWS_REGION")  # ここだけ環境変数から取得
+    )
 
 def get_word_audio_from_s3(word_id: int):
     try:
