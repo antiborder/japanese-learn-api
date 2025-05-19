@@ -19,6 +19,7 @@ ENV/
 # AWS SAM
 .aws-sam/
 *.template.yaml
+samconfig.toml
 
 # IDEs
 .vscode/
@@ -37,6 +38,7 @@ ENV/
 *.swp
 *.swo
 
+# Zip and Git files
 *.zip
 *.git
 
@@ -45,5 +47,25 @@ ENV/
 *.pyd
 *.dll
 
-# Google keys
+# Dependencies
+dependencies/
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Database
+*.db
+*.sqlite3
+
+# Configuration and credentials
 google-tts-key.json
+env.json
+.env.example
+.python-version
+pyrightconfig.json
+
+# Build artifacts
+your_database.db
+alembic.ini
+readme
