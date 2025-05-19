@@ -10,14 +10,28 @@ clean:
 build:
 	docker cp app my_lambda_env:/python/
 	docker cp requirements.txt my_lambda_env:/python/
-	docker exec my_lambda_env bash -c "cd /python && mkdir -p packages && pip3 install -r requirements.txt --target ./packages"
+	docker cp google-tts-key.json my_lambda_env:/python/
+	docker exec my_lambda_env bash -c "cd /python && mkdir -p packages && \
+		pip3 install --no-cache-dir --platform manylinux2014_x86_64 --implementation cp --python-version 3.11 --only-binary=:all: --upgrade -r requirements.txt --target ./packages && \
+		pip3 install --no-cache-dir grpcio grpcio-status google-cloud-texttospeech --target ./packages"
 
 package:
-	docker exec my_lambda_env bash -c "cd /python && cp -r app packages/ && cd packages && zip -r /lambda.zip *"
+	docker exec my_lambda_env bash -c "cd /python && cp -r app packages/ && \
+		cp google-tts-key.json packages/ && \
+		cd packages && \
+		find . -name '*aarch64*.so' -delete && \
+		find . -name '*.pyx' -delete && \
+		find . -name '*.pxd' -delete && \
+		find . -name '*.h' -delete && \
+		find . -name '*.c' -delete && \
+		find . -name '*.pyc' -delete && \
+		find . -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+		zip -r /lambda.zip *"
 	docker cp my_lambda_env:/lambda.zip .
 
 upload:
-	aws lambda update-function-code --function-name japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M --zip-file fileb://lambda.zip
+	aws s3 cp lambda.zip s3://bucket-japanese-learn/lambda.zip
+	aws lambda update-function-code --function-name japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M --s3-bucket bucket-japanese-learn --s3-key lambda.zip
 
 cleanup:
 	rm -f lambda.zip
