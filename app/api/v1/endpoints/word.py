@@ -71,7 +71,7 @@ def read_words_by_kanji_id(kanji_id: int, db: Session = Depends(get_db)):
     return word_crud.get_words_by_kanji_id(db, kanji_id=kanji_id)
 
 
-@router.get("/{word_id}/audio")
+@router.get("/words/{word_id}/audio_url")
 async def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
     try:
         logger.info(f"Fetching audio URL for word_id: {word_id}")
