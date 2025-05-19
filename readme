@@ -1,2 +1,0 @@
-# ローカルで起動
-uvicorn app.main:app --reload  

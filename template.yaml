@@ -18,19 +18,3 @@ Resources:
           Properties:
             Path: /api/v1/{proxy+}
             Method: any
-
-  ApiGateway:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Prod
-      Cors:
-        AllowOrigin: "'*'"
-        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-
-  LambdaInvokePermissionNew:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt lambdaJapaneseLearnNew.Arn
-      Principal: apigateway.amazonaws.com
