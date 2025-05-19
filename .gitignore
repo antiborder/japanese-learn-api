@@ -19,7 +19,6 @@ ENV/
 # AWS SAM
 .aws-sam/
 *.template.yaml
-samconfig.toml
 
 # IDEs
 .vscode/
@@ -52,7 +51,6 @@ dependencies/
 
 # Docker
 .dockerignore
-Dockerfile
 
 # Database
 *.db
@@ -67,5 +65,3 @@ pyrightconfig.json
 
 # Build artifacts
 your_database.db
-alembic.ini
-readme
