@@ -71,12 +71,16 @@ def read_words_by_kanji_id(kanji_id: int, db: Session = Depends(get_db)):
     return word_crud.get_words_by_kanji_id(db, kanji_id=kanji_id)
 
 
-@router.get("/words/{word_id}/audio")
-def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
+@router.get("/{word_id}/audio")
+async def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
     try:
-        audio_content = word_service.get_audio(word_id, db)
-        return StreamingResponse(io.BytesIO(audio_content), media_type="audio/mpeg")  # StreamingResponseを使用
-    except HTTPException as e:
-        raise e  # 既存のHTTPExceptionを再スロー
+        logger.info(f"Fetching audio URL for word_id: {word_id}")
+        audio_url = word_service.get_audio_url(word_id, db)
+        
+        return {
+            "url": audio_url,
+            "expires_in": 3600  # URL有効期限（秒）
+        }
     except Exception as e:
+        logger.error(f"Error fetching audio URL for word_id {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
