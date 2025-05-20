@@ -13,27 +13,49 @@ Resources:
         Variables:
           DATABASE_URL: "mysql+pymysql://dbmasteruser:D%<WBLKR9!,ZNT1gNzxIU#*,D_xU?48q@ls-c473c9825c62e9efe33c74c6f241de905c9d5e8d.cxcecqy6s31q.ap-northeast-1.rds.amazonaws.com:3306/japanese_learn"
           S3_BUCKET_NAME: "bucket-japanese-learn-resource"
-          AWS_REGION: "ap-northeast-1"
+          REGION: "ap-northeast-1"
           GOOGLE_APPLICATION_CREDENTIALS: "google-tts-key.json"
+          MAX_COMPONENT_COUNT: "5"
+          MIN_COLUMN_COUNT: "7"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:HeadObject
+              Resource: "arn:aws:s3:::bucket-japanese-learn-resource/*"
       Events:
-        ApiGateway:
-          Type: Api
+        HttpApiEvent:
+          Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /api/v1/{proxy+}
-            Method: any
+            Method: ANY
+            PayloadFormatVersion: "2.0"
 
-  ApiGateway:
-    Type: AWS::Serverless::Api
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: Prod
-      Cors:
-        AllowOrigin: "'*'"
-        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - OPTIONS
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        AllowHeaders:
+          - Content-Type
+          - X-Amz-Date
+          - Authorization
+          - X-Api-Key
+          - X-Amz-Security-Token
+        MaxAge: 600
 
-  LambdaInvokePermissionNew:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt lambdaJapaneseLearnNew.Arn
-      Principal: apigateway.amazonaws.com
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
