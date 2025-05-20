@@ -1,0 +1,307 @@
+{
+    "TemplateBody": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {
+            "AwsAccessKey": {
+                "Type": "String"
+            },
+            "MaxComponentCount": {
+                "Type": "String"
+            },
+            "DatabaseUrl": {
+                "Type": "String"
+            },
+            "AwsRegion": {
+                "Type": "String"
+            },
+            "MinColumnCount": {
+                "Type": "String"
+            },
+            "S3BucketName": {
+                "Type": "String"
+            },
+            "AwsSecretKey": {
+                "Type": "String"
+            }
+        },
+        "Outputs": {
+            "ApiUrl": {
+                "Description": "API Gateway endpoint URL",
+                "Value": {
+                    "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+                }
+            }
+        },
+        "Resources": {
+            "ServerlessRestApiProdStage": {
+                "Type": "AWS::ApiGateway::Stage",
+                "Properties": {
+                    "DeploymentId": {
+                        "Ref": "ServerlessRestApiDeployment7d9a94efdb"
+                    },
+                    "RestApiId": {
+                        "Ref": "ServerlessRestApi"
+                    },
+                    "StageName": "Prod"
+                }
+            },
+            "JapaneseLearnFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Metadata": {
+                    "SamResourceId": "JapaneseLearnFunction"
+                },
+                "Properties": {
+                    "Code": {
+                        "S3Bucket": "aws-sam-cli-managed-default-samclisourcebucket-wifzlstdcfi8",
+                        "S3Key": "japanese-learn/f3b111095555a3c118606a8392ff49b2"
+                    },
+                    "Handler": "app.main.handler",
+                    "MemorySize": 512,
+                    "Role": {
+                        "Fn::GetAtt": [
+                            "JapaneseLearnFunctionRole",
+                            "Arn"
+                        ]
+                    },
+                    "Runtime": "python3.11",
+                    "Timeout": 60,
+                    "Environment": {
+                        "Variables": {
+                            "DATABASE_URL": {
+                                "Ref": "DatabaseUrl"
+                            },
+                            "CUSTOM_AWS_ACCESS_KEY": {
+                                "Ref": "AwsAccessKey"
+                            },
+                            "CUSTOM_AWS_SECRET_KEY": {
+                                "Ref": "AwsSecretKey"
+                            },
+                            "CUSTOM_AWS_REGION": {
+                                "Ref": "AwsRegion"
+                            },
+                            "MAX_COMPONENT_COUNT": {
+                                "Ref": "MaxComponentCount"
+                            },
+                            "MIN_COLUMN_COUNT": {
+                                "Ref": "MinColumnCount"
+                            },
+                            "S3_BUCKET_NAME": {
+                                "Ref": "S3BucketName"
+                            }
+                        }
+                    },
+                    "Tags": [
+                        {
+                            "Key": "lambda:createdBy",
+                            "Value": "SAM"
+                        }
+                    ]
+                }
+            },
+            "JapaneseLearnFunctionDefaultApiPermissionProd": {
+                "Type": "AWS::Lambda::Permission",
+                "Properties": {
+                    "Action": "lambda:InvokeFunction",
+                    "FunctionName": {
+                        "Ref": "JapaneseLearnFunction"
+                    },
+                    "Principal": "apigateway.amazonaws.com",
+                    "SourceArn": {
+                        "Fn::Sub": [
+                            "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*/*",
+                            {
+                                "__ApiId__": {
+                                    "Ref": "ServerlessRestApi"
+                                },
+                                "__Stage__": "*"
+                            }
+                        ]
+                    }
+                }
+            },
+            "JapaneseLearnFunctionRole": {
+                "Type": "AWS::IAM::Role",
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "sts:AssumeRole"
+                                ],
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": [
+                                        "lambda.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "ManagedPolicyArns": [
+                        "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                    ],
+                    "Policies": [
+                        {
+                            "PolicyName": "JapaneseLearnFunctionRolePolicy0",
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": [
+                                            "s3:GetObject",
+                                            "s3:ListBucket",
+                                            "s3:GetBucketLocation",
+                                            "s3:GetObjectVersion",
+                                            "s3:GetLifecycleConfiguration"
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": [
+                                            {
+                                                "Fn::Sub": [
+                                                    "arn:${AWS::Partition}:s3:::${bucketName}",
+                                                    {
+                                                        "bucketName": {
+                                                            "Ref": "S3BucketName"
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "Fn::Sub": [
+                                                    "arn:${AWS::Partition}:s3:::${bucketName}/*",
+                                                    {
+                                                        "bucketName": {
+                                                            "Ref": "S3BucketName"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "PolicyName": "JapaneseLearnFunctionRolePolicy1",
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": [
+                                            "s3:PutObject",
+                                            "s3:PutObjectAcl",
+                                            "s3:PutLifecycleConfiguration"
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": [
+                                            {
+                                                "Fn::Sub": [
+                                                    "arn:${AWS::Partition}:s3:::${bucketName}",
+                                                    {
+                                                        "bucketName": {
+                                                            "Ref": "S3BucketName"
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "Fn::Sub": [
+                                                    "arn:${AWS::Partition}:s3:::${bucketName}/*",
+                                                    {
+                                                        "bucketName": {
+                                                            "Ref": "S3BucketName"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "Tags": [
+                        {
+                            "Key": "lambda:createdBy",
+                            "Value": "SAM"
+                        }
+                    ]
+                }
+            },
+            "ServerlessRestApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "Body": {
+                        "info": {
+                            "version": "1.0",
+                            "title": {
+                                "Ref": "AWS::StackName"
+                            }
+                        },
+                        "paths": {
+                            "/api/v1/words/{word_id}/audio": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JapaneseLearnFunction.Arn}/invocations"
+                                        }
+                                    },
+                                    "responses": {}
+                                }
+                            },
+                            "/{proxy+}": {
+                                "x-amazon-apigateway-any-method": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JapaneseLearnFunction.Arn}/invocations"
+                                        }
+                                    },
+                                    "responses": {}
+                                }
+                            }
+                        },
+                        "swagger": "2.0"
+                    }
+                }
+            },
+            "JapaneseLearnFunctionAudioApiPermissionProd": {
+                "Type": "AWS::Lambda::Permission",
+                "Properties": {
+                    "Action": "lambda:InvokeFunction",
+                    "FunctionName": {
+                        "Ref": "JapaneseLearnFunction"
+                    },
+                    "Principal": "apigateway.amazonaws.com",
+                    "SourceArn": {
+                        "Fn::Sub": [
+                            "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/GET/api/v1/words/*/audio",
+                            {
+                                "__ApiId__": {
+                                    "Ref": "ServerlessRestApi"
+                                },
+                                "__Stage__": "*"
+                            }
+                        ]
+                    }
+                }
+            },
+            "ServerlessRestApiDeployment7d9a94efdb": {
+                "Type": "AWS::ApiGateway::Deployment",
+                "Properties": {
+                    "Description": "RestApi deployment id: 7d9a94efdb94dd38636451977da2e458dad63381",
+                    "RestApiId": {
+                        "Ref": "ServerlessRestApi"
+                    },
+                    "StageName": "Stage"
+                }
+            }
+        }
+    },
+    "StagesAvailable": [
+        "Original",
+        "Processed"
+    ]
+}

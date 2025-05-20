@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 
 class WordBase(BaseModel):
@@ -18,6 +18,12 @@ class WordCreate(WordBase):
 
 class Word(WordBase):
     id: int
+
+    class Config:
+        orm_mode = True
+
+class Words(BaseModel):
+    words: List[Word]
 
     class Config:
         orm_mode = True

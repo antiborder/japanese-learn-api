@@ -1,61 +1,37 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Resources:
-  lambdaJapaneseLearnNew:
-    Type: 'AWS::Serverless::Function'
+  Api:
+    Type: AWS::Serverless::Api
     Properties:
-      Handler: app.main.handler
-      Runtime: python3.11
-      CodeUri: .
-      MemorySize: 512
-      Timeout: 60
-      Environment:
-        Variables:
-          DATABASE_URL: "mysql+pymysql://dbmasteruser:D%<WBLKR9!,ZNT1gNzxIU#*,D_xU?48q@ls-c473c9825c62e9efe33c74c6f241de905c9d5e8d.cxcecqy6s31q.ap-northeast-1.rds.amazonaws.com:3306/japanese_learn"
-          S3_BUCKET_NAME: "bucket-japanese-learn-resource"
-          REGION: "ap-northeast-1"
-          GOOGLE_APPLICATION_CREDENTIALS: "google-tts-key.json"
-          MAX_COMPONENT_COUNT: "5"
-          MIN_COLUMN_COUNT: "7"
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:PutObject
-                - s3:HeadObject
-              Resource: "arn:aws:s3:::bucket-japanese-learn-resource/*"
-      Events:
-        HttpApiEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /api/v1/{proxy+}
-            Method: ANY
-            PayloadFormatVersion: "2.0"
+      StageName: Prod
+      Cors:
+        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: Japanese Learn API
+        paths:
+          /api/v1/{proxy+}:
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:478157933567:function:japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M/invocations"
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
 
-  HttpApi:
-    Type: AWS::Serverless::HttpApi
+  ApiGatewayPermission:
+    Type: AWS::Lambda::Permission
     Properties:
-      StageName: $default
-      CorsConfiguration:
-        AllowOrigins:
-          - '*'
-        AllowMethods:
-          - OPTIONS
-          - GET
-          - POST
-          - PUT
-          - DELETE
-        AllowHeaders:
-          - Content-Type
-          - X-Amz-Date
-          - Authorization
-          - X-Api-Key
-          - X-Amz-Security-Token
-        MaxAge: 600
+      Action: lambda:InvokeFunction
+      FunctionName: "arn:aws:lambda:ap-northeast-1:478157933567:function:japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M"
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*/*"
 
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

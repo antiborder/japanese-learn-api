@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.crud import word_crud as word_crud
-from app.schemas.word import Word, WordCreate
+from app.schemas.word import Word, WordCreate, Words
 from app.database import get_db
 import logging
 import traceback
@@ -25,7 +25,7 @@ def create_word(word: WordCreate, db: Session = Depends(get_db)):
         logger.error("Error creating word: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@router.get("/words", response_model=List[Word])
+@router.get("/words", response_model=Words)
 def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     try:
         words = word_crud.get_words(db, skip=skip, limit=limit)
@@ -34,7 +34,7 @@ def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
         for word in words:
             word.romaji = convert_hiragana_to_romaji(word.hiragana)
         
-        return words
+        return {"words": words}
     except Exception as e:
         logger.error("Error reading words: %s", str(e))
         logger.error("Stack trace: %s", traceback.format_exc())

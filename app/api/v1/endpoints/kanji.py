@@ -22,17 +22,17 @@ def create_kanji(kanji: KanjiCreate, db: Session = Depends(get_db)):
     return kanji_crud.create_kanji(db=db, kanji=kanji)
 
 
-@router.get("/kanjis", response_model=List[Kanji])
-def read_kanjis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return kanji_crud.get_kanjis(db)
-
-
 @router.get("/kanjis/character", response_model=KanjiIdResponse)
 def read_kanji_by_character_query(character: str, db: Session = Depends(get_db)):
     kanji = kanji_crud.get_kanji_by_character(db, character=character)
     if kanji is None:
         raise HTTPException(status_code=404, detail="Kanji not found")
     return {"kanji_id": kanji.id}
+
+
+@router.get("/kanjis", response_model=List[Kanji])
+def read_kanjis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return kanji_crud.get_kanjis(db)
 
 
 @router.get("/kanjis/character/{character}", response_model=Kanji)
