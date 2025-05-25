@@ -3,21 +3,20 @@ from pydantic import BaseModel
 
 
 class KanjiBase(BaseModel):
-    id: Optional[int] = None
     character: str
     english: Optional[str] = None
     vietnamese: Optional[str] = None
     strokes: Optional[int] = None
     onyomi: Optional[str] = None
     kunyomi: Optional[str] = None
+    level: Optional[str] = None
 
     class Config:
         orm_mode = True
 
 
 class ComponentBase(BaseModel):
-    id: Optional[int] = None
-    character: Optional[str] = None
+    character: str
     name: Optional[str] = None
     en: Optional[str] = None
     vi: Optional[str] = None
@@ -31,7 +30,8 @@ class KanjiCreate(KanjiBase):
 
 
 class Kanji(KanjiBase):
-    components: Optional[List[ComponentBase]]
+    id: int
+    components: Optional[List[ComponentBase]] = None
 
 
 class ComponentCreate(ComponentBase):
@@ -39,4 +39,5 @@ class ComponentCreate(ComponentBase):
 
 
 class Component(ComponentBase):
-    kanjis: Optional[List[KanjiBase]]
+    id: int
+    kanjis: Optional[List[KanjiBase]] = None

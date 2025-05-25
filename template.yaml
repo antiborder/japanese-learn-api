@@ -1,37 +1,154 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Resources:
-  Api:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Prod
-      Cors:
-        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
-        MaxAge: "'600'"
-      DefinitionBody:
-        swagger: '2.0'
-        info:
-          title: Japanese Learn API
-        paths:
-          /api/v1/{proxy+}:
-            x-amazon-apigateway-any-method:
-              x-amazon-apigateway-integration:
-                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:478157933567:function:japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M/invocations"
-                passthroughBehavior: when_no_match
-                httpMethod: POST
-                type: aws_proxy
 
-  ApiGatewayPermission:
-    Type: AWS::Lambda::Permission
+Parameters:
+  DatabaseUrl:
+    Type: String
+    Description: "Database connection URL"
+    NoEcho: true
+  MaxComponentCount:
+    Type: String
+    Description: "Maximum number of components"
+  MinColumnCount:
+    Type: String
+    Description: "Minimum number of columns"
+  S3BucketName:
+    Type: String
+    Description: "S3 bucket name for resources"
+  GoogleCredentials:
+    Type: String
+    Description: "Google credentials file path"
+
+Globals:
+  Function:
+    Runtime: python3.9
+    MemorySize: 256
+    Timeout: 30
+    Tracing: Active
+    LoggingConfig:
+      LogFormat: JSON
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: japanese-learn
+        LOG_LEVEL: INFO
+        DATABASE_URL: !Ref DatabaseUrl
+        MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+        MIN_COLUMN_COUNT: !Ref MinColumnCount
+        S3_BUCKET_NAME: !Ref S3BucketName
+        GOOGLE_APPLICATION_CREDENTIALS: !Ref GoogleCredentials
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+
+Resources:
+  # Lambda Functions
+  WordsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.9
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/words
+        InstallDependencies: true
     Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: "arn:aws:lambda:ap-northeast-1:478157933567:function:japanese-learn-stack-JapaneseLearnFunction-Mgf0XxGrAW6M"
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*/*"
+      FunctionName: !Sub "${AWS::StackName}-WordsFunction"
+      CodeUri: ./app/api/v1/words
+      Handler: app.lambda_handler
+      Description: "Lambda function for words-related endpoints"
+      Events:
+        WordsApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/words
+            Method: ANY
+        WordsApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/words/{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "arn:aws:s3:::${S3BucketName}"
+              - !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+  KanjisFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.9
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/kanjis
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-KanjisFunction"
+      CodeUri: ./app/api/v1/kanjis
+      Handler: app.lambda_handler
+      Description: "Lambda function for kanjis and components-related endpoints"
+      Events:
+        KanjisApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/kanjis
+            Method: ANY
+        KanjisApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/kanjis/{proxy+}
+            Method: ANY
+        ComponentsApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/components
+            Method: ANY
+        ComponentsApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/components/{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "arn:aws:s3:::${S3BucketName}"
+              - !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+  # CloudWatch Log Groups
+  WordsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${WordsFunction}"
+      RetentionInDays: 14
+    DependsOn: WordsFunction
+
+  KanjisFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${KanjisFunction}"
+      RetentionInDays: 14
+    DependsOn: KanjisFunction
 
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  WordsFunctionArn:
+    Description: "Words Function ARN"
+    Value: !GetAtt WordsFunction.Arn
+  KanjisFunctionArn:
+    Description: "Kanjis Function ARN"
+    Value: !GetAtt KanjisFunction.Arn
+  ApiId:
+    Description: "API Gateway ID"
+    Value: !Ref ServerlessRestApi

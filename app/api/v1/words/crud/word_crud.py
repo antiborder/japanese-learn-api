@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from app.models.word import Word
-from app.schemas.word import WordCreate
-from app.models.kanji_component import Kanji
+from common.models.word import Word
+from common.schemas.word import WordCreate
+from common.models.kanji_component import Kanji
 import logging
 
 
@@ -28,12 +28,3 @@ def create_word(db: Session, word: WordCreate):
     except Exception as e:
         logger.error("Error saving word to database: %s", str(e))  # エラーログ
         raise
-
-
-def get_words_by_kanji_id(db: Session, kanji_id: int):
-    # kanji_idに対応するcharacterを取得
-    kanji = db.query(Kanji).filter(Kanji.id == kanji_id).first()
-    character = kanji.character
-    
-    # word.nameの文字列ががcharacterを含むものを取得
-    return db.query(Word).filter(Word.name.like(f'%{character}%')).all()

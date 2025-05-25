@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from app.models.kanji_component import Component
-from app.schemas.kanji_component import ComponentCreate
+from common.models.kanji_component import Component
+from common.schemas.kanji_component import ComponentCreate
 import logging
 
 # ロガーの設定

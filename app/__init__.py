@@ -1,0 +1,3 @@
+"""
+Japanese Learn API Package
+""" 
