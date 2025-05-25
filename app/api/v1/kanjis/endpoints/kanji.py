@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi.responses import StreamingResponse
-from crud.kanji_crud import get_kanji, get_kanjis, create_kanji, get_kanji_by_character, get_words_by_kanji_id
+from crud.kanji_crud import get_kanji, get_kanjis, create_kanji, get_words_by_kanji_id
 from services.kanji_service import generate_kanji_csv, import_kanjis_from_csv
 from common.schemas.kanji_component import Kanji, KanjiCreate
 from common.database import get_db
@@ -26,40 +26,12 @@ def create_kanji_endpoint(kanji: KanjiCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/character", response_model=KanjiIdResponse)
-def read_kanji_by_character_query(character: str, db: Session = Depends(get_db)):
-    try:
-        kanji = get_kanji_by_character(db, character=character)
-        if kanji is None:
-            raise HTTPException(status_code=404, detail="Kanji not found")
-        return {"kanji_id": kanji.id}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        logger.error(f"Error reading kanji by character {character}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
 @router.get("/", response_model=List[Kanji])
 def read_kanjis_endpoint(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     try:
         return get_kanjis(db)
     except Exception as e:
         logger.error(f"Error reading kanjis: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get("/character/{character}", response_model=Kanji)
-def read_kanji_by_character(character: str, db: Session = Depends(get_db)):
-    try:
-        kanji = get_kanji_by_character(db, character=character)
-        if kanji is None:
-            raise HTTPException(status_code=404, detail="Kanji not found")
-        return kanji
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        logger.error(f"Error reading kanji by character {character}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

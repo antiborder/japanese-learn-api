@@ -28,3 +28,7 @@ def create_word(db: Session, word: WordCreate):
     except Exception as e:
         logger.error("Error saving word to database: %s", str(e))  # エラーログ
         raise
+
+
+def get_kanji_by_character(db: Session, character: str):
+    return db.query(Kanji).filter(Kanji.character == character).first()

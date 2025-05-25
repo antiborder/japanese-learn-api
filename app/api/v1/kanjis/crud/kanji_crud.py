@@ -30,10 +30,6 @@ def create_kanji(db: Session, kanji: KanjiCreate):
         raise
 
 
-def get_kanji_by_character(db: Session, character: str):
-    return db.query(Kanji).filter(Kanji.character == character).first()
-
-
 def get_words_by_kanji_id(db: Session, kanji_id: int):
     # kanji_idに対応するcharacterを取得
     kanji = db.query(Kanji).filter(Kanji.id == kanji_id).first()
