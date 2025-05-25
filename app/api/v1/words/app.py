@@ -20,17 +20,6 @@ app = FastAPI(
     root_path="/Prod"
 )
 
-# CORSミドルウェアの設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # ローカル開発環境
-        "http://bucket-japanese-learn.s3-website-ap-northeast-1.amazonaws.com"  # S3スタティックウェブサイト
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],  # すべてのHTTPメソッドを許可
-    allow_headers=["*"],  # すべてのヘッダーを許可
-)
 
 # エンドポイントのインポート
 from endpoints.word import router

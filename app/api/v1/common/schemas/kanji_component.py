@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 
 class KanjiBase(BaseModel):
-    # id: Optional[int] = None
     character: str
     english: Optional[str] = None
     vietnamese: Optional[str] = None
@@ -17,7 +16,6 @@ class KanjiBase(BaseModel):
 
 
 class ComponentBase(BaseModel):
-    # id: Optional[int] = None
     character: str
     name: Optional[str] = None
     en: Optional[str] = None
