@@ -6,8 +6,12 @@ from fastapi import HTTPException
 from jose import jwt
 from datetime import datetime, timedelta
 from schemas import UserCreate, User
+from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
+
+# パスワードハッシュ化の設定
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # 環境変数の設定
 cognito_client = boto3.client('cognito-idp')
@@ -28,14 +32,23 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
 async def create_user(user: UserCreate) -> User:
     try:
+        # パスワードをハッシュ化
+        hashed_password = get_password_hash(user.password)
+        
         # DynamoDBにユーザー情報を保存
         user_item = {
             'userId': user.email,  # メールアドレスをIDとして使用
             'email': user.email,
             'name': user.name,
-            'password': user.password,  # 本番環境ではハッシュ化すべき
+            'hashed_password': hashed_password,  # ハッシュ化したパスワードを保存
             'is_active': True
         }
         
@@ -63,8 +76,8 @@ async def authenticate_user(email: str, password: str):
             
         user = response['Item']
         
-        # パスワードの検証（本番環境ではハッシュ化して比較すべき）
-        if user['password'] != password:
+        # パスワードの検証
+        if not verify_password(password, user['hashed_password']):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
             
         # JWTトークンの生成
