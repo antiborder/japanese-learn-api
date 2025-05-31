@@ -4,7 +4,6 @@ import os
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 from typing import List, Optional
-from fastapi.middleware.cors import CORSMiddleware
 from endpoints.auth import router as auth_router
 
 # ロギングの設定
@@ -19,15 +18,6 @@ app = FastAPI(
     root_path="/Prod"
 )
 
-# CORSミドルウェアの設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # エンドポイントのインポート
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
@@ -37,6 +27,9 @@ handler = Mangum(app, lifespan="off")
 def lambda_handler(event, context):
     try:
         # Mangumハンドラーを使用してFastAPIアプリケーションをLambdaで実行
+        stage = event.get('requestContext', {}).get('stage', '')
+        if stage:
+            app.root_path = f"/{stage}"
         response = handler(event, context)
         
         # レスポンスにCORSヘッダーを追加

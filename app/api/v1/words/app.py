@@ -6,7 +6,6 @@ from fastapi import FastAPI, HTTPException
 from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError
-from fastapi.middleware.cors import CORSMiddleware
 
 # ロギングの設定
 logger = logging.getLogger()

@@ -4,7 +4,6 @@ import os
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 from typing import List, Optional
-from fastapi.middleware.cors import CORSMiddleware
 
 # ロギングの設定
 logger = logging.getLogger()
