@@ -16,7 +16,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # 環境変数の設定
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
-user_table = dynamodb.Table(os.getenv('USER_TABLE_NAME'))
+dynamodb_table = dynamodb.Table(os.getenv('DYNAMODB_TABLE_NAME'))
 USER_POOL_ID = os.getenv('USER_POOL_ID')
 CLIENT_ID = os.getenv('USER_POOL_CLIENT_ID')
 
@@ -52,7 +52,7 @@ async def create_user(user: UserCreate) -> User:
             'is_active': True
         }
         
-        user_table.put_item(Item=user_item)
+        dynamodb_table.put_item(Item=user_item)
         
         return User(
             id=user.email,
@@ -67,7 +67,7 @@ async def create_user(user: UserCreate) -> User:
 async def authenticate_user(email: str, password: str):
     try:
         # ユーザー情報を取得
-        response = user_table.get_item(
+        response = dynamodb_table.get_item(
             Key={'userId': email}
         )
         
@@ -95,7 +95,7 @@ async def authenticate_user(email: str, password: str):
 
 async def get_user_by_email(email: str) -> User:
     try:
-        response = user_table.get_item(
+        response = dynamodb_table.get_item(
             Key={'userId': email}
         )
         

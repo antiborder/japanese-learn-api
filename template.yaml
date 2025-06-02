@@ -81,11 +81,11 @@ Resources:
         IdToken: "minutes"
         RefreshToken: "days"
 
-  # DynamoDB User Table
-  UserTable:
+  # DynamoDB Table
+  DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub ${AWS::StackName}-users
+      TableName: !Sub ${AWS::StackName}-table
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
@@ -112,7 +112,7 @@ Resources:
       Description: "Lambda function for authentication endpoints"
       Environment:
         Variables:
-          USER_TABLE_NAME: !Ref UserTable
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           JWT_SECRET_KEY: "your-secret-key"  # 本番環境では別途設定すべき
           USER_POOL_ID: !Ref UserPool
           USER_POOL_CLIENT_ID: !Ref UserPoolClient
@@ -129,7 +129,7 @@ Resources:
             Method: ANY
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref UserTable
+            TableName: !Ref DynamoDBTable
 
   # Lambda Functions
   WordsFunction:
