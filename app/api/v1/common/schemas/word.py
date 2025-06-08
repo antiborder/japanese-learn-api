@@ -6,7 +6,7 @@ class Word(BaseModel):
     name: str
     hiragana: str
     is_katakana: bool = False
-    level: Optional[str] = None
+    level: Optional[int] = None
     english: Optional[str] = None
     vietnamese: Optional[str] = None
     lexical_category: Optional[str] = None

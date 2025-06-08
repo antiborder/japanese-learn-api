@@ -1,12 +1,12 @@
 PK,SK,accent_down,accent_up,createdAt,email,english,hashed_password,hiragana,is_active,is_katakana,level,lexical_category,name,updatedAt,vietnamese
 USER#test@example.com,METADATA,,,2025-06-08T04:45:34.297801,test@example.com,,$2b$12$lM8bVuU7bVb1lm00o6nOs.ovsWGC5YpSekjIUbOzv09Rqfsc7ML6G,,TRUE,,,,Test User,2025-06-08T04:45:34.297835,
-WORD#1,METADATA,1,,,,cat,,ねこ,,,N5_low,名詞,猫,,mèo
-WORD#2,METADATA,2,1,,,dog,,いぬ,,,N5,名詞,犬,,chó
-WORD#3,METADATA,,1,,,bird,,とり,,,N5,名詞,鳥,,chim
-WORD#4,METADATA,,1,,,fish,,さかな,,,N5,名詞,魚,,cá
-WORD#5,METADATA,,1,,,horse,,うま,,,N5,名詞,馬,,ngựa
-WORD#6,METADATA,3,1,,,write,,かきます,,,N5,verb5,書きます,,viét
-WORD#7,METADATA,2,1,,,look,,みます,,,N5,verb2up,見ます,,xem
-WORD#8,METADATA,3,1,,,throw away,,すてます,,,N5,verb2down,捨てます,,bỏ
-WORD#9,METADATA,,1,,,one,,いち,,,N5_basic,noun,一,,một
-WORD#10,METADATA,,,,,two,,に,,,N5_basic,noun,二,,hai
+WORD#1,METADATA,1,,,,cat,,ねこ,,,1,名詞,猫,,mèo
+WORD#2,METADATA,2,1,,,dog,,いぬ,,,1,名詞,犬,,chó
+WORD#3,METADATA,,1,,,bird,,とり,,,2,名詞,鳥,,chim
+WORD#4,METADATA,,1,,,fish,,さかな,,,1,名詞,魚,,cá
+WORD#5,METADATA,,1,,,horse,,うま,,,3,名詞,馬,,ngựa
+WORD#6,METADATA,3,1,,,write,,かきます,,,2,verb5,書きます,,viét
+WORD#7,METADATA,2,1,,,look,,みます,,,1,verb2up,見ます,,xem
+WORD#8,METADATA,3,1,,,throw away,,すてます,,,2,verb2down,捨てます,,bỏ
+WORD#9,METADATA,,1,,,one,,いち,,,1_basic,noun,一,,một
+WORD#10,METADATA,,,,,two,,に,,,1_basic,noun,二,,hai

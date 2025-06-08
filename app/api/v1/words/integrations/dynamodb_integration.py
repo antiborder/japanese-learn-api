@@ -77,11 +77,11 @@ class DynamoDBClient:
         DynamoDBのアイテムをモデル形式に変換します
         """
         return {
-            'id': int(item['PK'].split('#')[1]),  # WORD#1 から 1 を取得
+            'id': int(item['PK'].split('#')[1]),
             'name': item.get('name', ''),
             'hiragana': item.get('hiragana', ''),
             'is_katakana': bool(int(item.get('is_katakana', 0))),
-            'level': item.get('level', ''),
+            'level': int(item.get('level', 0)),
             'english': item.get('english', ''),
             'vietnamese': item.get('vietnamese', ''),
             'lexical_category': item.get('lexical_category', ''),
