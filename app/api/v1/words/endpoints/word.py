@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 #         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/", response_model=List[Word])
-def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_words(skip: int = 0, limit: int = 100):
     """
     単語一覧を取得します。
     DynamoDBから単語データを取得し、MySQLのモデル形式に変換して返します。
@@ -63,10 +63,11 @@ def read_word(word_id: int):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{word_id}/audio_url", response_model=dict)
-async def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
+async def fetch_word_audio(word_id: int):
     try:
         logger.info(f"Fetching audio URL for word_id: {word_id}")
-        audio_url = get_audio_url(word_id, db)
+        word = dynamodb_client.get_word_by_id(word_id)
+        audio_url = get_audio_url(word_id, word.get('hiragana'))
         return {
             "url": audio_url,
             "expires_in": 3600

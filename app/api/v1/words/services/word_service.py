@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_audio_url(word_id: int, db: Session) -> str:
+def get_audio_url(word_id: int, hiragana: str) -> str:
     try:
         logger.info(f"Getting audio URL for word_id: {word_id}")
         try:
@@ -20,12 +20,11 @@ def get_audio_url(word_id: int, db: Session) -> str:
         except HTTPException as e:
             if e.status_code == 404:  # S3に音声ファイルがない場合
                 logger.info(f"Audio file not found in S3 for word_id: {word_id}, generating new audio")
-                word = get_word(db, word_id)
-                if not word:
+                if not hiragana:
                     raise HTTPException(status_code=404, detail=f"Word not found with id: {word_id}")
                 
                 try:
-                    audio_content = synthesize_speech(word.hiragana)
+                    audio_content = synthesize_speech(hiragana)
                 except Exception as e:
                     logger.error(f"Error synthesizing speech: {str(e)}")
                     raise HTTPException(status_code=500, detail=f"Error synthesizing speech: {str(e)}")
