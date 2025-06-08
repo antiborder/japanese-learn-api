@@ -10,6 +10,7 @@ from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
 from common.database import get_db # , Base
 import logging
+from integrations.dynamodb_integration import dynamodb_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,8 +25,14 @@ def create_word(word: WordCreate, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=List[Word])
 def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    単語一覧を取得します。
+    DynamoDBから単語データを取得し、MySQLのモデル形式に変換して返します。
+    """
     try:
-        return word_crud.get_words(db=db, skip=skip, limit=limit)
+        # DynamoDBから単語データを取得
+        words = dynamodb_client.get_words(skip=skip, limit=limit)
+        return words
     except Exception as e:
         logger.error(f"Error reading words: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

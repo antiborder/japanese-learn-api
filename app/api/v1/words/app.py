@@ -15,8 +15,7 @@ logger.setLevel(logging.INFO)
 app = FastAPI(
     title="Japanese Learn API - Words",
     description="API for managing Japanese words",
-    version="1.0.0",
-    root_path="/Prod"
+    version="1.0.0"
 )
 
 

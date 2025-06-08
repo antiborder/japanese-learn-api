@@ -1,9 +1,10 @@
 from typing import Optional, List
 from pydantic import BaseModel
 
-class WordBase(BaseModel):
-    name: Optional[str] = None
-    hiragana: Optional[str] = None
+class Word(BaseModel):
+    id: int
+    name: str
+    hiragana: str
     is_katakana: bool = False
     level: Optional[str] = None
     english: Optional[str] = None
@@ -12,14 +13,11 @@ class WordBase(BaseModel):
     accent_up: Optional[int] = None
     accent_down: Optional[int] = None
 
-class WordCreate(WordBase):
-    pass
-
-class Word(WordBase):
-    id: int
-
     class Config:
         orm_mode = True
+
+class WordCreate(Word):
+    pass
 
 class Words(BaseModel):
     words: List[Word]
