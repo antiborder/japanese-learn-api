@@ -15,13 +15,13 @@ from integrations.dynamodb_integration import dynamodb_client
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/", response_model=Word)
-def create_word(word: WordCreate, db: Session = Depends(get_db)):
-    try:
-        return word_crud.create_word(db=db, word=word)
-    except Exception as e:
-        logger.error(f"Error creating word: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+# @router.post("/", response_model=Word)
+# def create_word(word: WordCreate, db: Session = Depends(get_db)):
+#     try:
+#         return word_crud.create_word(db=db, word=word)
+#     except Exception as e:
+#         logger.error(f"Error creating word: {str(e)}")
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/", response_model=List[Word])
 def read_words(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
