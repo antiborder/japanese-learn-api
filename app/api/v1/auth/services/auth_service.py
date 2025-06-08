@@ -25,6 +25,12 @@ SECRET_KEY = "your-secret-key"  # 本番環境では環境変数から取得す�
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -32,11 +38,8 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def create_user_pk(email: str) -> str:
+    return f"USER#{email}"
 
 async def create_user(user: UserCreate) -> User:
     try:
@@ -45,11 +48,14 @@ async def create_user(user: UserCreate) -> User:
         
         # DynamoDBにユーザー情報を保存
         user_item = {
-            'userId': user.email,  # メールアドレスをIDとして使用
+            'PK': create_user_pk(user.email),
+            'SK': 'METADATA',
             'email': user.email,
             'name': user.name,
-            'hashed_password': hashed_password,  # ハッシュ化したパスワードを保存
-            'is_active': True
+            'hashed_password': hashed_password,
+            'is_active': True,
+            'createdAt': datetime.now().isoformat(),
+            'updatedAt': datetime.now().isoformat()
         }
         
         dynamodb_table.put_item(Item=user_item)
@@ -68,7 +74,10 @@ async def authenticate_user(email: str, password: str):
     try:
         # ユーザー情報を取得
         response = dynamodb_table.get_item(
-            Key={'userId': email}
+            Key={
+                'PK': create_user_pk(email),
+                'SK': 'METADATA'
+            }
         )
         
         if 'Item' not in response:
@@ -96,7 +105,10 @@ async def authenticate_user(email: str, password: str):
 async def get_user_by_email(email: str) -> User:
     try:
         response = dynamodb_table.get_item(
-            Key={'userId': email}
+            Key={
+                'PK': create_user_pk(email),
+                'SK': 'METADATA'
+            }
         )
         
         if 'Item' not in response:
@@ -104,7 +116,7 @@ async def get_user_by_email(email: str) -> User:
             
         user_data = response['Item']
         return User(
-            id=user_data['userId'],
+            id=user_data['email'],
             email=user_data['email'],
             name=user_data['name'],
             is_active=user_data.get('is_active', True)

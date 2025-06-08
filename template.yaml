@@ -87,14 +87,41 @@ Resources:
     Properties:
       TableName: !Sub ${AWS::StackName}-table
       AttributeDefinitions:
-        - AttributeName: userId
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
           AttributeType: S
       KeySchema:
-        - AttributeName: userId
+        - AttributeName: PK
           KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
 
   # Authentication Lambda Function
   AuthenticationFunction:
@@ -130,6 +157,13 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DynamoDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   # Lambda Functions
   WordsFunction:
@@ -145,6 +179,10 @@ Resources:
       CodeUri: ./app/api/v1/words
       Handler: app.lambda_handler
       Description: "Lambda function for words-related endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          S3_BUCKET_NAME: !Ref S3BucketName
       Events:
         WordsApiRootEvent:
           Type: Api
@@ -157,6 +195,8 @@ Resources:
             Path: /api/v1/words/{proxy+}
             Method: ANY
       Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
         - Statement:
           - Effect: Allow
             Action:
