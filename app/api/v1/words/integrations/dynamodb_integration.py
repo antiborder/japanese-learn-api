@@ -3,6 +3,7 @@ import os
 import logging
 from typing import List, Dict, Optional
 from botocore.exceptions import ClientError
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,7 @@ class DynamoDBClient:
             words = []
             for item in items:
                 try:
-                    word = {
-                        'id': int(item['PK'].split('#')[1]),  # WORD#1 から 1 を取得
-                        'name': item.get('name', ''),
-                        'hiragana': item.get('hiragana', ''),
-                        'is_katakana': bool(int(item.get('is_katakana', 0))),
-                        'level': item.get('level', ''),
-                        'english': item.get('english', ''),
-                        'vietnamese': item.get('vietnamese', ''),
-                        'lexical_category': item.get('lexical_category', ''),
-                        'accent_up': int(item.get('accent_up')) if item.get('accent_up') else None,
-                        'accent_down': int(item.get('accent_down')) if item.get('accent_down') else None
-                    }
+                    word = self._convert_dynamodb_to_model(item)
                     words.append(word)
                 except (ValueError, TypeError) as e:
                     logger.error(f"Error converting item {item['PK']}: {str(e)}")
@@ -54,5 +44,49 @@ class DynamoDBClient:
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")
             raise
+
+    def get_word_by_id(self, word_id: int) -> Optional[Dict]:
+        """
+        指定されたIDの単語を取得します
+        """
+        try:
+            response = self.table.get_item(
+                Key={
+                    'PK': f"WORD#{word_id}",
+                    'SK': "METADATA"
+                }
+            )
+            
+            item = response.get('Item')
+            if not item:
+                raise HTTPException(status_code=404, detail="Word not found")
+            
+            return self._convert_dynamodb_to_model(item)
+            
+        except ClientError as e:
+            logger.error(f"Error getting word {word_id} from DynamoDB: {str(e)}")
+            raise
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting word {word_id}: {str(e)}")
+            raise
+
+    def _convert_dynamodb_to_model(self, item: Dict) -> Dict:
+        """
+        DynamoDBのアイテムをモデル形式に変換します
+        """
+        return {
+            'id': int(item['PK'].split('#')[1]),  # WORD#1 から 1 を取得
+            'name': item.get('name', ''),
+            'hiragana': item.get('hiragana', ''),
+            'is_katakana': bool(int(item.get('is_katakana', 0))),
+            'level': item.get('level', ''),
+            'english': item.get('english', ''),
+            'vietnamese': item.get('vietnamese', ''),
+            'lexical_category': item.get('lexical_category', ''),
+            'accent_up': int(item.get('accent_up')) if item.get('accent_up') else None,
+            'accent_down': int(item.get('accent_down')) if item.get('accent_down') else None
+        }
 
 dynamodb_client = DynamoDBClient() 

@@ -52,19 +52,15 @@ def read_kanji_by_character(character: str, db: Session = Depends(get_db)):
         
 
 @router.get("/{word_id}", response_model=Word)
-def read_word(word_id: int, db: Session = Depends(get_db)):
+def read_word(word_id: int):
     try:
-        word = word_crud.get_word(db, word_id=word_id)
-        if word is None:
-            raise HTTPException(status_code=404, detail="Word not found")
-        
-        word.romaji = convert_hiragana_to_romaji(word.hiragana)
+        word = dynamodb_client.get_word_by_id(word_id)
         return word
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error reading word {word_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{word_id}/audio_url", response_model=dict)
 async def fetch_word_audio(word_id: int, db: Session = Depends(get_db)):
