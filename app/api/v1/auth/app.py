@@ -37,10 +37,18 @@ def lambda_handler(event, context):
             response['headers'] = {}
         
         response['headers'].update({
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': '*',  # same-originなので'*'で問題なし
             'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
             'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
         })
+        
+        # OPTIONSリクエストの場合は、ここで処理を終了
+        if event.get('httpMethod') == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': response['headers'],
+                'body': ''
+            }
         
         return response
     except Exception as e:
@@ -53,6 +61,8 @@ def lambda_handler(event, context):
             }),
             'headers': {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',  # same-originなので'*'で問題なし
+                'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
             }
         } 
