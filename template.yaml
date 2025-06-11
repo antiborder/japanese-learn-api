@@ -207,6 +207,37 @@ Resources:
               - !Sub "arn:aws:s3:::${S3BucketName}"
               - !Sub "arn:aws:s3:::${S3BucketName}/*"
 
+  LearnWordsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.9
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/learn_words
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-LearnWordsFunction"
+      CodeUri: ./app/api/v1/learn_words
+      Handler: app.lambda_handler
+      Description: "Lambda function for learning history endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+      Events:
+        LearnWordsApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/learn_words
+            Method: ANY
+        LearnWordsApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/learn_words/{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+
   KanjisFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -266,6 +297,13 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${KanjisFunction}"
       RetentionInDays: 14
     DependsOn: KanjisFunction
+
+  LearnWordsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LearnWordsFunction}"
+      RetentionInDays: 14
+    DependsOn: LearnWordsFunction
 
 Outputs:
   ApiEndpoint:

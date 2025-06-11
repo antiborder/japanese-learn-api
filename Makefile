@@ -68,7 +68,7 @@ check-db-env:
 # 依存関係チェック
 check-deps:
 	@echo "依存関係を確認しています..."
-	@for dir in app/api/v1/words app/api/v1/kanjis; do \
+	@for dir in app/api/v1/words app/api/v1/kanjis app/api/v1/learn_words; do \
 		if [ ! -f $$dir/requirements.txt ]; then \
 			echo "Error: $$dir/requirements.txtが見つかりません"; \
 			exit 1; \
@@ -185,13 +185,13 @@ help:
 
 prepare-build:
 	@echo "共通コードをコピーしています..."
-	@for dir in words kanjis; do \
+	@for dir in words kanjis learn_words; do \
 		echo "$$dirにcommonをコピー中..."; \
 		cp -r "app/api/v1/common" "app/api/v1/$$dir/"; \
 	done
 
 clean-common:
 	@echo "共通コードをクリーンアップしています..."
-	@for dir in words kanjis; do \
+	@for dir in words kanjis learn_words; do \
 		rm -rf "app/api/v1/$$dir/common"; \
 	done 

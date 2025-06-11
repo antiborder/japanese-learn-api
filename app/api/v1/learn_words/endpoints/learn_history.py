@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse
-from ..integrations.dynamodb_integration import learn_history_db
+from integrations.dynamodb_integration import learn_history_db
 import logging
 
 router = APIRouter()

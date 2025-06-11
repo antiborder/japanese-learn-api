@@ -2,9 +2,10 @@ import json
 import logging
 import os
 from mangum import Mangum
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from .endpoints.learn_history import router as learn_history_router
+from fastapi import FastAPI, HTTPException
+from typing import List, Optional
+import boto3
+from botocore.exceptions import ClientError
 
 # ロギングの設定
 logger = logging.getLogger()
@@ -18,17 +19,9 @@ app = FastAPI(
     root_path="/Prod"
 )
 
-# CORSミドルウェアの設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# エンドポイントの登録
-app.include_router(learn_history_router, prefix="/api/v1/learn_words", tags=["learn"])
+# エンドポイントのインポート
+from endpoints.learn_history import router
+app.include_router(router, prefix="/api/v1/learn_words", tags=["learn"])
 
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
