@@ -113,6 +113,19 @@ class LearnHistoryDynamoDB:
                             time: Decimal) -> Dict:
         """学習履歴を記録します"""
         try:
+            # ユーザーIDがない場合は記録をスキップ
+            if not user_id:
+                logger.info("User ID is null or empty. Skipping DynamoDB record.")
+                return {
+                    'user_id': user_id,
+                    'word_id': word_id,
+                    'level': level,
+                    'proficiency_MJ': Decimal('0'),
+                    'proficiency_JM': Decimal('0'),
+                    'next_mode': "MJ",  # デフォルトモード
+                    'next_datetime': datetime.now() + timedelta(minutes=5)  # デフォルトの次回学習時間
+                }
+
             # 現在のデータを取得
             current_data = self.get_current_learning_data(user_id, word_id)
                         
