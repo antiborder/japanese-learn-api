@@ -183,4 +183,44 @@ class LearnHistoryDynamoDB:
             logger.error(f"Error recording learning data: {str(e)}")
             raise
 
+    async def get_next_word(self, user_id: str, level: int) -> Optional[Dict]:
+        """次に学習すべき単語を取得します
+        
+        Args:
+            user_id: ユーザーID
+            level: 学習レベル
+            
+        Returns:
+            Optional[Dict]: 次に学習すべき単語の情報（word_idとnext_mode）。該当する単語がない場合はNone
+        """
+        try:
+            # ユーザーの学習履歴を全て取得（PKで検索）
+            response = self.table.query(
+                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+                ExpressionAttributeValues={
+                    ':pk': f"USER#{user_id}",
+                    ':sk_prefix': 'WORD#'
+                }
+            )
+            
+            items = response.get('Items', [])
+            if not items:
+                return None
+            
+            # levelでフィルタリング
+            level_items = [item for item in items if item['level'] == level]
+            if not level_items:
+                return None
+            
+            # next_datetimeが最も若いアイテムを取得
+            next_word = min(level_items, key=lambda x: x['next_datetime'])
+            return {
+                'word_id': next_word['word_id'],
+                'next_mode': next_word['next_mode']
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting next word: {str(e)}")
+            raise
+
 learn_history_db = LearnHistoryDynamoDB() 

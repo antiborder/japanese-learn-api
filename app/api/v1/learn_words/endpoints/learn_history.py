@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse
+from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse
 from integrations.dynamodb_integration import learn_history_db
 import logging
 
@@ -22,6 +22,34 @@ async def record_learning(request: LearnHistoryRequest):
         return result
     except Exception as e:
         logger.error(f"Error in record_learning endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@router.post("/next", response_model=NextWordResponse)
+async def get_next_word(request: NextWordRequest):
+    """
+    次に学習すべき単語を取得します。
+    """
+    try:
+        result = await learn_history_db.get_next_word(
+            user_id=request.user_id,
+            level=request.level
+        )
+        
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No words found for the specified level"
+            )
+            
+        return NextWordResponse(
+            word_id=result['word_id'],
+            next_mode=result['next_mode']
+        )
+    except Exception as e:
+        logger.error(f"Error in get_next_word endpoint: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=str(e)

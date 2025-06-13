@@ -17,4 +17,12 @@ class LearnHistoryResponse(BaseModel):
     proficiency_MJ: Decimal = Field(ge=0, le=1)
     proficiency_JM: Decimal = Field(ge=0, le=1)
     next_mode: Literal["MJ", "JM"]
-    next_datetime: datetime 
+    next_datetime: datetime
+
+class NextWordRequest(BaseModel):
+    user_id: str
+    level: int
+
+class NextWordResponse(BaseModel):
+    word_id: int
+    next_mode: str  # "MJ" または "JM" 
