@@ -155,9 +155,9 @@ rollback:
 verify:
 	@echo "デプロイの確認を行います..."
 	@echo "Words Functionのデプロイを確認中..."
-	@aws lambda get-function --function-name $$(aws cloudformation describe-stack-resources --stack-name japanese-learn --query "StackResources[?ResourceType=='AWS::Lambda::Function' && contains(LogicalResourceId,'WordsFunction')].PhysicalResourceId" --output text) > /dev/null
+	@aws lambda get-function --function-name japanese-learn-WordsFunction > /dev/null
 	@echo "Kanjis Functionのデプロイを確認中..."
-	@aws lambda get-function --function-name $$(aws cloudformation describe-stack-resources --stack-name japanese-learn --query "StackResources[?ResourceType=='AWS::Lambda::Function' && contains(LogicalResourceId,'KanjisFunction')].PhysicalResourceId" --output text) > /dev/null
+	@aws lambda get-function --function-name japanese-learn-KanjisFunction > /dev/null
 	@echo "デプロイの確認が完了しました"
 
 # AWS認証情報の設定
@@ -193,5 +193,10 @@ prepare-build:
 clean-common:
 	@echo "共通コードをクリーンアップしています..."
 	@for dir in words kanjis learn_words; do \
-		rm -rf "app/api/v1/$$dir/common"; \
+		echo "Removing app/api/v1/$$dir/common..."; \
+		if [ -d "app/api/v1/$$dir/common" ]; then \
+			rm -rf "app/api/v1/$$dir/common" && echo "Successfully removed $$dir/common" || echo "Failed to remove $$dir/common"; \
+		else \
+			echo "Directory $$dir/common does not exist"; \
+		fi; \
 	done 
