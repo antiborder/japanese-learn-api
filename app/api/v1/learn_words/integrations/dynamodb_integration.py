@@ -3,7 +3,7 @@ import os
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from botocore.exceptions import ClientError
 from decimal import Decimal
 import math
@@ -187,14 +187,47 @@ class LearnHistoryDynamoDB:
         """次に学習すべき単語を取得します
         
         Args:
-            user_id: ユーザーID
+            user_id: ユーザーID（nullの場合は、指定されたレベルの単語からランダムに1つ選択）
             level: 学習レベル
             
         Returns:
-            Optional[Dict]: 次に学習すべき単語の情報（word_idとnext_mode）。該当する単語がない場合はNone
+            Optional[Dict]: {
+                'answer_word_id': int,  # 回答用の単語ID
+                'mode': str,  # "MJ" または "JM"
+            }
         """
         try:
-            # ユーザーの学習履歴を全て取得（PKで検索）
+            # ①単語リストの取得とレベルでのフィルタリング
+            response = self.table.scan(
+                FilterExpression='begins_with(PK, :pk_prefix) AND SK = :sk',
+                ExpressionAttributeValues={
+                    ':pk_prefix': 'WORD#',
+                    ':sk': 'METADATA'
+                }
+            )
+            
+            all_words = response.get('Items', [])
+            if not all_words:
+                logger.info("No words found in the database")
+                return None
+            
+            # レベルでフィルタリング
+            level_words = [item for item in all_words if item['level'] == level]
+            if not level_words:
+                logger.info(f"No words found for level {level}")
+                return None
+            
+            # ②user_idがnullの場合はランダム選択
+            if not user_id:
+                selected_item = random.choice(level_words)
+                result = {
+                    'answer_word_id': int(selected_item['PK'].split('#')[1]),
+                    'mode': random.choice(["MJ", "JM"])
+                }
+                logger.info(f"Successfully retrieved random word for level {level}: {result}")
+                return result
+            
+            # ③ユーザーの学習履歴の取得とレベルでのフィルタリング
             response = self.table.query(
                 KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
                 ExpressionAttributeValues={
@@ -203,24 +236,95 @@ class LearnHistoryDynamoDB:
                 }
             )
             
-            items = response.get('Items', [])
-            if not items:
-                return None
+            user_words = response.get('Items', [])
+            user_level_words = [item for item in user_words if item['level'] == level]
             
-            # levelでフィルタリング
-            level_items = [item for item in items if item['level'] == level]
-            if not level_items:
-                return None
+            # ④単語選定方法の決定
+            ratio = len(user_level_words) / len(level_words)
+            if random.random() > ratio:
+                # random_selection: リスト①に含まれ、かつリスト③に含まれない単語をランダムに選択
+                new_words = [
+                    word for word in level_words 
+                    if int(word['PK'].split('#')[1]) not in [int(w['word_id']) for w in user_level_words]
+                ]
+                if new_words:  # 新しい単語が存在する場合
+                    selected_item = random.choice(new_words)
+                    result = {
+                        'answer_word_id': int(selected_item['PK'].split('#')[1]),
+                        'mode': random.choice(["MJ", "JM"])
+                    }
+                    logger.info(f"Successfully retrieved new word for user {user_id}, level {level}: {result}")
+                    return result
             
-            # next_datetimeが最も若いアイテムを取得
-            next_word = min(level_items, key=lambda x: x['next_datetime'])
-            return {
-                'word_id': next_word['word_id'],
-                'next_mode': next_word['next_mode']
+            # review_selection: next_timeが最も若い単語を選択
+            if user_level_words:
+                answer_word = min(user_level_words, key=lambda x: x['next_datetime'])
+                result = {
+                    'answer_word_id': answer_word['word_id'],
+                    'mode': answer_word['next_mode']
+                }
+                logger.info(f"Successfully retrieved review word for user {user_id}, level {level}: {result}")
+                return result
+            
+            # ユーザーの学習履歴に単語がない場合は、ランダムに選択
+            selected_item = random.choice(level_words)
+            result = {
+                'answer_word_id': int(selected_item['PK'].split('#')[1]),
+                'mode': random.choice(["MJ", "JM"])
             }
+            logger.info(f"Successfully retrieved random word for user {user_id}, level {level}: {result}")
+            return result
             
         except Exception as e:
-            logger.error(f"Error getting next word: {str(e)}")
+            logger.error(f"Error getting next word for user {user_id}, level {level}: {str(e)}", exc_info=True)
+            raise
+
+    async def get_other_words(self, level: int, exclude_id: int) -> List[int]:
+        """指定されたレベルで、除外ID以外の単語を3つ取得します
+        
+        Args:
+            level: 単語レベル
+            exclude_id: 除外する単語ID
+            
+        Returns:
+            List[int]: 3つの単語IDのリスト
+        """
+        try:
+            # WORD#で始まるPKを持つレコードを全て取得
+            response = self.table.scan(
+                FilterExpression='begins_with(PK, :pk_prefix) AND SK = :sk',
+                ExpressionAttributeValues={
+                    ':pk_prefix': 'WORD#',
+                    ':sk': 'METADATA'
+                }
+            )
+            
+            items = response.get('Items', [])
+            if not items:
+                logger.info(f"No words found in the database")
+                return []
+            
+            # レベルでフィルタリングし、除外IDを除く
+            filtered_items = [
+                item for item in items 
+                if item['level'] == level and int(item['PK'].split('#')[1]) != exclude_id
+            ]
+            
+            if len(filtered_items) < 3:
+                logger.info(f"Not enough words found for level {level} excluding word {exclude_id}")
+                return []
+            
+            # ランダムに3つ選択
+            selected_items = random.sample(filtered_items, 3)
+            
+            # word_idのリストを返す
+            word_ids = [int(item['PK'].split('#')[1]) for item in selected_items]
+            
+            logger.info(f"Successfully retrieved 3 other words for level {level}, excluding word {exclude_id}")
+            return word_ids
+            
+        except Exception as e:
+            logger.error(f"Error getting other words for level {level}, excluding word {exclude_id}: {str(e)}", exc_info=True)
             raise
 
 learn_history_db = LearnHistoryDynamoDB() 

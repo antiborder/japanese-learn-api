@@ -3,6 +3,8 @@ from typing import Literal, Optional
 from datetime import datetime
 from decimal import Decimal
 
+LearningMode = Literal["MJ", "JM"]
+
 class LearnHistoryRequest(BaseModel):
     user_id: Optional[str] = None
     word_id: int
@@ -24,5 +26,5 @@ class NextWordRequest(BaseModel):
     level: int
 
 class NextWordResponse(BaseModel):
-    word_id: int
-    next_mode: str  # "MJ" または "JM" 
+    answer_word_id: int
+    mode: LearningMode 
