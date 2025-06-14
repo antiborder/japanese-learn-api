@@ -149,3 +149,56 @@ async def get_progress(user_id: str):
     except Exception as e:
         logger.error(f"Error in get_progress endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/plan/{user_id}")
+async def get_plan(user_id: str):
+    """
+    指定ユーザーの今後のレビュー予定数を日付ごとに集計して返す
+    response例:
+    [
+      { "date": "2024-03-10", "count": 12 },
+      { "date": "2024-03-11", "count": 18 },
+      { "date": "2024-03-12", "count": 25 }
+    ]
+    """
+    try:
+        # ユーザーの学習履歴を全て取得
+        user_response = learn_history_db.table.query(
+            KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+            ExpressionAttributeValues={
+                ':pk': f"USER#{user_id}",
+                ':sk_prefix': 'WORD#'
+            }
+        )
+        user_items = user_response.get('Items', [])
+        now = datetime.now(timezone.utc)
+        today_str = now.strftime('%Y-%m-%d')
+        plan_counts = {}
+        for item in user_items:
+            next_dt_str = item.get('next_datetime')
+            if not next_dt_str:
+                continue
+            try:
+                next_dt = datetime.fromisoformat(next_dt_str)
+                if next_dt.tzinfo is None:
+                    next_dt = next_dt.replace(tzinfo=timezone.utc)
+            except Exception:
+                continue
+            # next_datetimeが現在以前なら本日、それ以降ならその日付
+            if next_dt <= now:
+                date_str = today_str
+            else:
+                date_str = next_dt.strftime('%Y-%m-%d')
+            # 本日より前は無視
+            if date_str < today_str:
+                continue
+            plan_counts[date_str] = plan_counts.get(date_str, 0) + 1
+        # 日付昇順で返す
+        result = [
+            {"date": date, "count": count}
+            for date, count in sorted(plan_counts.items())
+        ]
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_plan endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
