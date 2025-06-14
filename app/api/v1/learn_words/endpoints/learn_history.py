@@ -4,9 +4,17 @@ from integrations.dynamodb_integration import learn_history_db
 import logging
 from pydantic import BaseModel, Field
 from typing import List
+from datetime import datetime, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+def parse_datetime_with_tz(dt_str):
+    dt = datetime.fromisoformat(dt_str)
+    if dt.tzinfo is None:
+        # タイムゾーン情報がなければUTCとして扱う
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 @router.post("/", response_model=LearnHistoryResponse)
 async def record_learning(request: LearnHistoryRequest):
@@ -87,4 +95,57 @@ async def get_other_words(request: OtherWordsRequest) -> List[int]:
         return word_ids
     except Exception as e:
         logger.error(f"Error getting other words: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/progress/{user_id}")
+async def get_progress(user_id: str):
+    """
+    指定ユーザーのレベルごとの進捗情報を返す（unlearnedも含む）
+    """
+    try:
+        # ユーザーの学習履歴を全て取得
+        user_response = learn_history_db.table.query(
+            KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+            ExpressionAttributeValues={
+                ':pk': f"USER#{user_id}",
+                ':sk_prefix': 'WORD#'
+            }
+        )
+        user_items = user_response.get('Items', [])
+        now = datetime.now(timezone.utc)
+        result = []
+        for level in range(1, 15):
+            # 各レベルの全単語IDリストをPKで直接query
+            word_response = learn_history_db.table.query(
+                KeyConditionExpression='PK = :pk AND SK = :sk',
+                ExpressionAttributeValues={
+                    ':pk': f'WORDS#{level}',
+                    ':sk': 'METADATA'
+                }
+            )
+            all_word_ids = set(int(item['word_id']) for item in word_response.get('Items', []))
+            # ユーザーの学習済み単語IDリスト
+            level_user_items = [item for item in user_items if item.get('level') == level]
+            user_learned_ids = set(int(item['word_id']) for item in level_user_items)
+            learned = len(user_learned_ids)
+            unlearned = len(all_word_ids - user_learned_ids)
+            reviewable = sum(
+                1 for item in level_user_items
+                if 'next_datetime' in item and parse_datetime_with_tz(item['next_datetime']) <= now
+            )
+            if level_user_items:
+                avg_progress = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items) / (2 * learned)
+                progress = int(round(avg_progress * 100))
+            else:
+                progress = 0
+            result.append({
+                "level": level,
+                "progress": progress,
+                "reviewable": reviewable,
+                "learned": learned,
+                "unlearned": unlearned
+            })
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_progress endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
