@@ -265,6 +265,16 @@ Resources:
           Properties:
             Path: /api/v1/kanjis/{proxy+}
             Method: ANY
+        ComponentsApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/components
+            Method: ANY
+        ComponentsApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/components/{proxy+}
+            Method: ANY
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DynamoDBTable
