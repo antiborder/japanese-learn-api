@@ -3,19 +3,25 @@ from common.models.kanji_component import Kanji
 from common.schemas.kanji_component import KanjiCreate
 from common.models.word import Word
 import logging
+from integrations.dynamodb_kanji import dynamodb_kanji_client
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_kanji(db: Session, kanji_id: int):
-    # return kanji_service.get_kanji(db, kanji_id)    
-    return db.query(Kanji).filter(Kanji.id == kanji_id).first()
+def get_kanji(db, kanji_id: int):
+    """
+    DynamoDBから漢字情報を取得します。
+    """
+    return dynamodb_kanji_client.get_kanji_by_id(kanji_id)
 
 
-def get_kanjis(db: Session):
-    return db.query(Kanji).all()
+def get_kanjis(db):
+    """
+    DynamoDBから全ての漢字情報を取得します。
+    """
+    return dynamodb_kanji_client.get_all_kanjis()
 
 
 def create_kanji(db: Session, kanji: KanjiCreate):

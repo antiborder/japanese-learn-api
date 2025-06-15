@@ -250,7 +250,10 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-KanjisFunction"
       CodeUri: ./app/api/v1/kanjis
       Handler: app.lambda_handler
-      Description: "Lambda function for kanjis and components-related endpoints"
+      Description: "Lambda function for kanjis-related endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
       Events:
         KanjisApiRootEvent:
           Type: Api
@@ -262,26 +265,16 @@ Resources:
           Properties:
             Path: /api/v1/kanjis/{proxy+}
             Method: ANY
-        ComponentsApiRootEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/components
-            Method: ANY
-        ComponentsApiProxyEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/components/{proxy+}
-            Method: ANY
       Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
         - Statement:
-          - Effect: Allow
-            Action:
-              - s3:PutObject
-              - s3:GetObject
-              - s3:ListBucket
-            Resource:
-              - !Sub "arn:aws:s3:::${S3BucketName}"
-              - !Sub "arn:aws:s3:::${S3BucketName}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   # CloudWatch Log Groups
   WordsFunctionLogGroup:

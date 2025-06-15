@@ -13,8 +13,7 @@ logger.setLevel(logging.INFO)
 app = FastAPI(
     title="Japanese Learn API - Kanjis and Components",
     description="API for managing Japanese kanjis and their components",
-    version="1.0.0",
-    root_path="/Prod"
+    version="1.0.0"
 )
 
 
