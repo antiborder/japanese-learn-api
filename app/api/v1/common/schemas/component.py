@@ -1,6 +1,6 @@
 from typing import Optional, List
 from pydantic import BaseModel
-from app.schemas.kanji_component import KanjiBase
+from common.schemas.kanji_component import KanjiBase
 
 
 class ComponentBase(BaseModel):
