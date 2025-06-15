@@ -13,6 +13,7 @@ def read_components(skip: int = 0, limit: int = 100):
         components = component_db.get_components(skip=skip, limit=limit)
         return [
             Component(
+                id=item['SK'],
                 character=item.get('character'),
                 name=item.get('name'),
                 en=item.get('en'),
@@ -33,6 +34,7 @@ def read_component(component_id: str):
         if component is None:
             raise HTTPException(status_code=404, detail="Component not found")
         return Component(
+            id=component['SK'],
             character=component.get('character'),
             name=component.get('name'),
             en=component.get('en'),

@@ -15,6 +15,7 @@ class ComponentCreate(ComponentBase):
 
 
 class Component(ComponentBase):
+    id: str
     kanjis: Optional[List[KanjiBase]]
 
     class Config:
