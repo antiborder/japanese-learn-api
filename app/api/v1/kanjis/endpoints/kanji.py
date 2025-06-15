@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi.responses import StreamingResponse
@@ -9,6 +9,7 @@ from common.database import get_db
 from common.schemas.word import Word
 import logging
 from pydantic import BaseModel
+from integrations.dynamodb_kanji import dynamodb_kanji_client
 
 class KanjiIdResponse(BaseModel):
     kanji_id: int
@@ -79,4 +80,13 @@ async def import_kanjis_from_csv_endpoint(file: UploadFile = File(...), db: Sess
         return import_kanjis_from_csv(contents, db)
     except Exception as e:
         logger.error(f"Error importing kanjis from CSV: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/{kanji_id}/components", response_model=List[dict])
+def get_components_by_kanji_id(kanji_id: str):
+    try:
+        return dynamodb_kanji_client.get_components_by_kanji_id(str(kanji_id))
+    except Exception as e:
+        logger.error(f"Error getting components for kanji {kanji_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

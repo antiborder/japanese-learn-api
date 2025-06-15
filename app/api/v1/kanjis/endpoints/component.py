@@ -45,4 +45,12 @@ def read_component(component_id: str):
         raise he
     except Exception as e:
         logger.error(f"Error reading component {component_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.get("/{component_id}/kanjis", response_model=List[dict])
+def get_kanjis_by_component_id(component_id: str):
+    try:
+        return component_db.get_kanjis_by_component_id(str(component_id))
+    except Exception as e:
+        logger.error(f"Error getting kanjis for component {component_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error") 

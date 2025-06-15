@@ -48,4 +48,27 @@ class DynamoDBKanjiClient:
             logger.error(f"Error getting all kanjis from DynamoDB: {str(e)}")
             raise
 
+    def get_components_by_kanji_id(self, kanji_id: str):
+        try:
+            response = self.table.query(
+                KeyConditionExpression='PK = :pk',
+                ExpressionAttributeValues={
+                    ':pk': f'KANJI#{kanji_id}'
+                }
+            )
+            items = response.get('Items', [])
+            result = []
+            for item in items:
+                # SKは "COMPONENT#{component_id}" 形式
+                component_id = item['SK'].replace('COMPONENT#', '')
+                component_char = item.get('component_char')
+                result.append({
+                    'component_id': component_id,
+                    'component_char': component_char
+                })
+            return result
+        except Exception as e:
+            logger.error(f"Error getting components for kanji {kanji_id} from DynamoDB: {str(e)}")
+            raise
+
 dynamodb_kanji_client = DynamoDBKanjiClient() 
