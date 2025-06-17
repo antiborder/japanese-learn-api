@@ -7,6 +7,7 @@ from typing import Dict, Optional, List
 from botocore.exceptions import ClientError
 from decimal import Decimal
 import math
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -288,5 +289,31 @@ class LearnHistoryDynamoDB:
         except Exception as e:
             logger.error(f"Error getting other words for level {level}, excluding word {exclude_id}: {str(e)}", exc_info=True)
             raise
+
+    async def get_word_detail(self, word_id: int) -> dict:
+        """
+        DynamoDBから単語詳細を取得
+        """
+        response = self.table.get_item(
+            Key={
+                'PK': "WORD",
+                'SK': str(word_id)
+            }
+        )
+        item = response.get('Item')
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Word {word_id} not found")
+        return {
+            "id": int(item['SK']),
+            "name": item.get("name", ""),
+            "hiragana": item.get("hiragana", ""),
+            "is_katakana": bool(int(item.get("is_katakana", 0))),
+            "level": int(item.get("level", 0)),
+            "english": item.get("english", ""),
+            "vietnamese": item.get("vietnamese", ""),
+            "lexical_category": item.get("lexical_category", ""),
+            "accent_up": int(item.get("accent_up")) if item.get("accent_up") else None,
+            "accent_down": int(item.get("accent_down")) if item.get("accent_down") else None
+        }
 
 learn_history_db = LearnHistoryDynamoDB() 

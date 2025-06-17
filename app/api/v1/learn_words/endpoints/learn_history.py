@@ -37,33 +37,41 @@ async def record_learning(request: LearnHistoryRequest):
             detail=str(e)
         )
 
-@router.post("/next", response_model=NextWordResponse)
+@router.post("/next")
 async def get_next_word(request: NextWordRequest):
     """
     次に学習すべき単語を取得します。
     """
     try:
-        result = await learn_history_db.get_next_word(
+        # 1. 出題単語IDとモード取得
+        next_result = await learn_history_db.get_next_word(
             user_id=request.user_id,
             level=request.level
         )
-        
-        if result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="No words found for the specified level"
-            )
-            
-        return NextWordResponse(
-            answer_word_id=int(result['answer_word_id']),
-            mode=result['mode']
-        )
+        if not next_result:
+            raise HTTPException(status_code=404, detail="No words found for the specified level")
+        answer_word_id = int(next_result['answer_word_id'])
+        mode = next_result['mode']
+
+        # 2. 他の単語ID取得
+        other_word_ids = await learn_history_db.get_other_words(request.level, answer_word_id)
+        if not other_word_ids or len(other_word_ids) < 3:
+            raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
+
+        # 3. 単語詳細をまとめて取得
+        word_ids = [answer_word_id] + other_word_ids
+        words_detail = [await learn_history_db.get_word_detail(word_id) for word_id in word_ids]
+        answer_word = words_detail[0]
+        other_words = words_detail[1:]
+
+        return {
+            "mode": mode,
+            "answer_word": answer_word,
+            "other_words": other_words
+        }
     except Exception as e:
         logger.error(f"Error in get_next_word endpoint: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 class OtherWordsRequest(BaseModel):
     level: int = Field(..., description="取得する単語のレベル")
