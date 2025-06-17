@@ -279,11 +279,11 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref DynamoDBTable
         - Statement:
-            - Effect: Allow
-              Action:
+          - Effect: Allow
+            Action:
                 - dynamodb:Query
                 - dynamodb:Scan
-              Resource:
+            Resource:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   # CloudWatch Log Groups

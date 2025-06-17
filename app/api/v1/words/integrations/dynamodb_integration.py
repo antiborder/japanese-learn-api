@@ -15,29 +15,23 @@ class DynamoDBClient:
 
     def get_words(self, skip: int = 0, limit: int = 100) -> List[Dict]:
         try:
-            response = self.table.scan(
-                FilterExpression="begins_with(PK, :prefix)",
+            response = self.table.query(
+                KeyConditionExpression="PK = :pk",
                 ExpressionAttributeValues={
-                    ":prefix": "WORD#"
+                    ":pk": "WORD"
                 },
                 Limit=limit
             )
-            
             items = response.get('Items', [])
-            
-            # DynamoDBの結果をMySQLモデルの形式に変換
             words = []
             for item in items:
                 try:
                     word = self._convert_dynamodb_to_model(item)
                     words.append(word)
                 except (ValueError, TypeError) as e:
-                    logger.error(f"Error converting item {item['PK']}: {str(e)}")
+                    logger.error(f"Error converting item {item['SK']}: {str(e)}")
                     continue
-            
-            # スキップとリミットの適用
             return words[skip:skip + limit]
-            
         except ClientError as e:
             logger.error(f"Error getting words from DynamoDB: {str(e)}")
             raise
@@ -52,8 +46,8 @@ class DynamoDBClient:
         try:
             response = self.table.get_item(
                 Key={
-                    'PK': f"WORD#{word_id}",
-                    'SK': "METADATA"
+                    'PK': "WORD",
+                    'SK': str(word_id)
                 }
             )
             
@@ -77,7 +71,7 @@ class DynamoDBClient:
         DynamoDBのアイテムをモデル形式に変換します
         """
         return {
-            'id': int(item['PK'].split('#')[1]),
+            'id': int(item['SK']),
             'name': item.get('name', ''),
             'hiragana': item.get('hiragana', ''),
             'is_katakana': bool(int(item.get('is_katakana', 0))),
