@@ -17,7 +17,6 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		--stack-name japanese-learn \
 		--s3-bucket aws-sam-cli-managed-default-samclisourcebucket-wifzlstdcfi8 \
 		--parameter-overrides \
-		DatabaseUrl="$$DATABASE_URL" \
 		MaxComponentCount="$$MAX_COMPONENT_COUNT" \
 		MinColumnCount="$$MIN_COLUMN_COUNT" \
 		S3BucketName="$$S3_BUCKET_NAME" \
@@ -54,8 +53,6 @@ check-aws-env:
 # データベース環境変数チェック
 check-db-env:
 	@echo "データベース環境変数を確認しています..."
-	@test -n "$$DATABASE_URL" || { echo "Error: DATABASE_URLが設定されていません"; exit 1; }
-	@echo "$$DATABASE_URL" | grep -q "^mysql+pymysql://" || { echo "Error: DATABASE_URLの形式が正しくありません"; exit 1; }
 	@test -n "$$MAX_COMPONENT_COUNT" || { echo "Error: MAX_COMPONENT_COUNTが設定されていません"; exit 1; }
 	@echo "$$MAX_COMPONENT_COUNT" | grep -q "^[0-9][0-9]*$$" || { echo "Error: MAX_COMPONENT_COUNTは数値である必要があります"; exit 1; }
 	@test -n "$$MIN_COLUMN_COUNT" || { echo "Error: MIN_COLUMN_COUNTが設定されていません"; exit 1; }
@@ -95,13 +92,13 @@ check-structure:
 		echo "Error: app/api/v1/commonディレクトリが見つかりません"; \
 		exit 1; \
 	fi
-	@for file in config.py database.py; do \
+	@for file in config.py; do \
 		if [ ! -f "app/api/v1/common/$$file" ]; then \
 			echo "Error: app/api/v1/common/$$fileが見つかりません"; \
 			exit 1; \
 		fi \
 	done
-	@for dir in words kanjis; do \
+	@for dir in words kanjis learn_words; do \
 		for subdir in endpoints; do \
 			if [ ! -d "app/api/v1/$$dir/$$subdir" ]; then \
 				echo "Error: app/api/v1/$$dir/$$subdirディレクトリが見つかりません"; \

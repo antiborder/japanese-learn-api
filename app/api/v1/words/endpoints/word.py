@@ -1,27 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException # , UploadFile, File
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 from typing import List
-# from fastapi.responses import StreamingResponse
-from crud import word_crud
-from crud.word_crud import get_kanji_by_character
-from common.schemas.word import Word, WordCreate
-from common.schemas.kanji_component import Kanji
+from common.schemas.word import Word
 from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
-from common.database import get_db # , Base
 import logging
 from integrations.dynamodb_integration import dynamodb_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# @router.post("/", response_model=Word)
-# def create_word(word: WordCreate, db: Session = Depends(get_db)):
-#     try:
-#         return word_crud.create_word(db=db, word=word)
-#     except Exception as e:
-#         logger.error(f"Error creating word: {str(e)}")
-#         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/", response_model=List[Word])
 def read_words(skip: int = 0, limit: int = 100):
@@ -36,20 +22,6 @@ def read_words(skip: int = 0, limit: int = 100):
     except Exception as e:
         logger.error(f"Error reading words: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-@router.get("/character/{character}/kanji", response_model=Kanji)
-def read_kanji_by_character(character: str, db: Session = Depends(get_db)):
-    try:
-        kanji = get_kanji_by_character(db, character=character)
-        if kanji is None:
-            raise HTTPException(status_code=404, detail="Kanji not found")
-        return kanji
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        logger.error(f"Error reading kanji by character {character}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-        
 
 @router.get("/{word_id}", response_model=Word)
 def read_word(word_id: int):
