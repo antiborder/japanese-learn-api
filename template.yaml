@@ -123,48 +123,6 @@ Resources:
         - Key: Environment
           Value: !Ref AWS::StackName
 
-  # Authentication Lambda Function
-  AuthenticationFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: python3.9
-      BuildProperties:
-        UseContainer: true
-        ProjectPath: ./app/api/v1/auth
-        InstallDependencies: true
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-AuthenticationFunction"
-      CodeUri: ./app/api/v1/auth
-      Handler: app.lambda_handler
-      Description: "Lambda function for authentication endpoints"
-      Environment:
-        Variables:
-          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
-          JWT_SECRET_KEY: "your-secret-key"  # 本番環境では別途設定すべき
-          USER_POOL_ID: !Ref UserPool
-          USER_POOL_CLIENT_ID: !Ref UserPoolClient
-      Events:
-        AuthApiRootEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth
-            Method: ANY
-        AuthApiProxyEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/{proxy+}
-            Method: ANY
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:Query
-                - dynamodb:Scan
-              Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
-
   # Lambda Functions
   WordsFunction:
     Type: AWS::Serverless::Function
