@@ -6,7 +6,6 @@ from decimal import Decimal
 LearningMode = Literal["MJ", "JM"]
 
 class LearnHistoryRequest(BaseModel):
-    user_id: Optional[str] = None
     word_id: int
     level: int
     confidence: int = Field(description="Easiness level (0-3)")
@@ -22,7 +21,6 @@ class LearnHistoryResponse(BaseModel):
     next_datetime: datetime
 
 class NextWordRequest(BaseModel):
-    user_id: str
     level: int
 
 class NextWordResponse(BaseModel):

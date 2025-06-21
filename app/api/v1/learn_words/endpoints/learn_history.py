@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse
 from integrations.dynamodb_integration import learn_history_db
+from utils.auth import get_current_user_id
 import logging
 from pydantic import BaseModel, Field
 from typing import List
@@ -17,13 +18,15 @@ def parse_datetime_with_tz(dt_str):
     return dt
 
 @router.post("/", response_model=LearnHistoryResponse)
-async def record_learning(request: LearnHistoryRequest):
+async def record_learning(request: LearnHistoryRequest, current_user_id: str = Depends(get_current_user_id)):
     """
     学習履歴を記録し、次の学習情報を返します。
+    認証：必須（Bearerトークン）
+    データ範囲：トークンから取得したユーザーIDのデータのみ
     """
     try:
         result = await learn_history_db.record_learning(
-            user_id=request.user_id,
+            user_id=current_user_id,
             word_id=request.word_id,
             level=request.level,
             confidence=request.confidence,
@@ -38,14 +41,16 @@ async def record_learning(request: LearnHistoryRequest):
         )
 
 @router.post("/next")
-async def get_next_word(request: NextWordRequest):
+async def get_next_word(request: NextWordRequest, current_user_id: str = Depends(get_current_user_id)):
     """
     次に学習すべき単語を取得します。
+    認証：必須（Bearerトークン）
+    データ範囲：トークンから取得したユーザーIDのデータのみ
     """
     try:
         # 1. 出題単語IDとモード取得
         next_result = await learn_history_db.get_next_word(
-            user_id=request.user_id,
+            user_id=current_user_id,
             level=request.level
         )
         if not next_result:
@@ -105,17 +110,19 @@ async def get_other_words(request: OtherWordsRequest) -> List[int]:
         logger.error(f"Error getting other words: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/progress/{user_id}")
-async def get_progress(user_id: str):
+@router.get("/progress")
+async def get_progress(current_user_id: str = Depends(get_current_user_id)):
     """
-    指定ユーザーのレベルごとの進捗情報を返す（unlearnedも含む）
+    ログインユーザーのレベルごとの進捗情報を返す（unlearnedも含む）
+    認証：必須（Bearerトークン）
+    データ範囲：トークンから取得したユーザーIDのデータのみ
     """
     try:
         # ユーザーの学習履歴を全て取得
         user_response = learn_history_db.table.query(
             KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
             ExpressionAttributeValues={
-                ':pk': f"USER#{user_id}",
+                ':pk': f"USER#{current_user_id}",
                 ':sk_prefix': 'WORD#'
             }
         )
@@ -158,10 +165,12 @@ async def get_progress(user_id: str):
         logger.error(f"Error in get_progress endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/plan/{user_id}")
-async def get_plan(user_id: str):
+@router.get("/plan")
+async def get_plan(current_user_id: str = Depends(get_current_user_id)):
     """
-    指定ユーザーの今後のレビュー予定数を日付ごとに集計して返す
+    ログインユーザーの今後のレビュー予定数を日付ごとに集計して返す
+    認証：必須（Bearerトークン）
+    データ範囲：トークンから取得したユーザーIDのデータのみ
     response例:
     [
       { "date": "2024-03-10", "count": 12 },
@@ -174,7 +183,7 @@ async def get_plan(user_id: str):
         user_response = learn_history_db.table.query(
             KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
             ExpressionAttributeValues={
-                ':pk': f"USER#{user_id}",
+                ':pk': f"USER#{current_user_id}",
                 ':sk_prefix': 'WORD#'
             }
         )

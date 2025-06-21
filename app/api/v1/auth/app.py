@@ -4,22 +4,24 @@ import os
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 from typing import List, Optional
-from endpoints.auth import router as auth_router
 
 # ロギングの設定
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# 環境変数からroot_pathを取得（ローカル開発時は空文字）
+ROOT_PATH = os.getenv('ROOT_PATH', '')
 
 # FastAPIアプリケーションの初期化
 app = FastAPI(
     title="Japanese Learn API - Authentication",
     description="API for user authentication",
     version="1.0.0",
-    root_path="/Prod"
+    root_path=ROOT_PATH
 )
 
-# エンドポイントのインポート
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+# 現在、認証エンドポイントは使用されていない
+# フロントエンドが直接Cognitoを使用しているため
 
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
