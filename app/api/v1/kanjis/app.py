@@ -9,11 +9,15 @@ from typing import List, Optional
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# 環境変数からroot_pathを取得（ローカル開発時は空文字）
+ROOT_PATH = os.getenv('ROOT_PATH', '')
+
 # FastAPIアプリケーションの初期化
 app = FastAPI(
     title="Japanese Learn API - Kanjis and Components",
     description="API for managing Japanese kanjis and their components",
-    version="1.0.0"
+    version="1.0.0",
+    root_path=ROOT_PATH
 )
 
 
@@ -30,6 +34,9 @@ handler = Mangum(app, lifespan="off")
 def lambda_handler(event, context):
     try:
         # Mangumハンドラーを使用してFastAPIアプリケーションをLambdaで実行
+        stage = event.get('requestContext', {}).get('stage', '')
+        if stage:
+            app.root_path = f"/{stage}"
         response = handler(event, context)
         
         # レスポンスにCORSヘッダーを追加

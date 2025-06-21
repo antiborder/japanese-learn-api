@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from common.schemas.word import Word
+from common.schemas.word import Word, WordKanji
 from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
 import logging
@@ -32,6 +32,20 @@ def read_word(word_id: int):
         raise
     except Exception as e:
         logger.error(f"Error reading word {word_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/{word_id}/kanjis", response_model=List[WordKanji])
+def read_kanjis_by_word_id(word_id: int):
+    """
+    指定された単語IDに関連する漢字を取得します
+    """
+    try:
+        kanjis = dynamodb_client.get_kanjis_by_word_id(word_id)
+        return kanjis
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reading kanjis for word {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{word_id}/audio_url", response_model=dict)

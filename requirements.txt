@@ -44,7 +44,6 @@ rsa
 s3transfer
 six
 sniffio
-SQLAlchemy==2.0.27
 starlette
 typing-extensions
 ujson

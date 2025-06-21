@@ -66,6 +66,43 @@ class DynamoDBClient:
             logger.error(f"Unexpected error getting word {word_id}: {str(e)}")
             raise
 
+    def get_kanjis_by_word_id(self, word_id: int) -> List[Dict]:
+        """
+        指定された単語IDに関連する漢字を取得します
+        """
+        try:
+            response = self.table.query(
+                KeyConditionExpression="PK = :pk",
+                ExpressionAttributeValues={
+                    ":pk": f"WORD#{word_id}"
+                }
+            )
+            
+            items = response.get('Items', [])
+            kanjis = []
+            
+            for item in items:
+                try:
+                    # SKからKANJI#を除去してIDを取得
+                    kanji_id = int(item['SK'].replace('KANJI#', ''))
+                    kanji = {
+                        'id': kanji_id,
+                        'char': item.get('kanji', '')
+                    }
+                    kanjis.append(kanji)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting kanji item {item['SK']}: {str(e)}")
+                    continue
+            
+            return kanjis
+            
+        except ClientError as e:
+            logger.error(f"Error getting kanjis for word {word_id} from DynamoDB: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting kanjis for word {word_id}: {str(e)}")
+            raise
+
     def _convert_dynamodb_to_model(self, item: Dict) -> Dict:
         """
         DynamoDBのアイテムをモデル形式に変換します

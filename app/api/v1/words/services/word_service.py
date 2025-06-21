@@ -1,7 +1,4 @@
 from fastapi import HTTPException
-from common.models.word import Word
-from crud.word_crud import get_word
-from sqlalchemy.orm import Session
 from integrations.aws_integration import check_word_audio_exists, save_word_audio_to_s3, generate_presigned_url
 from integrations.google_integration import synthesize_speech
 import boto3

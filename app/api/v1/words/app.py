@@ -11,11 +11,15 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# 環境変数からroot_pathを取得（ローカル開発時は空文字）
+ROOT_PATH = os.getenv('ROOT_PATH', '')
+
 # FastAPIアプリケーションの初期化
 app = FastAPI(
     title="Japanese Learn API - Words",
     description="API for managing Japanese words",
-    version="1.0.0"
+    version="1.0.0",
+    root_path=ROOT_PATH
 )
 
 

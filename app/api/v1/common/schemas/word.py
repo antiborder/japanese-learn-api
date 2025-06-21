@@ -24,3 +24,10 @@ class Words(BaseModel):
 
     class Config:
         orm_mode = True
+
+class WordKanji(BaseModel):
+    id: int
+    char: str
+
+    class Config:
+        orm_mode = True
