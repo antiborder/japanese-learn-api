@@ -184,6 +184,38 @@ class LearnHistoryDynamoDB:
             logger.error(f"Error recording learning data: {str(e)}")
             raise
 
+    async def get_random_word(self, level: int) -> Optional[Dict]:
+        """指定されたレベルからランダムに単語IDとモードを取得します"""
+        try:
+            # ①単語リストの取得とレベルでのフィルタリング
+            response = self.table.query(
+                KeyConditionExpression="PK = :pk",
+                ExpressionAttributeValues={
+                    ":pk": "WORD"
+                }
+            )
+            all_words = response.get('Items', [])
+            if not all_words:
+                logger.info("No words found in the database")
+                return None
+            
+            level_words = [item for item in all_words if item.get('level') == level]
+            if not level_words:
+                logger.info(f"No words found for level {level}")
+                return None
+
+            # ②ランダムに単語を選択
+            selected_item = random.choice(level_words)
+            result = {
+                'answer_word_id': int(selected_item['SK']),
+                'mode': random.choice(["MJ", "JM"])
+            }
+            logger.info(f"Successfully retrieved random word for level {level}: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting random word for level {level}: {str(e)}", exc_info=True)
+            raise
+
     async def get_next_word(self, user_id: str, level: int) -> Optional[Dict]:
         """次に学習すべき単語を取得します"""
         try:
@@ -203,15 +235,7 @@ class LearnHistoryDynamoDB:
             if not level_words:
                 logger.info(f"No words found for level {level}")
                 return None
-            # ②user_idがnullの場合はランダム選択
-            if not user_id:
-                selected_item = random.choice(level_words)
-                result = {
-                    'answer_word_id': int(selected_item['SK']),
-                    'mode': random.choice(["MJ", "JM"])
-                }
-                logger.info(f"Successfully retrieved random word for level {level}: {result}")
-                return result
+            
             # ③ユーザーの学習履歴の取得とレベルでのフィルタリング
             response = self.table.query(
                 KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',

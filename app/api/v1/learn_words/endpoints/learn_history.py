@@ -219,3 +219,41 @@ async def get_plan(current_user_id: str = Depends(get_current_user_id)):
     except Exception as e:
         logger.error(f"Error in get_plan endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+class RandomWordRequest(BaseModel):
+    level: int = Field(..., description="取得する単語のレベル")
+
+@router.post("/next/random")
+async def get_random_word(request: RandomWordRequest):
+    """
+    指定されたレベルからランダムに単語を1つ取得します。
+    認証は不要です。
+    """
+    try:
+        # 1. ランダムに単語IDとモードを取得
+        next_result = await learn_history_db.get_random_word(level=request.level)
+        if not next_result:
+            raise HTTPException(status_code=404, detail="No words found for the specified level")
+        
+        answer_word_id = int(next_result['answer_word_id'])
+        mode = next_result['mode']
+
+        # 2. 他の単語IDを取得
+        other_word_ids = await learn_history_db.get_other_words(request.level, answer_word_id)
+        if not other_word_ids or len(other_word_ids) < 3:
+            raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
+
+        # 3. 単語詳細をまとめて取得
+        word_ids = [answer_word_id] + other_word_ids
+        words_detail = [await learn_history_db.get_word_detail(word_id) for word_id in word_ids]
+        answer_word = words_detail[0]
+        other_words = words_detail[1:]
+
+        return {
+            "mode": mode,
+            "answer_word": answer_word,
+            "other_words": other_words
+        }
+    except Exception as e:
+        logger.error(f"Error in get_random_word endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
