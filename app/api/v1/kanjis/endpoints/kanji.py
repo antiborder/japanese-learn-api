@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from common.schemas.kanji_component import Kanji
+from common.schemas.kanji_component import Kanji, KanjiWord
 from crud.kanji_crud import get_kanji, get_kanjis
 import logging
 from pydantic import BaseModel
@@ -33,6 +33,21 @@ def read_kanji(kanji_id: int):
         raise he
     except Exception as e:
         logger.error(f"Error reading kanji {kanji_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/{kanji_id}/words", response_model=List[KanjiWord])
+def read_words_by_kanji_id(kanji_id: int):
+    """
+    指定された漢字IDに関連する単語を取得します
+    """
+    try:
+        words = dynamodb_kanji_client.get_words_by_kanji_id(kanji_id)
+        return words
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reading words for kanji {kanji_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

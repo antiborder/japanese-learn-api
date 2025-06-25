@@ -41,3 +41,10 @@ class ComponentCreate(ComponentBase):
 class Component(ComponentBase):
     id: int
     kanjis: Optional[List[KanjiBase]] = None
+
+
+class KanjiWord(BaseModel):
+    id: int
+
+    class Config:
+        orm_mode = True

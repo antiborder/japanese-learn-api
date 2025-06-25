@@ -71,4 +71,37 @@ class DynamoDBKanjiClient:
             logger.error(f"Error getting components for kanji {kanji_id} from DynamoDB: {str(e)}")
             raise
 
+    def get_words_by_kanji_id(self, kanji_id: int):
+        """
+        指定された漢字IDに関連する単語を取得します
+        """
+        try:
+            response = self.table.query(
+                KeyConditionExpression='PK = :pk',
+                ExpressionAttributeValues={
+                    ':pk': f'KANJI#{kanji_id}'
+                }
+            )
+            
+            items = response.get('Items', [])
+            words = []
+            
+            for item in items:
+                try:
+                    # SKからWORD#を除去してIDを取得
+                    word_id = int(item['SK'].replace('WORD#', ''))
+                    word = {
+                        'id': word_id
+                    }
+                    words.append(word)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting word item {item['SK']}: {str(e)}")
+                    continue
+            
+            return words
+            
+        except Exception as e:
+            logger.error(f"Error getting words for kanji {kanji_id} from DynamoDB: {str(e)}")
+            raise
+
 dynamodb_kanji_client = DynamoDBKanjiClient() 
