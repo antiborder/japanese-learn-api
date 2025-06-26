@@ -1,0 +1,104 @@
+PK,SK,character,english,vietnamese,strokes,onyomi,kunyomi,level
+KANJI,1,猫,cat,mèo ,11,びょう,ねこ,4
+KANJI,2,犬,dog,chó,4,けん,いぬ,2
+KANJI,3,書,write,viết,10,しょ,かく,2
+KANJI,4,見,look,xem,7,けん,みる,2
+KANJI,5,捨,throw away,bỏ,11,しゃ,すてる,4
+KANJI,6,安,cheap,rẻ,6,あん,やすい,3
+KANJI,7,一,one,một,1,いち,ひとつ,2
+KANJI,8,右,right,phải,5,う,みぎ,3
+KANJI,9,雨,rain,cơn mưa,8,う,あめ,3
+KANJI,10,円,circle,vòng tròn,4,えん,まるい,2
+KANJI,11,下,under,dưới,3,か,した,2
+KANJI,12,火,fire,ngọn lửa,4,か,ひ,3
+KANJI,13,何,what,gì,7,か,なに,3
+KANJI,14,花,flower,hoa,7,か,はな,3
+KANJI,15,会,association,sự kết hợp,6,かい,あう,3
+KANJI,16,海,sea,biển,9,かい,うみ,3
+KANJI,17,外,outside,ngoài,5,がい,そと,3
+KANJI,18,学,study,học,8,がく,まなぶ,3
+KANJI,19,間,between,giữa,12,かん,あいだ,3
+KANJI,20,気,air,không khí,6,き,け,3
+KANJI,21,九,nine,chín,2,きゅう,ここのつ,3
+KANJI,22,休,closed,đóng lại,6,きゅう,やすむ,3
+KANJI,23,金,gold,vàng,8,きん,かね,3
+KANJI,24,月,month,tháng,4,げつ,つき,2
+KANJI,25,犬,dog,chó,3,けん,いぬ,2
+KANJI,26,言,words,từ,7,げん,いう,3
+KANJI,27,古,old,cũ,5,こ,ふるい,3
+KANJI,28,五,five,năm,4,ご,いつつ,3
+KANJI,29,午,afternoon,buổi chiều,4,ご,ひる,3
+KANJI,30,後,rear,ở phía sau,9,ご,あと,3
+KANJI,31,語,word,từ,14,ご,かたる,3
+KANJI,32,口,mouth,miệng,3,こう,くち,2
+KANJI,33,広,wide,rộng,5,こう,ひろい,3
+KANJI,34,行,line,đường kẻ,6,こう,いく,3
+KANJI,35,校,school,trường học,10,こう,くらべる,3
+KANJI,36,高,high,cao,10,こう,たかい,3
+KANJI,37,国,country,quốc gia,8,こく,くに,3
+KANJI,38,今,now,hiện nay,4,こん,いま,3
+KANJI,39,左,left,bên trái,5,さ,ひだり,2
+KANJI,40,三,three,ba,3,さん,みっつ,2
+KANJI,41,山,mountain,núi,3,さん,やま,2
+KANJI,42,子,child,đứa trẻ,3,し,こ,2
+KANJI,43,四,four,bốn,4,し,よっつ,3
+KANJI,44,時,time,thời gian,11,じ,とき,3
+KANJI,45,七,seven,bảy,2,しち,ななつ,3
+KANJI,46,社,company,công ty,7,しゃ,やしろ,3
+KANJI,47,車,car,xe hơi,7,しゃ,くるま,3
+KANJI,48,手,hand,tay,4,しゅ,て,2
+KANJI,49,週,week,tuần,11,しゅう,,3
+KANJI,50,十,ten,mười,2,じゅう,とお,2
+KANJI,51,出,out,ngoài,5,しゅつ,でる,2
+KANJI,52,女,woman,đàn bà,3,じょ,おんな,2
+KANJI,53,小,small,bé nhỏ,3,しょう,ちいさい,2
+KANJI,54,上,above,bên trên,3,じょう,うえ,2
+KANJI,55,食,food,đồ ăn,9,しょく,たべる,3
+KANJI,56,人,people,mọi người,2,じん,ひと,2
+KANJI,57,水,water,nước,4,すい,みず,2
+KANJI,58,生,raw,thô,5,せい,いきる,3
+KANJI,59,西,west,phía tây,6,せい,にし,3
+KANJI,60,青,blue,màu xanh da trời,8,せい,あおい,3
+KANJI,61,赤,red,màu đỏ,7,せき,あかい,3
+KANJI,62,千,thousand,ngàn,3,せん,ち,3
+KANJI,63,川,river,dòng sông,3,せん,かわ,3
+KANJI,64,先,destination,điểm đến,6,せん,さき,3
+KANJI,65,前,before,trước,9,ぜん,まえ,2
+KANJI,66,足,feet,bàn chân,7,そく,あし,2
+KANJI,67,大,large,lớn,3,だい,おおきい,2
+KANJI,68,男,man,người đàn ông,7,だん,おとこ,2
+KANJI,69,中,medium,trung bình,4,ちゅう,なか,3
+KANJI,70,長,long,dài,8,ちょう,ながい,3
+KANJI,71,天,heaven,thiên đường,4,てん,あめ,3
+KANJI,72,店,shop,cửa hàng,8,てん,みせ,3
+KANJI,73,電,electric,điện,13,でん,,3
+KANJI,74,土,soil,đất,3,ど,つち,3
+KANJI,75,東,east,phía đông,8,とう,ひがし,3
+KANJI,76,同,same,như nhau,6,どう,おなじ,3
+KANJI,77,読,read,đọc,14,どく,よむ,3
+KANJI,78,南,south,phía nam,9,なん,みなみ,3
+KANJI,79,二,two,hai,2,に,ふたつ,2
+KANJI,80,日,day,ngày,4,にち,ひ,2
+KANJI,81,入,enter,đi vào,2,にゅう,はいる,2
+KANJI,82,年,year,năm,6,ねん,とし,2
+KANJI,83,買,buy,mua,12,ばい,かう,3
+KANJI,84,白,white,trắng,5,はく,しろい,3
+KANJI,85,八,eight,tám,2,はち,やっつ,3
+KANJI,86,半,half,một nửa,5,はん,,3
+KANJI,87,百,hundred,trăm,6,ひゃく,,2
+KANJI,88,父,father,bố,4,ふ,ちち,3
+KANJI,89,分,minutes,phút,4,ぶん,わける,3
+KANJI,90,聞,listen,nghe,14,ぶん,きく,3
+KANJI,91,母,mother,mẹ,5,ぼ,はは,3
+KANJI,92,北,north,phía bắc,5,ほく,きた,3
+KANJI,93,木,tree,cây,4,もく,き,3
+KANJI,94,本,books,sách,5,ほん,もと,2
+KANJI,95,毎,every,mọi,6,まい,,3
+KANJI,96,万,ten thousand,mười ngàn,3,まん,,3
+KANJI,97,名,given name,tên đã cho,6,めい,な,3
+KANJI,98,目,eye,mắt ,5,もく,め,2
+KANJI,99,友,friend,bạn bè,4,ゆう,とも,3
+KANJI,100,来,next,kế tiếp,7,らい,くる,3
+KANJI,101,立,standing,đứng,5,りつ,たつ,3
+KANJI,102,六,six,sáu,4,ろく,むっつ,3
+KANJI,103,話,story,câu chuyện,13,わ,はなす,3

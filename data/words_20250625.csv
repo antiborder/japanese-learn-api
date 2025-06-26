@@ -1,0 +1,404 @@
+PK,SK,name,hiragana,level,english,vietnamese,lexical_category,accent_up,accent_down
+WORD,1,猫,ねこ,2,cat,mèo,noun,,1
+WORD,2,犬,いぬ,1,dog,chó,noun,1,
+WORD,3,鳥,とり,2,bird,chim,noun,,0
+WORD,4,魚,さかな,1,fish,cá,noun,,0
+WORD,5,馬,うま,4,horse,ngựa,noun,,1
+WORD,6,書きます,かきます,1,write,viét,verb5,1,3
+WORD,7,見ます,みます,1,look,xem,verb2up,1,2
+WORD,8,捨てます,すてます,4,throw away,bỏ,verb2down,1,3
+WORD,9,一,いち,1,one,một,noun,1,
+WORD,10,二,に,1,two,hai,noun,,
+WORD,11,三,さん,1,three,ba,noun,1,
+WORD,12,四,よん ,2,four,bốn,noun,,1
+WORD,13,五,ご,2,five,năm,noun,,
+WORD,14,六,ろく,2,six,sáu,noun,1,
+WORD,15,七,なな,2,seven,bảy,noun,,1
+WORD,16,八,はち,2,eight,tám,noun,1,
+WORD,17,九,きゅう,2,nine,chín,noun,,1
+WORD,18,十,じゅう,1,ten,mười,noun,,1
+WORD,19,十一,じゅういち,2,eleven,mười một,noun,1,
+WORD,20,十二,じゅうに,2,twelve,mười hai,noun,1,
+WORD,21,十四,じゅうよん,2,fourteen,mười bốn,noun,1,3
+WORD,22,二十,にじゅう,2,twenty,hai mươi,noun,,1
+WORD,23,三十,さんじゅう,2,thirty,ba mươi,noun,,1
+WORD,24,三十一,さんじゅういち,3,thirty-one,ba mươi mốt,noun,,1
+WORD,25,百,ひゃく,1,hundred,trăm,noun,1,
+WORD,26,銀行員,ぎんこういん,3,banker,chủ ngân hàng,noun,1,3
+WORD,27,会社員,かいしゃいん,3,company employee,nhân viên công ty,noun,1,3
+WORD,28,医者,いしゃ,3,doctor,bác sĩ,noun,1,
+WORD,29,先生,せんせい,1,teacher,giáo viên,noun,1,3
+WORD,30,エンジニア,エンジニア,3,engineer,kỹ sư,noun,1,3
+WORD,31,店員,てんいん,3,clerk,nhân viên văn phòng,noun,1,
+WORD,32,歌手,かしゅ,3,singer,ca sĩ,noun,,1
+WORD,33,警察官,けいさつかん,3,police officer,cảnh sát,noun,1,3
+WORD,34,学生,がくせい,1,student,học sinh,noun,1,
+WORD,35,主婦,しゅふ,3,housewife,bà nội trợ,noun,,1
+WORD,36,国,くに,3,country,quốc gia,noun,1,
+WORD,37,日本,にほん,1,japan,nhật bản,noun,1,2
+WORD,38,韓国,かんこく,3,south korea,hàn quốc,noun,,1
+WORD,39,中国,ちゅうごく,2,china,trung quốc,noun,,1
+WORD,40,フィリピン,フィリピン,3,philippines,philippin,noun,,1
+WORD,41,アメリカ,アメリカ,2,america,nước mỹ,noun,1,
+WORD,42,ドイツ,ドイツ,3,germany,đức,noun,,1
+WORD,43,イギリス,イギリス,2,england,anh quốc,noun,1,
+WORD,44,日本語,にほんご,1,japanese,nhật bản,noun,1,
+WORD,45,韓国語,かんこくご,3,korean,hàn quốc,noun,1,
+WORD,46,中国語,ちゅうごくご,3,chinese,tiếng trung quốc,noun,1,
+WORD,47,英語,えいご,1,english,tiếng anh,noun,1,
+WORD,48,銀行,ぎんこう,2,bank,ngân hàng,noun,1,
+WORD,49,郵便局,ゆうびんきょく,2,post office,bưu điện,noun,1,3
+WORD,50,薬屋,くすりや,3,pharmacy,hiệu thuốc,noun,1,
+WORD,51,病院,びょういん,1,hospital,bệnh viện,noun,1,
+WORD,52,会社,かいしゃ,1,company,công ty,noun,1,
+WORD,53,スーパー,スーパー,2,supermarket,siêu thị,noun,,1
+WORD,54,カフェ,カフェ,3,cafe,quán cà phê,noun,,1
+WORD,55,レストラン,レストラン,1,restaurant,nhà hàng,noun,,1
+WORD,56,デパート,デパート,3,department stores,cửa hàng bách hóa,noun,1,2
+WORD,57,映画館,えいがかん,3,movie theatre,rạp chiếu phim,noun,1,3
+WORD,58,本屋,ほんや,2,book store,cửa hàng sách,noun,,1
+WORD,59,花屋,はなや,2,florist,người bán hoa,noun,1,2
+WORD,60,ケーキ屋,ケーキや,3,cake shop,tiệm bánh,noun,1,
+WORD,61,ラーメン屋,ラーメンや,3,ramen shop,cửa hàng mì ramen,noun,1,
+WORD,62,カレー屋,カレーや,3,curry restaurant,nhà hàng cà ri,noun,1,
+WORD,63,コンビニ,コンビニ,2,convenience store,cửa hàng tiện lợi,noun,1,
+WORD,64,家,うち,3,house,căn nhà,noun,1,
+WORD,65,学校,がっこう,1,school,trường học,noun,1,
+WORD,66,大学,だいがく,2,university,trường đại học,noun,1,
+WORD,67,アパート,アパート,2,apartment,căn hộ,noun,1,2
+WORD,68,トイレ,トイレ,1,toilet,nhà vệ sinh,noun,,1
+WORD,69,博物館,はくぶつかん,3,museum,bảo tàng,noun,1,4
+WORD,70,公園,こうえん,1,park,công viên,noun,1,
+WORD,71,大使館,たいしかん,3,embassy,đại sứ quán,noun,1,3
+WORD,72,町,まち,2,town,thị trấn,noun,1,
+WORD,73,北口,きたぐち,3,north exit,lối ra phía bắc,noun,1,
+WORD,74,南口,みなみぐち,3,south exit,lối ra phía nam,noun,1,
+WORD,75,東口,ひがしぐち,3,east exit,lối ra phía đông,noun,1,
+WORD,76,西口,にしぐち,3,west exit,lối ra phía tây,noun,1,
+WORD,77,季節,きせつ,2,season,mùa,noun,,1
+WORD,78,春,はる,2,spring,mùa xuân,noun,,1
+WORD,79,夏,なつ,2,summer,mùa hè,noun,1,
+WORD,80,秋,あき,2,autumn,mùa thu,noun,,1
+WORD,81,冬,ふゆ,2,winter,mùa đông,noun,1,
+WORD,82,家族,かぞく,2,family,gia đình,noun,,1
+WORD,83,友達,ともだち,2,friend,bạn bè,noun,1,
+WORD,84,父,ちち,3,father,bố,noun,,1
+WORD,85,お父さん,おとうさん,1,father,bố,noun,1,2
+WORD,86,母,はは,3,mother,mẹ,noun,,1
+WORD,87,お母さん,おかあさん,1,mother,mẹ,noun,1,2
+WORD,88,兄,あに,3,older brother,anh trai,noun,,1
+WORD,89,お兄さん,おにいさん,2,older brother,anh trai,noun,1,2
+WORD,90,姉,あね,3,sister,em gái,noun,1,
+WORD,91,お姉さん,おねえさん,2,older sister,chị gái,noun,1,2
+WORD,92,弟,おとうと,2,younger brother,em trai,noun,1,
+WORD,93,妹,いもうと,2,younger sister,em gái,noun,1,
+WORD,94,兄弟,きょうだい,3,brothers,anh em,noun,,1
+WORD,95,息子,むすこ,3,son,con trai,noun,1,
+WORD,96,娘,むすめ,3,daughter,con gái,noun,1,
+WORD,97,男,おとこ,1,man,người đàn ông,noun,1,
+WORD,98,女,おんな,1,woman,đàn bà,noun,1,
+WORD,99,夫,おっと,2,husband,chồng,noun,1,
+WORD,100,ご主人,ごしゅじん,3,husband,chồng,noun,1,2
+WORD,101,妻,つま,2,wife,vợ,noun,,1
+WORD,102,奥さん,おくさん,3,wife,vợ,noun,,1
+WORD,103,両親,りょうしん,3,parents,cha mẹ,noun,,1
+WORD,104,子供,こども,1,child,đứa trẻ,noun,1,
+WORD,105,祖父,そふ,3,grandfather,ông nội,noun,,1
+WORD,106,おじいさん,おじいさん,2,grandfather,ông nội,noun,1,2
+WORD,107,祖母,そぼ,3,grandmother,bà ngoại,noun,,1
+WORD,108,おばあさん,おばあさん,2,granny,bà già,noun,1,2
+WORD,109,叔父,おじ,3,uncle,chú ,noun,1,
+WORD,110,叔母,おば,3,aunt,dì,noun,1,
+WORD,111,孫,まご,3,grandchild,cháu nội,noun,1,
+WORD,112,動物,どうぶつ,1,animal,động vật,noun,1,
+WORD,113,豚,ぶた,2,pig,con lợn,noun,1,
+WORD,114,牛,うし,2,cattle,gia súc,noun,1,
+WORD,115,鶏,にわとり,2,chicken,thịt gà,noun,1,
+WORD,116,服,ふく,1,clothes,quần áo,noun,,1
+WORD,117,着物,きもの,3,kimono,kimono,noun,1,
+WORD,118,帽子,ぼうし,2,hat,mũ,noun,1,
+WORD,119,スーツ,スーツ,3,suit,bộ đồ,noun,,1
+WORD,120,ジャケット,ジャケット,3,jacket,áo khoác,noun,,1
+WORD,121,セーター,セーター,3,sweater,áo len,noun,,1
+WORD,122,コート,コート,3,coat,áo choàng,noun,,1
+WORD,124,ドレス,ドレス,3,dress,đầm,noun,,1
+WORD,125,下着,したぎ,2,underwear,đồ lót,noun,1,
+WORD,126,イヤリング,イヤリング,3,earrings,hoa tai,noun,,1
+WORD,127,ベルト,ベルト,3,belt,thắt lưng,noun,1,
+WORD,128,ネクタイ,ネクタイ,3,tie,cà vạt,noun,,1
+WORD,129,手袋,てぶくろ,3,gloves,găng tay,noun,1,2
+WORD,130,眼鏡,めがね,2,glasses,kính,noun,,1
+WORD,131,サングラス,サングラス,3,sunglasses,kính mát,noun,1,3
+WORD,132,ズボン,ズボン,2,pants,quần dài,noun,,1
+WORD,133,スカート,スカート,2,skirt,váy ngắn,noun,1,3
+WORD,134,靴下,くつした,2,socks,tất,noun,1,2
+WORD,135,靴,くつ,1,shoes,đôi giày,noun,1,
+WORD,136,サンダル,サンダル,2,sandals,dép xăng đan,noun,1,
+WORD,137,海,うみ,1,sea,biển,noun,,1
+WORD,138,川,かわ,2,river,dòng sông,noun,1,
+WORD,139,山,やま,1,mountain,núi,noun,1,
+WORD,140,風,かぜ,3,wind,gió,noun,1,
+WORD,141,木,き,1,tree,cây,noun,,
+WORD,142,森,もり,2,forest,rừng,noun,1,
+WORD,143,空,そら,2,sky,bầu trời,noun,,1
+WORD,144,雲,くも,2,cloud,đám mây,noun,,1
+WORD,145,池,いけ,3,pond,ao,noun,1,
+WORD,146,花,はな,2,flower,hoa,noun,1,
+WORD,147,草,くさ,3,grass,cỏ,noun,1,
+WORD,148,体,からだ,1,body,thân hình,noun,1,
+WORD,149,頭,あたま,1,head,cái đầu,noun,1,
+WORD,150,首,くび,2,neck,cổ ,noun,1,
+WORD,151,腕,うで,2,arm,cánh tay,noun,1,
+WORD,152,指,ゆび,3,finger,ngón tay,noun,1,
+WORD,153,口,くち,2,mouth,miệng,noun,1,
+WORD,154,耳,みみ,2,ear,tai,noun,1,
+WORD,155,目,め,1,eye,mắt ,noun,,
+WORD,156,鼻,はな,2,nose,mũi,noun,1,
+WORD,157,髪,かみ,2,hair,tóc,noun,1,
+WORD,158,食べ物,たべもの,2,food,đồ ăn,noun,1,3
+WORD,159,料理,りょうり,2,cooking,nấu ăn,noun,,1
+WORD,160,ご飯,ごはん,1,cooked rice,cơm nấu chín,noun,,1
+WORD,161,パン,パン,2,bread,bánh mỳ,noun,,1
+WORD,162,ラーメン,ラーメン,3,ramen,mì ramen,noun,,1
+WORD,163,スパゲッティ,スパゲッティ,3,spaghetti,mì ống,noun,1,
+WORD,164,カレーライス,カレーライス,2,curry rice,cơm cà ri,noun,1,4
+WORD,165,ハンバーガー,ハンバーガー,3,hamburger,bánh hamburger,noun,1,3
+WORD,166,サンドウィッチ,サンドウィッチ,3,sandwiches,bánh sandwich,noun,1,4
+WORD,167,ドーナツ,ドーナッツ,3,donut,bánh rán,noun,,1
+WORD,168,弁当,べんとう,2,lunch box,hộp đựng cơm trưa,noun,1,3
+WORD,169,アイスクリーム,アイスクリーム,3,ice cream,kem,noun,1,5
+WORD,170,ケーキ,ケーキ,2,cake,bánh ngọt,noun,,1
+WORD,171,朝ご飯,あさごはん,2,breakfast,bữa sáng,noun,1,3
+WORD,172,昼ご飯,ひるごはん,3,lunch,bữa trưa,noun,1,3
+WORD,173,晩ご飯,ばんごはん,3,dinner,bữa tối,noun,1,3
+WORD,174,スープ,スープ,3,soup,canh,noun,,1
+WORD,175,うどん,うどん,2,udon,mì udon,noun,1,
+WORD,176,味噌汁,みそしる,3,miso soup,súp miso,noun,1,3
+WORD,177,ピザ,ピザ,3,pizza,bánh pizza,noun,,1
+WORD,178,おにぎり,おにぎり,2,onigiri,cơm nắm,noun,1,2
+WORD,179,牛肉,ぎゅうにく,1,beef,thịt bò,noun,1,
+WORD,180,豚肉,ぶたにく,1,pork,thịt lợn,noun,1,
+WORD,181,鶏肉,とりにく,1,chicken meat,thịt gà,noun,1,
+WORD,182,卵,たまご,2,egg,trứng,noun,1,2
+WORD,183,水,みず,1,water,nước,noun,1,
+WORD,184,牛乳,ぎゅうにゅう,2,milk,sữa,noun,1,
+WORD,185,ビール,ビール,2,beer ,bia ,noun,,1
+WORD,186,お茶,おちゃ,3,tea,trà,noun,1,
+WORD,187,コーヒー,コーヒー,2,coffee,cà phê,noun,1,3
+WORD,188,ワイン,ワイン,3,wine,rượu ,noun,,1
+WORD,189,ジュース,ジュース,2,juice,nước ép,noun,,1
+WORD,190,お酒,おさけ,1,alcohol,rượu bia,noun,1,
+WORD,191,りんご,りんご,1,apple,quả táo,noun,1,
+WORD,192,バナナ,バナナ,3,banana,chuối,noun,,1
+WORD,193,みかん,みかん,1,mandarin orange,quýt,noun,,1
+WORD,194,苺,いちご,3,strawberry,quả dâu,noun,1,
+WORD,195,車,くるま,2,car,xe hơi,noun,1,
+WORD,196,タクシー,タクシー,3,taxi,taxi,noun,,1
+WORD,197,バス,バス,2,bus,xe buýt,noun,,1
+WORD,198,バイク,バイク,3,bike,xe đạp,noun,,1
+WORD,199,自転車,じてんしゃ,2,bicycle,xe đạp,noun,1,
+WORD,200,電車,でんしゃ,2,train,xe lửa,noun,1,
+WORD,201,地下鉄,ちかてつ,3,subway,tàu điện ngầm,noun,1,
+WORD,202,飛行機,ひこうき,2,plane,máy bay,noun,1,2
+WORD,203,船,ふね,3,boat,thuyền,noun,,1
+WORD,204,テニス,テニス,3,tennis,quần vợt,noun,,1
+WORD,205,サッカー,サッカー,2,soccer,bóng đá,noun,,1
+WORD,206,バスケットボール,バスケットボール,3,basketball,bóng rổ,noun,1,6
+WORD,207,ゴルフ,ゴルフ,3,golf,golf,noun,,1
+WORD,208,野球,やきゅう,3,baseball,bóng chày,noun,1,
+WORD,209,卓球,たっきゅう,3,table tennis,bóng bàn,noun,1,
+WORD,210,鉛筆,えんぴつ,2,pencil,bút chì,noun,1,
+WORD,211,ペン,ペン,1,pen,cái bút,noun,,1
+WORD,212,ボールペン,ボールペン,2,ballpoint pen,bút bi,noun,1,
+WORD,213,シャープペンシル,シャーペン,2,mechanical pencil,bút chì cơ khí,noun,1,4
+WORD,214,万年筆,まんねんひつ,3,fountain pen,bút máy,noun,1,3
+WORD,215,消しゴム,けしゴム,3,eraser,cục tẩy,noun,1,
+WORD,216,はさみ,はさみ,2,scissors,kéo,noun,1,2
+WORD,217,紙,かみ,2,paper,giấy,noun,1,
+WORD,218,ノート,ノート,3,notes,ghi chú,noun,,1
+WORD,219,筆箱,ふでばこ,3,pencil case,hộp đựng bút chì,noun,1,
+WORD,220,計算機,けいさんき,3,calculator,máy tính,noun,1,3
+WORD,221,家,いえ,1,house,căn nhà,noun,1,
+WORD,222,玄関,げんかん,2,entrance,cổng vào,noun,,1
+WORD,223,台所,だいどころ,3,kitchen,phòng bếp,noun,1,
+WORD,224,部屋,へや,1,room,phòng,noun,1,
+WORD,225,ドア,ドア,2,door,cửa,noun,,1
+WORD,226,テーブル,テーブル,3,table,bàn,noun,1,
+WORD,227,椅子,イス,2,chair,cái ghế,noun,1,
+WORD,228,机,つくえ,1,desk,bàn làm việc,noun,1,
+WORD,229,押し入れ,おしいれ,3,closet,buồng nhỏ,noun,1,
+WORD,230,本棚,ほんだな,3,bookshelf,kệ sách,noun,,1
+WORD,231,窓,まど,2,window,cửa sổ,noun,,1
+WORD,232,階段,かいだん,2,stairs,cầu thang,noun,1,
+WORD,233,ベッド,ベッド,2,bed,giường,noun,,1
+WORD,234,花瓶,かびん,3,vase,lọ cắm hoa,noun,1,
+WORD,235,屋根,やね,3,roof,mái nhà,noun,,1
+WORD,236,キッチン,キッチン,3,kitchen,phòng bếp,noun,,1
+WORD,237,エアコン,エアコン,3,air conditioning,điều hòa không khí,noun,1,
+WORD,238,日曜日,にちようび,1,sunday,chủ nhật,noun,1,3
+WORD,239,月曜日,げつようび,1,monday,thứ hai,noun,1,3
+WORD,240,火曜日,かようび,2,tuesday,thứ ba,noun,1,2
+WORD,241,水曜日,すいようび,2,wednesday,thứ tư,noun,1,3
+WORD,242,木曜日,もくようび,2,thursday,thứ năm,noun,1,3
+WORD,243,金曜日,きんようび,2,friday,thứ sáu,noun,1,3
+WORD,244,土曜日,どようび,1,saturday,thứ bảy,noun,1,2
+WORD,245,一昨日,おととい,2,the day before yesterday,ngày hôm kia,noun,1,3
+WORD,246,昨日,きのう,1,yesterday,hôm qua,noun,1,2
+WORD,247,今日,きょう,1,today,hôm nay,noun,,1
+WORD,248,明日,あした,1,tomorrow,ngày mai,noun,1,
+WORD,249,明後日,あさって,2,the day after tomorrow,ngày kia,noun,1,2
+WORD,250,先週,せんしゅう,2,last week,tuần trước,noun,1,
+WORD,251,今週,こんしゅう,1,this week,tuần này,noun,1,
+WORD,252,来週,らいしゅう,2,next week,tuần tới,noun,1,
+WORD,253,先月,せんげつ,3,last month,tháng trước,noun,,1
+WORD,254,今月,こんげつ,2,this month,tháng này,noun,1,
+WORD,255,来月,らいげつ,3,next month,tháng tới,noun,,1
+WORD,256,去年,きょねん,2,last year,năm ngoái,noun,,1
+WORD,257,今年,ことし,1,this year,năm nay,noun,1,
+WORD,258,来年,らいねん,2,next year,năm sau,noun,1,
+WORD,259,毎日,まいにち,1,every day,mỗi ngày,noun,,1
+WORD,260,毎週,まいしゅう,2,every week,mỗi tuần,noun,1,
+WORD,261,毎晩,まいばん,3,every night,mỗi đêm,noun,,1
+WORD,262,今朝,けさ,3,this morning,sáng nay,noun,,1
+WORD,263,今晩,こんばん,2,tonight,tối nay,noun,,1
+WORD,264,昨夜,さくや,3,last night,tối hôm qua,noun,1,2
+WORD,265,誕生日,たんじょうび,2,birthday,sinh nhật,noun,1,3
+WORD,266,音楽,おんがく,1,music,âm nhạc,noun,,1
+WORD,267,ピアノ,ピアノ,2,piano,đàn piano,noun,1,
+WORD,268,ギター,ギター,3,guitar,đàn ghita,noun,,1
+WORD,269,カラオケ,カラオケ,3,karaoke,hát karaoke,noun,1,
+WORD,270,働きます,はたらきます,1,work,công việc,verb_5,1,5
+WORD,271,行きます,いきます,1,i'm going,tôi đang đi,verb_5,1,3
+WORD,272,帰ります,かえります,1,i'm going home,tôi đang về nhà,verb_5,1,4
+WORD,273,飲みます,のみます,1,i'll drink it,tôi sẽ uống nó,verb_5,1,3
+WORD,274,読みます,よみます,1,read,đọc,verb_5,1,3
+WORD,275,買います,かいます,1,i'll take it,tôi sẽ lấy nó,verb_5,1,3
+WORD,276,聞きます,ききます,1,i will listen,tôi sẽ lắng nghe,verb_5,1,3
+WORD,277,撮ります,とります,2,i will take a picture,tôi sẽ chụp một bức ảnh,verb_5,1,3
+WORD,278,会います,あいます,3,meet,gặp,verb_5,1,3
+WORD,279,吸います,すいます,3,suck,hút,verb_5,1,3
+WORD,280,切ります,きります,2,cut,cắt,verb_5,1,3
+WORD,281,終わります,おわります,1,it's over,nó đã kết thúc,verb_5,1,4
+WORD,282,習います,ならいます,3,learn,học hỏi,verb_5,1,4
+WORD,283,貸します,かします,3,lend,cho mượn,verb_5,1,3
+WORD,284,もらいます,もらいます,2,i'll get it,tôi sẽ lấy nó,verb_5,1,4
+WORD,285,笑います,わらいます,2,laughs,cười,verb_5,1,4
+WORD,286,渡します,わたします,2,i will pass it on,tôi sẽ truyền đạt nó,verb_5,1,4
+WORD,287,叱ります,しかります,3,i will scold you.,tôi sẽ mắng bạn.,verb_5,1,4
+WORD,288,歌います,うたいます,3,sing,hát,verb_5,1,4
+WORD,289,踊ります,おどります,3,dance,nhảy,verb_5,1,4
+WORD,290,弾きます,ひきます,3,i will play,tôi sẽ chơi,verb_5,1,3
+WORD,291,泣きます,なきます,3,cry,khóc,verb_5,1,3
+WORD,292,怒ります,おこります,3,i get angry,tôi tức giận,verb_5,1,4
+WORD,293,言います,いいます,1,i say,tôi nói,verb_5,1,3
+WORD,294,話します,はなします,3,i will talk,tôi sẽ nói chuyện,verb_5,1,4
+WORD,295,立ちます,たちます,3,stand up,đứng lên,verb_5,1,3
+WORD,296,座ります,すわります,1,sit down,ngồi xuống,verb_5,1,4
+WORD,297,出します,だします,2,i will give it,tôi sẽ cho nó,verb_5,1,3
+WORD,298,住みます,すみます,2,i will live,tôi sẽ sống,verb_5,1,3
+WORD,299,作ります,つくります,2,make it,làm nó,verb_5,1,4
+WORD,300,売ります,うります,2,for sale,để bán,verb_5,1,3
+WORD,301,使います,つかいます,2,use,sử dụng,verb_5,1,4
+WORD,302,遊びます,あそびます,2,play,chơi,verb_5,1,4
+WORD,303,かかります,かかります,3,it takes,nó mất,verb_5,1,4
+WORD,304,急ぎます,いそぎます,3,i'll hurry,tôi sẽ vội vàng,verb_5,1,4
+WORD,307,起きます,おきます,1,i wake up,tôi thức dậy,verb_1up,1,3
+WORD,308,寝ます,ねます,1,i sleep,tôi ngủ,verb_1down,1,2
+WORD,309,食べます,たべます,1,eat,ăn,verb_1down,1,3
+WORD,310,見せます,みせます,3,i'll show you,tôi sẽ chỉ cho bạn,verb_1down,1,3
+WORD,311,出かけます,でかけます,3,i'm going out,tôi sẽ ra ngoài,verb_1down,1,4
+WORD,312,浴びます,あびます,3,take a shower,tắm rửa,verb_1up,1,3
+WORD,313,かけます,かけます,3,i will,tôi sẽ,verb_1down,1,3
+WORD,314,始めます,はじめます,1,let's get started,chúng ta hãy bắt đầu,verb_1down,1,4
+WORD,315,教えます,おしえます,1,i will teach you,tôi sẽ dạy bạn,verb_1down,1,4
+WORD,316,借ります,かります,2,borrow,vay mượn,verb_1up,1,3
+WORD,317,あげます,あげます,2,i will give,tôi sẽ cho,verb_1down,1,3
+WORD,318,入れます,いれます,3,put it in,đặt nó vào,verb_1down,1,3
+WORD,319,足ります,たります,3,enough,đủ,verb_1up,1,3
+WORD,320,勤めます,つとめます,3,i can work,tôi có thể làm việc,verb_1down,1,4
+WORD,321,開けます,あけます,2,open,mở,verb_1down,1,3
+WORD,322,閉めます,しめます,2,close,đóng,verb_1down,1,3
+WORD,323,つけます,つけます,3,i will,tôi sẽ,verb_1down,1,3
+WORD,324,消します,けします,2,erase,xóa bỏ,verb_5,1,3
+WORD,325,勉強します,べんきょうします,1,i will study,tôi sẽ học,verb_sa,1,6
+WORD,326,食事します,しょくじします,3,i'll eat,tôi sẽ ăn,verb_sa,1,5
+WORD,327,来ます,きます,2,coming,đang tới,verb_ka,1,2
+WORD,329,します,します,1,i will,tôi sẽ,verb_sa,1,2
+WORD,331,練習します,れんしゅうします,1,practice,luyện tập,verb_sa,1,6
+WORD,332,復習します,ふくしゅうします,3,let's review,chúng ta hãy xem lại,verb_sa,1,6
+WORD,333,結婚します,けっこんします,2,i'm getting married,tôi sắp kết hôn,verb_sa,1,6
+WORD,334,いつも,いつも,1,everytime,mọi lúc,adverb,,1
+WORD,335,大抵,たいてい,3,usually,thường xuyên,adverb,1,
+WORD,336,よく,よく,3,often,thường,adverb,,1
+WORD,337,時々,ときどき,2,sometimes,thỉnh thoảng,adverb,1,
+WORD,338,あまり,あまり,3,not much,không nhiều,adverb,1,
+WORD,339,全然,ぜんぜん,3,not at all,không có gì,adverb,1,
+WORD,340,とても,とても,2,very,rất,adverb,1,
+WORD,341,もっと,もっと,3,more,hơn,adverb,,1
+WORD,342,たくさん,たくさん,1,a lot,nhiều ,adverb,1,
+WORD,343,少し,すこし,1,a bit,một chút,adverb,1,2
+WORD,344,ゆっくり,ゆっくり,1,slowly,chậm,adverb,1,3
+WORD,345,もう,もう,3,already,đã,adverb,,1
+WORD,346,大きい,おおきい,1,big,to lớn,i_adjective,1,3
+WORD,347,小さい,ちいさい,1,small,bé nhỏ,i_adjective,1,3
+WORD,348,高い,たかい,1,expensive,đắt,i_adjective,1,2
+WORD,349,安い,やすい,2,cheap,rẻ,i_adjective,1,2
+WORD,350,低い,ひくい,1,low,thấp,i_adjective,1,2
+WORD,351,良い,よい,1,good,tốt,i_adjective,,1
+WORD,352,悪い,わるい,1,bad,xấu,i_adjective,1,2
+WORD,353,遠い,とおい,1,far,xa,i_adjective,1,2
+WORD,354,近い,ちかい,1,close,đóng,i_adjective,1,2
+WORD,355,新しい,あたらしい,1,new,mới,i_adjective,1,4
+WORD,356,古い,ふるい,1,old,cũ,i_adjective,1,2
+WORD,357,辛い,からい,2,hard,cứng,i_adjective,1,2
+WORD,358,甘い,あまい,2,sweet,ngọt ,i_adjective,1,2
+WORD,359,苦い,にがい,3,bitter,vị đắng,i_adjective,1,2
+WORD,360,難しい,むずかしい,1,difficult,khó ,i_adjective,1,4
+WORD,361,若い,わかい,3,young,trẻ,i_adjective,1,2
+WORD,362,長い,ながい,2,long,dài,i_adjective,1,2
+WORD,363,短い,みじかい,2,short,ngắn,i_adjective,1,3
+WORD,364,早い,はやい,2,early,sớm,i_adjective,1,2
+WORD,365,遅い,おそい,2,slow,chậm,i_adjective,1,2
+WORD,366,うるさい,うるさい,3,noisy,ồn ào,i_adjective,1,3
+WORD,367,明るい,あかるい,3,bright,sáng,i_adjective,1,2
+WORD,368,暗い,くらい,3,dark,tối tăm,i_adjective,1,2
+WORD,369,汚い,きたない,2,dirty,bẩn thỉu,i_adjective,1,3
+WORD,370,面白い,おもしろい,2,interesting,hấp dẫn,i_adjective,1,4
+WORD,371,つまらない,つまらない,3,boring,nhạt nhẽo,i_adjective,1,3
+WORD,372,嬉しい,うれしい,2,happy,vui mừng,i_adjective,1,3
+WORD,373,悲しい,かなしい,2,sad,buồn,i_adjective,1,3
+WORD,374,楽しい,たのしい,1,fun,vui vẻ,i_adjective,1,3
+WORD,375,寂しい,さびしい,3,lonely,cô đơn,i_adjective,1,3
+WORD,376,怖い,こわい,3,scared,sợ hãi,i_adjective,1,2
+WORD,377,暑い,あつい,1,hot,nóng,i_adjective,1,2
+WORD,378,寒い,さむい,1,cold,lạnh lẽo,i_adjective,1,2
+WORD,379,冷たい,つめたい,2,cold,lạnh lẽo,i_adjective,1,3
+WORD,380,暖かい,あたたかい,2,warm,ấm,i_adjective,1,4
+WORD,381,涼しい,すずしい,3,cool,mát mẻ,i_adjective,1,3
+WORD,383,狭い,せまい,2,narrow,chật hẹp,i_adjective,1,2
+WORD,384,広い,ひろい,2,wide,rộng,i_adjective,1,2
+WORD,385,忙しい,いそがしい,3,busy,bận,i_adjective,1,4
+WORD,386,親切,しんせつ,3,kindness,lòng tốt,na_adjective,,1
+WORD,387,簡単,かんたん,1,easy,dễ,na_adjective,1,
+WORD,388,綺麗,きれい,1,beautiful,xinh đẹp,na_adjective,,1
+WORD,389,有名,ゆうめい,3,famous,nổi tiếng,na_adjective,1,
+WORD,390,ハンサム,ハンサム,3,good looking,đẹp trai,na_adjective,,1
+WORD,391,賑やか,にぎやか,3,busy,bận,na_adjective,1,2
+WORD,392,静か,しずか,3,quiet,im lặng,na_adjective,,1
+WORD,393,上手な,じょうずな,2,good,tốt,na_adjective,1,3
+WORD,394,下手な,へたな,2,poor,nghèo,na_adjective,1,2
+WORD,395,好きな,すきな,1,favorite,yêu thích,na_adjective,1,2
+WORD,396,嫌いな,きらいな,1,i hate,tôi ghét,na_adjective,1,
+WORD,397,暇な,ひまな,3,bored,chán,na_adjective,1,
+WORD,398,何,なに,1,what,gì,noun,,1
+WORD,399,どれ,どれ,2,which one,cái nào,noun,,1
+WORD,400,誰,だれ,1,who,ai,noun,,1
+WORD,401,誰の,だれの,2,whose,của ai,attribute,,1
+WORD,402,いつ,いつ,1,when,khi,adverb,,1
+WORD,403,どこ,どこ,1,where,ở đâu,pronoun,,1
+WORD,404,どうして,どうして,2,why,tại sao,adverb,,1
+WORD,405,美味しい,おいしい,1,delicious,thơm ngon,i_adjective,1,3
+WORD,406,女性,じょせい,3,woman,đàn bà,noun,1,
+WORD,407,男性,だんせい,3,male,nam giới,noun,1,
+WORD,408,優しい,やさしい,1,kind,loại,i_adjective,1,3
+WORD,409,どの,どの,3,which,cái mà,attribute,,1
