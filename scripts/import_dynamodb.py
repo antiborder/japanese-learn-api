@@ -68,7 +68,7 @@ class DynamoDBDataLoader:
 
     def batch_write_items(self, items: List[Dict]) -> None:
         """DynamoDBにバッチ書き込みを行う"""
-        chunk_size = 25
+        chunk_size = 100
         chunks = [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
         
         for i, chunk in enumerate(chunks):
@@ -87,8 +87,8 @@ def main():
     # ローダーの初期化
     loader = DynamoDBDataLoader(table_name)
     
-    # dataディレクトリ内のすべてのCSVファイルを処理
-    data_dir = 'data'
+    # data/dynamodb_sourceディレクトリ内のすべてのCSVファイルを処理
+    data_dir = 'data/dynamodb_source'
     for file_name in os.listdir(data_dir):
         if file_name.endswith('.csv'):
             csv_path = os.path.join(data_dir, file_name)
