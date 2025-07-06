@@ -10,7 +10,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=List[Word])
-def read_words(skip: int = 0, limit: int = 100):
+def read_words(skip: int = 0, limit: int = 1000):
     """
     単語一覧を取得します。
     DynamoDBから単語データを取得し、MySQLのモデル形式に変換して返します。

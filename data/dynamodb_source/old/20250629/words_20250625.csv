@@ -267,59 +267,59 @@ WORD,266,音楽,おんがく,1,music,âm nhạc,noun,,1
 WORD,267,ピアノ,ピアノ,2,piano,đàn piano,noun,1,
 WORD,268,ギター,ギター,3,guitar,đàn ghita,noun,,1
 WORD,269,カラオケ,カラオケ,3,karaoke,hát karaoke,noun,1,
-WORD,270,働きます,はたらきます,1,work,công việc,verb_5,1,5
-WORD,271,行きます,いきます,1,i'm going,tôi đang đi,verb_5,1,3
-WORD,272,帰ります,かえります,1,i'm going home,tôi đang về nhà,verb_5,1,4
-WORD,273,飲みます,のみます,1,i'll drink it,tôi sẽ uống nó,verb_5,1,3
-WORD,274,読みます,よみます,1,read,đọc,verb_5,1,3
-WORD,275,買います,かいます,1,i'll take it,tôi sẽ lấy nó,verb_5,1,3
-WORD,276,聞きます,ききます,1,i will listen,tôi sẽ lắng nghe,verb_5,1,3
-WORD,277,撮ります,とります,2,i will take a picture,tôi sẽ chụp một bức ảnh,verb_5,1,3
-WORD,278,会います,あいます,3,meet,gặp,verb_5,1,3
-WORD,279,吸います,すいます,3,suck,hút,verb_5,1,3
-WORD,280,切ります,きります,2,cut,cắt,verb_5,1,3
-WORD,281,終わります,おわります,1,it's over,nó đã kết thúc,verb_5,1,4
-WORD,282,習います,ならいます,3,learn,học hỏi,verb_5,1,4
-WORD,283,貸します,かします,3,lend,cho mượn,verb_5,1,3
-WORD,284,もらいます,もらいます,2,i'll get it,tôi sẽ lấy nó,verb_5,1,4
-WORD,285,笑います,わらいます,2,laughs,cười,verb_5,1,4
-WORD,286,渡します,わたします,2,i will pass it on,tôi sẽ truyền đạt nó,verb_5,1,4
-WORD,287,叱ります,しかります,3,i will scold you.,tôi sẽ mắng bạn.,verb_5,1,4
-WORD,288,歌います,うたいます,3,sing,hát,verb_5,1,4
-WORD,289,踊ります,おどります,3,dance,nhảy,verb_5,1,4
-WORD,290,弾きます,ひきます,3,i will play,tôi sẽ chơi,verb_5,1,3
-WORD,291,泣きます,なきます,3,cry,khóc,verb_5,1,3
-WORD,292,怒ります,おこります,3,i get angry,tôi tức giận,verb_5,1,4
-WORD,293,言います,いいます,1,i say,tôi nói,verb_5,1,3
-WORD,294,話します,はなします,3,i will talk,tôi sẽ nói chuyện,verb_5,1,4
-WORD,295,立ちます,たちます,3,stand up,đứng lên,verb_5,1,3
-WORD,296,座ります,すわります,1,sit down,ngồi xuống,verb_5,1,4
-WORD,297,出します,だします,2,i will give it,tôi sẽ cho nó,verb_5,1,3
-WORD,298,住みます,すみます,2,i will live,tôi sẽ sống,verb_5,1,3
-WORD,299,作ります,つくります,2,make it,làm nó,verb_5,1,4
-WORD,300,売ります,うります,2,for sale,để bán,verb_5,1,3
-WORD,301,使います,つかいます,2,use,sử dụng,verb_5,1,4
-WORD,302,遊びます,あそびます,2,play,chơi,verb_5,1,4
-WORD,303,かかります,かかります,3,it takes,nó mất,verb_5,1,4
-WORD,304,急ぎます,いそぎます,3,i'll hurry,tôi sẽ vội vàng,verb_5,1,4
-WORD,307,起きます,おきます,1,i wake up,tôi thức dậy,verb_1up,1,3
-WORD,308,寝ます,ねます,1,i sleep,tôi ngủ,verb_1down,1,2
-WORD,309,食べます,たべます,1,eat,ăn,verb_1down,1,3
-WORD,310,見せます,みせます,3,i'll show you,tôi sẽ chỉ cho bạn,verb_1down,1,3
-WORD,311,出かけます,でかけます,3,i'm going out,tôi sẽ ra ngoài,verb_1down,1,4
-WORD,312,浴びます,あびます,3,take a shower,tắm rửa,verb_1up,1,3
-WORD,313,かけます,かけます,3,i will,tôi sẽ,verb_1down,1,3
-WORD,314,始めます,はじめます,1,let's get started,chúng ta hãy bắt đầu,verb_1down,1,4
-WORD,315,教えます,おしえます,1,i will teach you,tôi sẽ dạy bạn,verb_1down,1,4
-WORD,316,借ります,かります,2,borrow,vay mượn,verb_1up,1,3
-WORD,317,あげます,あげます,2,i will give,tôi sẽ cho,verb_1down,1,3
-WORD,318,入れます,いれます,3,put it in,đặt nó vào,verb_1down,1,3
-WORD,319,足ります,たります,3,enough,đủ,verb_1up,1,3
-WORD,320,勤めます,つとめます,3,i can work,tôi có thể làm việc,verb_1down,1,4
-WORD,321,開けます,あけます,2,open,mở,verb_1down,1,3
-WORD,322,閉めます,しめます,2,close,đóng,verb_1down,1,3
-WORD,323,つけます,つけます,3,i will,tôi sẽ,verb_1down,1,3
-WORD,324,消します,けします,2,erase,xóa bỏ,verb_5,1,3
+WORD,270,働きます,はたらきます,1,work,công việc,verb5,1,5
+WORD,271,行きます,いきます,1,i'm going,tôi đang đi,verb5,1,3
+WORD,272,帰ります,かえります,1,i'm going home,tôi đang về nhà,verb5,1,4
+WORD,273,飲みます,のみます,1,i'll drink it,tôi sẽ uống nó,verb5,1,3
+WORD,274,読みます,よみます,1,read,đọc,verb5,1,3
+WORD,275,買います,かいます,1,i'll take it,tôi sẽ lấy nó,verb5,1,3
+WORD,276,聞きます,ききます,1,i will listen,tôi sẽ lắng nghe,verb5,1,3
+WORD,277,撮ります,とります,2,i will take a picture,tôi sẽ chụp một bức ảnh,verb5,1,3
+WORD,278,会います,あいます,3,meet,gặp,verb5,1,3
+WORD,279,吸います,すいます,3,suck,hút,verb5,1,3
+WORD,280,切ります,きります,2,cut,cắt,verb5,1,3
+WORD,281,終わります,おわります,1,it's over,nó đã kết thúc,verb5,1,4
+WORD,282,習います,ならいます,3,learn,học hỏi,verb5,1,4
+WORD,283,貸します,かします,3,lend,cho mượn,verb5,1,3
+WORD,284,もらいます,もらいます,2,i'll get it,tôi sẽ lấy nó,verb5,1,4
+WORD,285,笑います,わらいます,2,laughs,cười,verb5,1,4
+WORD,286,渡します,わたします,2,i will pass it on,tôi sẽ truyền đạt nó,verb5,1,4
+WORD,287,叱ります,しかります,3,i will scold you.,tôi sẽ mắng bạn.,verb5,1,4
+WORD,288,歌います,うたいます,3,sing,hát,verb5,1,4
+WORD,289,踊ります,おどります,3,dance,nhảy,verb5,1,4
+WORD,290,弾きます,ひきます,3,i will play,tôi sẽ chơi,verb5,1,3
+WORD,291,泣きます,なきます,3,cry,khóc,verb5,1,3
+WORD,292,怒ります,おこります,3,i get angry,tôi tức giận,verb5,1,4
+WORD,293,言います,いいます,1,i say,tôi nói,verb5,1,3
+WORD,294,話します,はなします,3,i will talk,tôi sẽ nói chuyện,verb5,1,4
+WORD,295,立ちます,たちます,3,stand up,đứng lên,verb5,1,3
+WORD,296,座ります,すわります,1,sit down,ngồi xuống,verb5,1,4
+WORD,297,出します,だします,2,i will give it,tôi sẽ cho nó,verb5,1,3
+WORD,298,住みます,すみます,2,i will live,tôi sẽ sống,verb5,1,3
+WORD,299,作ります,つくります,2,make it,làm nó,verb5,1,4
+WORD,300,売ります,うります,2,for sale,để bán,verb5,1,3
+WORD,301,使います,つかいます,2,use,sử dụng,verb5,1,4
+WORD,302,遊びます,あそびます,2,play,chơi,verb5,1,4
+WORD,303,かかります,かかります,3,it takes,nó mất,verb5,1,4
+WORD,304,急ぎます,いそぎます,3,i'll hurry,tôi sẽ vội vàng,verb5,1,4
+WORD,307,起きます,おきます,1,i wake up,tôi thức dậy,verb1up,1,3
+WORD,308,寝ます,ねます,1,i sleep,tôi ngủ,verb1down,1,2
+WORD,309,食べます,たべます,1,eat,ăn,verb1down,1,3
+WORD,310,見せます,みせます,3,i'll show you,tôi sẽ chỉ cho bạn,verb1down,1,3
+WORD,311,出かけます,でかけます,3,i'm going out,tôi sẽ ra ngoài,verb1down,1,4
+WORD,312,浴びます,あびます,3,take a shower,tắm rửa,verb1up,1,3
+WORD,313,かけます,かけます,3,i will,tôi sẽ,verb1down,1,3
+WORD,314,始めます,はじめます,1,let's get started,chúng ta hãy bắt đầu,verb1down,1,4
+WORD,315,教えます,おしえます,1,i will teach you,tôi sẽ dạy bạn,verb1down,1,4
+WORD,316,借ります,かります,2,borrow,vay mượn,verb1up,1,3
+WORD,317,あげます,あげます,2,i will give,tôi sẽ cho,verb1down,1,3
+WORD,318,入れます,いれます,3,put it in,đặt nó vào,verb1down,1,3
+WORD,319,足ります,たります,3,enough,đủ,verb1up,1,3
+WORD,320,勤めます,つとめます,3,i can work,tôi có thể làm việc,verb1down,1,4
+WORD,321,開けます,あけます,2,open,mở,verb1down,1,3
+WORD,322,閉めます,しめます,2,close,đóng,verb1down,1,3
+WORD,323,つけます,つけます,3,i will,tôi sẽ,verb1down,1,3
+WORD,324,消します,けします,2,erase,xóa bỏ,verb5,1,3
 WORD,325,勉強します,べんきょうします,1,i will study,tôi sẽ học,verb_sa,1,6
 WORD,326,食事します,しょくじします,3,i'll eat,tôi sẽ ăn,verb_sa,1,5
 WORD,327,来ます,きます,2,coming,đang tới,verb_ka,1,2
