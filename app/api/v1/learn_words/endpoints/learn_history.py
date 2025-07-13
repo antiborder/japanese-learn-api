@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
-from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse
+from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse, NoWordAvailableResponse
 from integrations.dynamodb_integration import learn_history_db
 from utils.auth import get_current_user_id
 import logging
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Union
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -40,7 +40,7 @@ async def record_learning(request: LearnHistoryRequest, current_user_id: str = D
             detail=str(e)
         )
 
-@router.post("/next")
+@router.post("/next", response_model=Union[dict, NoWordAvailableResponse])
 async def get_next_word(request: NextWordRequest, current_user_id: str = Depends(get_current_user_id)):
     """
     次に学習すべき単語を取得します。
@@ -55,6 +55,13 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
         )
         if not next_result:
             raise HTTPException(status_code=404, detail="No words found for the specified level")
+        
+        # 単語がない場合のレスポンスをチェック
+        if next_result.get('no_word_available'):
+            return NoWordAvailableResponse(
+                next_available_datetime=next_result.get('next_available_datetime')
+            )
+        
         answer_word_id = int(next_result['answer_word_id'])
         mode = next_result['mode']
 

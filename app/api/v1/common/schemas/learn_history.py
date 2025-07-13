@@ -25,4 +25,8 @@ class NextWordRequest(BaseModel):
 
 class NextWordResponse(BaseModel):
     answer_word_id: int
-    mode: LearningMode 
+    mode: LearningMode
+
+class NoWordAvailableResponse(BaseModel):
+    message: str = "現在学習可能な単語がありません"
+    next_available_datetime: Optional[datetime] = None 

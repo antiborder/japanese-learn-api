@@ -246,6 +246,7 @@ class LearnHistoryDynamoDB:
             )
             user_words = response.get('Items', [])
             user_level_words = [item for item in user_words if item.get('level') == level]
+            
             # ④単語選定方法の決定
             ratio = len(user_level_words) / len(level_words)
             if random.random() > ratio:
@@ -262,15 +263,48 @@ class LearnHistoryDynamoDB:
                     }
                     logger.info(f"Successfully retrieved new word for user {user_id}, level {level}: {result}")
                     return result
+            
             # review_selection: next_timeが最も若い単語を選択
             if user_level_words:
-                answer_word = min(user_level_words, key=lambda x: x['next_datetime'])
-                result = {
-                    'answer_word_id': answer_word['word_id'],
-                    'mode': answer_word['next_mode']
-                }
-                logger.info(f"Successfully retrieved review word for user {user_id}, level {level}: {result}")
-                return result
+                # 現在時刻を取得
+                now = datetime.now()
+                
+                # 復習可能な単語（next_datetimeが現在時刻以前）をフィルタリング
+                reviewable_words = []
+                for word in user_level_words:
+                    try:
+                        next_dt = datetime.fromisoformat(word['next_datetime'])
+                        if next_dt <= now:
+                            reviewable_words.append(word)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Invalid next_datetime format for word {word.get('word_id')}: {e}")
+                        continue
+                
+                if reviewable_words:
+                    # 復習可能な単語がある場合は、next_datetimeが最も古いものを選択
+                    answer_word = min(reviewable_words, key=lambda x: x['next_datetime'])
+                    result = {
+                        'answer_word_id': answer_word['word_id'],
+                        'mode': answer_word['next_mode']
+                    }
+                    logger.info(f"Successfully retrieved review word for user {user_id}, level {level}: {result}")
+                    return result
+                else:
+                    # 復習可能な単語がない場合は、次に利用可能になる時刻を計算
+                    next_available_word = min(user_level_words, key=lambda x: x['next_datetime'])
+                    try:
+                        next_available_dt = datetime.fromisoformat(next_available_word['next_datetime'])
+                        result = {
+                            'no_word_available': True,
+                            'next_available_datetime': next_available_dt
+                        }
+                        logger.info(f"No reviewable words available for user {user_id}, level {level}. Next available at: {next_available_dt}")
+                        return result
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Invalid next_datetime format for next available word: {e}")
+                        # 日時解析に失敗した場合は、新しい単語を選択
+                        pass
+            
             # ユーザーの学習履歴に単語がない場合は、ランダムに選択
             selected_item = random.choice(level_words)
             result = {
