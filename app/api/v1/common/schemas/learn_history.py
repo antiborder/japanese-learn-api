@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from datetime import datetime
 from decimal import Decimal
 
@@ -21,7 +21,7 @@ class LearnHistoryResponse(BaseModel):
     next_datetime: datetime
 
 class NextWordRequest(BaseModel):
-    level: int
+    level: Union[int, str] = Field(..., description="学習レベル（1-14）または'REVIEW_ALL'（全レベルから復習）")
 
 class NextWordResponse(BaseModel):
     answer_word_id: int

@@ -46,6 +46,10 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
     次に学習すべき単語を取得します。
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
+    
+    levelパラメータ：
+    - 数値（1-14）：指定されたレベルから単語を取得
+    - "REVIEW_ALL"：全レベルから復習可能な単語（next_datetimeが最も古いもの）を取得
     """
     try:
         # 1. 出題単語IDとモード取得
