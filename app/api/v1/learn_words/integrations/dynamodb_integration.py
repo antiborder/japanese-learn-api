@@ -2,7 +2,7 @@ import boto3
 import os
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, List, Union
 from botocore.exceptions import ClientError
 from decimal import Decimal
@@ -28,7 +28,9 @@ class LearnHistoryDynamoDB:
         # 前回の学習時間との差を計算
         if current_data and 'updated_at' in current_data:
             previous_datetime = datetime.fromisoformat(current_data['updated_at'])
-            current_datetime = datetime.now()
+            if previous_datetime.tzinfo is None:
+                previous_datetime = previous_datetime.replace(tzinfo=timezone.utc)
+            current_datetime = datetime.now(timezone.utc)
             previous_min = (current_datetime - previous_datetime).total_seconds() / 60
             interval_point = Decimal(str(max(0, min(1, math.log2(previous_min/BASE_INTERVAL) / 8))))
         else:
@@ -83,14 +85,14 @@ class LearnHistoryDynamoDB:
             datetime: 次の学習時間
         """
         if confidence == 0:
-            return datetime.now() + timedelta(minutes=5)
+            return datetime.now(timezone.utc) + timedelta(minutes=5)
         
         if next_mode == "MJ":
             minutes = float(6 * 60 * 2**(8*float(proficiency_MJ)))
         else:  # JM
             minutes = float(6 * 60 * 2**(8*float(proficiency_JM)))
         
-        return datetime.now() + timedelta(minutes=minutes)
+        return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
     def get_current_learning_data(self, user_id: str, word_id: int) -> Optional[Dict]:
         """現在の学習データを取得します"""
@@ -124,7 +126,7 @@ class LearnHistoryDynamoDB:
                     'proficiency_MJ': Decimal('0'),
                     'proficiency_JM': Decimal('0'),
                     'next_mode': "MJ",  # デフォルトモード
-                    'next_datetime': datetime.now() + timedelta(minutes=5)  # デフォルトの次回学習時間
+                    'next_datetime': datetime.now(timezone.utc) + timedelta(minutes=5)  # デフォルトの次回学習時間
                 }
 
             # 現在のデータを取得
@@ -164,7 +166,7 @@ class LearnHistoryDynamoDB:
                 'proficiency_JM': proficiency_JM,
                 'next_mode': next_mode,
                 'next_datetime': next_datetime.isoformat(),
-                'updated_at': datetime.now().isoformat()
+                'updated_at': datetime.now(timezone.utc).isoformat()
             }
             
             # DynamoDBに保存
@@ -274,13 +276,15 @@ class LearnHistoryDynamoDB:
             # review_selection: next_timeが最も若い単語を選択
             if user_level_words:
                 # 現在時刻を取得
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 
                 # 復習可能な単語（next_datetimeが現在時刻以前）をフィルタリング
                 reviewable_words = []
                 for word in user_level_words:
                     try:
                         next_dt = datetime.fromisoformat(word['next_datetime'])
+                        if next_dt.tzinfo is None:
+                            next_dt = next_dt.replace(tzinfo=timezone.utc)
                         if next_dt <= now:
                             reviewable_words.append(word)
                     except (ValueError, TypeError) as e:
@@ -301,6 +305,8 @@ class LearnHistoryDynamoDB:
                     next_available_word = min(user_level_words, key=lambda x: x['next_datetime'])
                     try:
                         next_available_dt = datetime.fromisoformat(next_available_word['next_datetime'])
+                        if next_available_dt.tzinfo is None:
+                            next_available_dt = next_available_dt.replace(tzinfo=timezone.utc)
                         result = {
                             'no_word_available': True,
                             'next_available_datetime': next_available_dt
@@ -341,13 +347,15 @@ class LearnHistoryDynamoDB:
                 return None
             
             # 現在時刻を取得
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             
             # 復習可能な単語（next_datetimeが現在時刻以前）をフィルタリング
             reviewable_words = []
             for word in user_words:
                 try:
                     next_dt = datetime.fromisoformat(word['next_datetime'])
+                    if next_dt.tzinfo is None:
+                        next_dt = next_dt.replace(tzinfo=timezone.utc)
                     if next_dt <= now:
                         reviewable_words.append(word)
                 except (ValueError, TypeError) as e:
@@ -368,6 +376,8 @@ class LearnHistoryDynamoDB:
                 next_available_word = min(user_words, key=lambda x: x['next_datetime'])
                 try:
                     next_available_dt = datetime.fromisoformat(next_available_word['next_datetime'])
+                    if next_available_dt.tzinfo is None:
+                        next_available_dt = next_available_dt.replace(tzinfo=timezone.utc)
                     result = {
                         'no_word_available': True,
                         'next_available_datetime': next_available_dt

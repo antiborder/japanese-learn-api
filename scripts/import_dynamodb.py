@@ -2,7 +2,7 @@ import boto3
 import csv
 import os
 from typing import List, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 
 class DynamoDBDataLoader:
     def __init__(self, table_name: str):
@@ -29,8 +29,8 @@ class DynamoDBDataLoader:
                 item = {
                     'PK': row[0],
                     'SK': row[1] if row[1] else f"METADATA#{row[0].split('#')[0]}",
-                    'createdAt': datetime.now().isoformat(),
-                    'updatedAt': datetime.now().isoformat()
+                    'createdAt': datetime.now(timezone.utc).isoformat(),
+                    'updatedAt': datetime.now(timezone.utc).isoformat()
                 }
                 
                 # 残りの列を属性として追加

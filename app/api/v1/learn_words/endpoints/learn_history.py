@@ -179,15 +179,20 @@ async def get_progress(current_user_id: str = Depends(get_current_user_id)):
 @router.get("/plan")
 async def get_plan(current_user_id: str = Depends(get_current_user_id)):
     """
-    ログインユーザーの今後のレビュー予定数を日付ごとに集計して返す
+    ログインユーザーの今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
-    response例:
+    
+    レスポンス形式：
     [
-      { "date": "2024-03-10", "count": 12 },
-      { "date": "2024-03-11", "count": 18 },
-      { "date": "2024-03-12", "count": 25 }
+      { "time_slot": 0, "count": 12 },   # 現在時刻以前（過去の単語）
+      { "time_slot": 1, "count": 18 },   # 現在から24時間以内
+      { "time_slot": 2, "count": 25 },   # 24時間から48時間以内
+      ...
     ]
+    
+    time_slot: 時間スロット番号（0=過去、1=0-24時間、2=24-48時間...）
+    count: その時間スロット内の単語数
     """
     try:
         # ユーザーの学習履歴を全て取得
@@ -200,31 +205,54 @@ async def get_plan(current_user_id: str = Depends(get_current_user_id)):
         )
         user_items = user_response.get('Items', [])
         now = datetime.now(timezone.utc)
-        today_str = now.strftime('%Y-%m-%d')
+        
+        logger.info(f"Current time (UTC): {now}")
+        logger.info(f"Total user items found: {len(user_items)}")
+        
+        # 時間スロットごとのカウントを初期化
         plan_counts = {}
+        past_count = 0  # デバッグ用
+        
         for item in user_items:
             next_dt_str = item.get('next_datetime')
             if not next_dt_str:
+                logger.warning(f"Item {item.get('word_id')} has no next_datetime")
                 continue
             try:
                 next_dt = datetime.fromisoformat(next_dt_str)
                 if next_dt.tzinfo is None:
                     next_dt = next_dt.replace(tzinfo=timezone.utc)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Invalid next_datetime format for word {item.get('word_id')}: {e}")
                 continue
-            # next_datetimeが現在以前なら本日、それ以降ならその日付
-            if next_dt <= now:
-                date_str = today_str
+            
+            # 現在時刻との差を時間単位で計算
+            time_diff = next_dt - now
+            hours_diff = time_diff.total_seconds() / 3600
+            
+            # 時間スロットを決定
+            if hours_diff <= 0:
+                # 過去の単語（現在時刻以前）
+                time_slot = 0
+                past_count += 1
+                logger.info(f"Past word found: word_id={item.get('word_id')}, next_datetime={next_dt}, hours_diff={hours_diff}")
             else:
-                date_str = next_dt.strftime('%Y-%m-%d')
-            # 本日より前は無視
-            if date_str < today_str:
-                continue
-            plan_counts[date_str] = plan_counts.get(date_str, 0) + 1
-        # 日付昇順で返す
+                # 未来の単語（24時間単位でスロット分け）
+                time_slot = int(hours_diff // 24) + 1
+            
+            plan_counts[time_slot] = plan_counts.get(time_slot, 0) + 1
+        
+        logger.info(f"Total past words found: {past_count}")
+        logger.info(f"Plan counts: {plan_counts}")
+        
+        # time_slot: 0を常に含める（過去の単語がない場合もcount: 0で含める）
+        if 0 not in plan_counts:
+            plan_counts[0] = 0
+        
+        # 時間スロット順で返す（過去から未来へ）
         result = [
-            {"date": date, "count": count}
-            for date, count in sorted(plan_counts.items())
+            {"time_slot": time_slot, "count": count}
+            for time_slot, count in sorted(plan_counts.items())
         ]
         return result
     except Exception as e:

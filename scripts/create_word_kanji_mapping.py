@@ -15,7 +15,7 @@ import csv
 import os
 import re
 import glob
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Set, Dict, List, Tuple
 
 def extract_kanji_from_text(text: str) -> Set[str]:
@@ -183,7 +183,7 @@ def main():
     print("=" * 50)
     
     # 出力日付を取得
-    output_date = datetime.now().strftime('%Y%m%d')
+    output_date = datetime.now(timezone.utc).strftime('%Y%m%d')
     print(f"出力日付: {output_date}")
     
     # データファイルを探す

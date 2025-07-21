@@ -10,74 +10,71 @@
 import csv
 import os
 import glob
-from datetime import datetime
-from typing import Set, Dict, List, Tuple
+from typing import List, Tuple, Dict
+from datetime import datetime, timezone
 
 def read_component_relations(file_path: str) -> List[Tuple[str, List[str]]]:
-    """component_relation_source.csvを読み込んで漢字とコンポーネントの関係を取得"""
+    """コンポーネント関係ファイルを読み込む"""
     relations = []
     
     with open(file_path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader)  # ヘッダーをスキップ
-        
+        reader = csv.DictReader(f)
         for row in reader:
-            if len(row) >= 1 and row[0].strip():  # 漢字が存在する場合
-                kanji = row[0].strip()
-                components = [comp.strip() for comp in row[1:6] if comp.strip()]  # 2-6列目から空でないコンポーネントを取得
+            kanji = row.get('kanji', '').strip()
+            components_str = row.get('components', '').strip()
+            
+            if kanji and components_str:
+                # コンポーネントをカンマで分割
+                components = [comp.strip() for comp in components_str.split(',') if comp.strip()]
                 relations.append((kanji, components))
     
     return relations
 
 def extract_unique_components(relations: List[Tuple[str, List[str]]]) -> List[str]:
-    """重複なしのコンポーネント一覧を抽出"""
+    """重複なしのコンポーネントを抽出"""
     unique_components = set()
-    
-    for kanji, components in relations:
+    for _, components in relations:
         unique_components.update(components)
-    
     return sorted(list(unique_components))
 
 def get_kanji_id_mapping() -> Dict[str, str]:
-    """既存のkanjis_XXXXXXXX.csvから漢字とIDのマッピングを取得"""
+    """既存の漢字ファイルから漢字IDマッピングを取得"""
+    kanji_to_id = {}
+    
+    # 漢字ファイルを探す
     kanji_files = glob.glob('data/dynamodb_source/kanjis_*.csv')
     if not kanji_files:
-        print("警告: kanjis_*.csvファイルが見つかりません")
-        return {}
+        print("警告: 漢字ファイルが見つかりません")
+        return kanji_to_id
     
-    # 最初に見つかったkanjisファイルを使用
-    kanji_file = kanji_files[0]
-    print(f"漢字IDマッピング用ファイル: {kanji_file}")
+    kanji_file = kanji_files[0]  # 最初のファイルを使用
     
-    kanji_to_id = {}
     with open(kanji_file, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader)  # ヘッダーをスキップ
-        
+        reader = csv.DictReader(f)
         for row in reader:
-            if len(row) >= 3:  # PK, SK, character の列が存在する場合
-                kanji_id = row[1]  # SK列がID
-                kanji_char = row[2]  # character列が漢字
+            kanji_char = row.get('char', '').strip()
+            kanji_id = row.get('id', '').strip()
+            if kanji_char and kanji_id:
                 kanji_to_id[kanji_char] = kanji_id
     
     return kanji_to_id
 
 def create_components_csv(components: List[str], output_path: str) -> Dict[str, str]:
-    """components_XXXXXXXX.csvを作成し、コンポーネントとIDのマッピングを返す"""
+    """components_XXXXXXXX.csvを作成し、コンポーネントIDマッピングを返す"""
     component_to_id = {}
     
     with open(output_path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['PK', 'SK', 'character', 'name', 'en', 'vi', 'EntityType'])
+        writer.writerow(['PK', 'SK', 'char', 'EntityType'])
         
         for i, component in enumerate(components, 1):
             component_id = str(i)
             component_to_id[component] = component_id
-            writer.writerow(['COMPONENT', component_id, component, '', '', '', 'Component'])
+            writer.writerow(['COMPONENT', component_id, component, 'Component'])
     
     return component_to_id
 
-def create_kanji_component_csv(relations: List[Tuple[str, List[str]]], output_path: str, 
+def create_kanji_component_csv(relations: List[Tuple[str, List[str]]], output_path: str,
                               kanji_to_id: Dict[str, str], component_to_id: Dict[str, str]):
     """kanji_component_XXXXXXXX.csvを作成"""
     with open(output_path, 'w', encoding='utf-8', newline='') as f:
@@ -128,7 +125,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # 現在の日時を取得してファイル名に使用
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
     
     # ファイル名を設定
     components_file = f'components_{timestamp}.csv'
