@@ -2,16 +2,14 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Dict
 from .base import DynamoDBBase
+from services.datetime_utils import DateTimeUtils
 
 logger = logging.getLogger(__name__)
 
 class ProgressDynamoDB(DynamoDBBase):
-    def parse_datetime_with_tz(self, dt_str):
-        dt = datetime.fromisoformat(dt_str)
-        if dt.tzinfo is None:
-            # タイムゾーン情報がなければUTCとして扱う
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
+    def __init__(self):
+        super().__init__()
+        self.datetime_utils = DateTimeUtils()
 
     async def get_progress(self, current_user_id: str) -> List[Dict]:
         """
@@ -46,7 +44,7 @@ class ProgressDynamoDB(DynamoDBBase):
                 unlearned = len(all_word_ids - user_learned_ids)
                 reviewable = sum(
                     1 for item in level_user_items
-                    if 'next_datetime' in item and self.parse_datetime_with_tz(item['next_datetime']) <= now
+                    if self.datetime_utils.is_reviewable(item)
                 )
                 if level_user_items:
                     avg_progress = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items) / (2 * learned)

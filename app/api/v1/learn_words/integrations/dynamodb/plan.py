@@ -2,16 +2,14 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 from .base import DynamoDBBase
+from services.datetime_utils import DateTimeUtils
 
 logger = logging.getLogger(__name__)
 
 class PlanDynamoDB(DynamoDBBase):
-    def parse_datetime_with_tz(self, dt_str):
-        dt = datetime.fromisoformat(dt_str)
-        if dt.tzinfo is None:
-            # タイムゾーン情報がなければUTCとして扱う
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
+    def __init__(self):
+        super().__init__()
+        self.datetime_utils = DateTimeUtils()
 
     async def get_plan(self, current_user_id: str) -> List[Dict]:
         """
@@ -34,23 +32,21 @@ class PlanDynamoDB(DynamoDBBase):
             
             for item in user_items:
                 if 'next_datetime' in item:
-                    try:
-                        next_dt = self.parse_datetime_with_tz(item['next_datetime'])
-                        
-                        # 現在時刻からの時間差を計算（分単位）
-                        time_diff_minutes = (next_dt - now).total_seconds() / 60
-                        
-                        # 24時間スロットを計算（0は過去、1は0-24時間後、2は24-48時間後...）
-                        if time_diff_minutes <= 0:
-                            time_slot = 0  # 過去（復習可能）
-                        else:
-                            time_slot = int(time_diff_minutes // (24 * 60)) + 1
-                        
-                        time_slots[time_slot] = time_slots.get(time_slot, 0) + 1
-                        
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"Invalid next_datetime format for word {item.get('word_id')}: {e}")
-                        continue
+                                    next_dt = self.datetime_utils.parse_datetime_safe(item['next_datetime'])
+                if next_dt is None:
+                    logger.warning(f"Invalid next_datetime format for word {item.get('word_id')}")
+                    continue
+                
+                # 現在時刻からの時間差を計算（分単位）
+                time_diff_minutes = (next_dt - now).total_seconds() / 60
+                
+                # 24時間スロットを計算（0は過去、1は0-24時間後、2は24-48時間後...）
+                if time_diff_minutes <= 0:
+                    time_slot = 0  # 過去（復習可能）
+                else:
+                    time_slot = int(time_diff_minutes // (24 * 60)) + 1
+                
+                time_slots[time_slot] = time_slots.get(time_slot, 0) + 1
             
             # 結果をリスト形式で返す（time_slot: 0は必ず含める）
             result = []
