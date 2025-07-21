@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse, NoWordAvailableResponse
-from integrations.dynamodb_integration import learn_history_db
+from integrations.dynamodb import learn_history_db, next_db, progress_db, plan_db
 from utils.auth import get_current_user_id
 import logging
 from pydantic import BaseModel, Field
@@ -53,7 +53,7 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
     """
     try:
         # 1. 出題単語IDとモード取得
-        next_result = await learn_history_db.get_next_word(
+        next_result = await next_db.get_next_word(
             user_id=current_user_id,
             level=request.level
         )
@@ -70,13 +70,13 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
         mode = next_result['mode']
 
         # 2. 他の単語ID取得
-        other_word_ids = await learn_history_db.get_other_words(request.level, answer_word_id)
+        other_word_ids = await next_db.get_other_words(request.level, answer_word_id)
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
-        words_detail = [await learn_history_db.get_word_detail(word_id) for word_id in word_ids]
+        words_detail = [await next_db.get_word_detail(word_id) for word_id in word_ids]
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
@@ -113,7 +113,7 @@ async def get_other_words(request: OtherWordsRequest) -> List[int]:
         HTTPException: 500 - その他のエラー
     """
     try:
-        word_ids = await learn_history_db.get_other_words(request.level, request.answer_word_id)
+        word_ids = await next_db.get_other_words(request.level, request.answer_word_id)
         if not word_ids:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
         return word_ids
@@ -129,48 +129,7 @@ async def get_progress(current_user_id: str = Depends(get_current_user_id)):
     データ範囲：トークンから取得したユーザーIDのデータのみ
     """
     try:
-        # ユーザーの学習履歴を全て取得
-        user_response = learn_history_db.table.query(
-            KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
-            ExpressionAttributeValues={
-                ':pk': f"USER#{current_user_id}",
-                ':sk_prefix': 'WORD#'
-            }
-        )
-        user_items = user_response.get('Items', [])
-        now = datetime.now(timezone.utc)
-        result = []
-        for level in range(1, 15):
-            # 各レベルの全単語IDリストをPKで直接query
-            word_response = learn_history_db.table.query(
-                KeyConditionExpression='PK = :pk AND SK = :sk',
-                ExpressionAttributeValues={
-                    ':pk': f'WORDS#{level}',
-                    ':sk': 'METADATA'
-                }
-            )
-            all_word_ids = set(int(item['word_id']) for item in word_response.get('Items', []))
-            # ユーザーの学習済み単語IDリスト
-            level_user_items = [item for item in user_items if item.get('level') == level]
-            user_learned_ids = set(int(item['word_id']) for item in level_user_items)
-            learned = len(user_learned_ids)
-            unlearned = len(all_word_ids - user_learned_ids)
-            reviewable = sum(
-                1 for item in level_user_items
-                if 'next_datetime' in item and parse_datetime_with_tz(item['next_datetime']) <= now
-            )
-            if level_user_items:
-                avg_progress = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items) / (2 * learned)
-                progress = int(round(avg_progress * 100))
-            else:
-                progress = 0
-            result.append({
-                "level": level,
-                "progress": progress,
-                "reviewable": reviewable,
-                "learned": learned,
-                "unlearned": unlearned
-            })
+        result = await progress_db.get_progress(current_user_id)
         return result
     except Exception as e:
         logger.error(f"Error in get_progress endpoint: {str(e)}")
@@ -195,65 +154,7 @@ async def get_plan(current_user_id: str = Depends(get_current_user_id)):
     count: その時間スロット内の単語数
     """
     try:
-        # ユーザーの学習履歴を全て取得
-        user_response = learn_history_db.table.query(
-            KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
-            ExpressionAttributeValues={
-                ':pk': f"USER#{current_user_id}",
-                ':sk_prefix': 'WORD#'
-            }
-        )
-        user_items = user_response.get('Items', [])
-        now = datetime.now(timezone.utc)
-        
-        logger.info(f"Current time (UTC): {now}")
-        logger.info(f"Total user items found: {len(user_items)}")
-        
-        # 時間スロットごとのカウントを初期化
-        plan_counts = {}
-        past_count = 0  # デバッグ用
-        
-        for item in user_items:
-            next_dt_str = item.get('next_datetime')
-            if not next_dt_str:
-                logger.warning(f"Item {item.get('word_id')} has no next_datetime")
-                continue
-            try:
-                next_dt = datetime.fromisoformat(next_dt_str)
-                if next_dt.tzinfo is None:
-                    next_dt = next_dt.replace(tzinfo=timezone.utc)
-            except Exception as e:
-                logger.warning(f"Invalid next_datetime format for word {item.get('word_id')}: {e}")
-                continue
-            
-            # 現在時刻との差を時間単位で計算
-            time_diff = next_dt - now
-            hours_diff = time_diff.total_seconds() / 3600
-            
-            # 時間スロットを決定
-            if hours_diff <= 0:
-                # 過去の単語（現在時刻以前）
-                time_slot = 0
-                past_count += 1
-                logger.info(f"Past word found: word_id={item.get('word_id')}, next_datetime={next_dt}, hours_diff={hours_diff}")
-            else:
-                # 未来の単語（24時間単位でスロット分け）
-                time_slot = int(hours_diff // 24) + 1
-            
-            plan_counts[time_slot] = plan_counts.get(time_slot, 0) + 1
-        
-        logger.info(f"Total past words found: {past_count}")
-        logger.info(f"Plan counts: {plan_counts}")
-        
-        # time_slot: 0を常に含める（過去の単語がない場合もcount: 0で含める）
-        if 0 not in plan_counts:
-            plan_counts[0] = 0
-        
-        # 時間スロット順で返す（過去から未来へ）
-        result = [
-            {"time_slot": time_slot, "count": count}
-            for time_slot, count in sorted(plan_counts.items())
-        ]
+        result = await plan_db.get_plan(current_user_id)
         return result
     except Exception as e:
         logger.error(f"Error in get_plan endpoint: {str(e)}")
@@ -270,7 +171,7 @@ async def get_random_word(request: RandomWordRequest):
     """
     try:
         # 1. ランダムに単語IDとモードを取得
-        next_result = await learn_history_db.get_random_word(level=request.level)
+        next_result = await next_db.get_random_word(level=request.level)
         if not next_result:
             raise HTTPException(status_code=404, detail="No words found for the specified level")
         
@@ -278,13 +179,13 @@ async def get_random_word(request: RandomWordRequest):
         mode = next_result['mode']
 
         # 2. 他の単語IDを取得
-        other_word_ids = await learn_history_db.get_other_words(request.level, answer_word_id)
+        other_word_ids = await next_db.get_other_words(request.level, answer_word_id)
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
-        words_detail = [await learn_history_db.get_word_detail(word_id) for word_id in word_ids]
+        words_detail = [await next_db.get_word_detail(word_id) for word_id in word_ids]
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
