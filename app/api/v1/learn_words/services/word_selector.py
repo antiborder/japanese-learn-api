@@ -2,6 +2,7 @@ import logging
 import random
 from typing import Dict, List, Optional, Union
 from datetime import datetime, timezone
+from .datetime_utils import DateTimeUtils
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class WordSelector:
         # 復習可能な単語をフィルタリング
         reviewable_words = []
         for word in user_level_words:
-            if WordSelector._is_reviewable(word):
+            if DateTimeUtils.is_reviewable(word):
                 reviewable_words.append(word)
         
         if not reviewable_words:
@@ -85,7 +86,7 @@ class WordSelector:
             return review_word_result
         
         # 復習可能な単語がない場合は、次に利用可能になる時刻を計算
-        next_available_dt = WordSelector._get_next_available_time(user_level_words)
+        next_available_dt = DateTimeUtils.get_next_available_time(user_level_words)
         if next_available_dt:
             result = {
                 'no_word_available': True,
@@ -97,36 +98,4 @@ class WordSelector:
         # ユーザーの学習履歴に単語がない場合は、ランダムに選択
         random_result = WordSelector.select_random_word(level_words)
         logger.info(f"Successfully retrieved random word for user {user_id}, level {level_int}: {random_result}")
-        return random_result
-    
-    @staticmethod
-    def _is_reviewable(word: dict) -> bool:
-        """単語が復習可能かどうかをチェックします"""
-        if 'next_datetime' not in word:
-            return False
-        
-        try:
-            next_dt = datetime.fromisoformat(word['next_datetime'])
-            if next_dt.tzinfo is None:
-                next_dt = next_dt.replace(tzinfo=timezone.utc)
-            now = datetime.now(timezone.utc)
-            return next_dt <= now
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid next_datetime format for word {word.get('word_id')}: {e}")
-            return False
-    
-    @staticmethod
-    def _get_next_available_time(user_words: list) -> Optional[datetime]:
-        """次に利用可能になる時刻を取得します"""
-        if not user_words:
-            return None
-        
-        try:
-            next_available_word = min(user_words, key=lambda x: x['next_datetime'])
-            next_dt = datetime.fromisoformat(next_available_word['next_datetime'])
-            if next_dt.tzinfo is None:
-                next_dt = next_dt.replace(tzinfo=timezone.utc)
-            return next_dt
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid next_datetime format for next available word: {e}")
-            return None 
+        return random_result 
