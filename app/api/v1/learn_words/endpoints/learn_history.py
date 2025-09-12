@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse, NoWordAvailableResponse
 from integrations.dynamodb import learn_history_db, next_db, progress_db, plan_db
-from utils.auth import get_current_user_id
 import logging
 from pydantic import BaseModel, Field
 from typing import List, Union

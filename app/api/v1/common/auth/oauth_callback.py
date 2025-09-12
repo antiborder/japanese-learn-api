@@ -1,8 +1,8 @@
 import os
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, status, Depends
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Query, status, Request
+from fastapi.responses import JSONResponse
 import requests
 from jose import jwt, JWTError
 from ..config import settings
@@ -11,104 +11,222 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# OAuth設定
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:3000/auth/callback")
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+# Cognito設定
+COGNITO_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "ap-northeast-1_WGOHW5Nx9")
+COGNITO_APP_CLIENT_ID = os.environ.get("COGNITO_APP_CLIENT_ID", "6kkiqk3qqjnisn96rgc3kne63p")
+# パブリッククライアントなのでクライアントシークレットは不要
+COGNITO_DOMAIN = os.environ.get("COGNITO_DOMAIN", "https://nihongo.auth.ap-northeast-1.amazoncognito.com")
 
-@router.get("/auth/google")
+# フロントエンド設定
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+COGNITO_REDIRECT_URI = os.environ.get("COGNITO_REDIRECT_URI", f"{FRONTEND_URL}/callback")
+
+@router.get("/oauth/google")
 async def google_auth():
     """
-    Google OAuth認証の開始
+    Cognito経由でGoogle OAuth認証を開始
     """
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Google OAuth not configured"
-        )
-    
     auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
+        f"{COGNITO_DOMAIN}/oauth2/authorize?"
         f"response_type=code&"
-        f"scope=openid email profile&"
-        f"access_type=offline"
+        f"client_id={COGNITO_APP_CLIENT_ID}&"
+        f"redirect_uri={COGNITO_REDIRECT_URI}&"
+        f"scope=openid+email+profile&"
+        f"identity_provider=Google"
     )
     
-    return RedirectResponse(url=auth_url)
+    return JSONResponse(
+        status_code=200,
+        content={"auth_url": auth_url},
+        headers={
+            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
 
-@router.get("/auth/callback")
+@router.get("/oauth/callback")
 async def oauth_callback(
+    request: Request,
     code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
-    state: Optional[str] = Query(None)
+    error_description: Optional[str] = Query(None)
 ):
     """
-    OAuth認証のコールバック処理
+    Cognito OAuth認証のコールバック処理
+    エンドポイント: GET /api/v1/auth/oauth/callback?code={auth_code}&state={state}
+    レスポンス形式: JSON（リダイレクト禁止）
     """
-    if error:
-        logger.error(f"OAuth error: {error}")
-        return RedirectResponse(url=f"{FRONTEND_URL}/auth/error?error={error}")
+    # CORSプリフライトリクエストの場合はOPTIONSレスポンスを返す
+    if request.method == "OPTIONS":
+        return JSONResponse(
+            status_code=200,
+            content={"message": "OK"},
+            headers={
+                "Access-Control-Allow-Origin": "http://localhost:3000",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                "Access-Control-Allow-Credentials": "true",
+            }
+        )
     
+    # エラーレスポンス（HTTP 400）
+    if error:
+        logger.error(f"OAuth error: {error} - {error_description}")
+        error_message = error_description or error
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": error_message
+            },
+            headers={
+                "Access-Control-Allow-Origin": "http://localhost:3000",
+                "Access-Control-Allow-Credentials": "true",
+            }
+        )
+    
+    # 認証コードが無い場合のエラーレスポンス（HTTP 400）
     if not code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authorization code not provided"
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "認証コードが無効です"
+            },
+            headers={
+                "Access-Control-Allow-Origin": "http://localhost:3000",
+                "Access-Control-Allow-Credentials": "true",
+            }
         )
     
     try:
-        # アクセストークンを取得
+        # Cognitoからアクセストークンを取得（パブリッククライアント用）
         token_response = requests.post(
-            "https://oauth2.googleapis.com/token",
+            f"{COGNITO_DOMAIN}/oauth2/token",
             data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "code": code,
                 "grant_type": "authorization_code",
-                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "client_id": COGNITO_APP_CLIENT_ID,
+                "code": code,
+                "redirect_uri": COGNITO_REDIRECT_URI,
+            },
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded"
             }
         )
         token_response.raise_for_status()
         token_data = token_response.json()
         
-        # IDトークンからユーザー情報を取得
+        # IDトークンを取得
         id_token = token_data.get("id_token")
         if not id_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="ID token not received"
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": "アクセストークンの取得に失敗しました"
+                },
+                headers={
+                    "Access-Control-Allow-Origin": "http://localhost:3000",
+                    "Access-Control-Allow-Credentials": "true",
+                }
             )
         
-        # IDトークンを検証（簡易版）
-        # 本番環境では適切な検証が必要
-        user_info = jwt.get_unverified_claims(id_token)
-        email = user_info.get("email")
-        name = user_info.get("name")
-        
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email not found in token"
+        # IDトークンを検証してユーザー情報を取得
+        try:
+            # CognitoのIDトークンを検証（簡易版）
+            # 本番環境では適切な検証が必要
+            user_info = jwt.get_unverified_claims(id_token)
+            email = user_info.get("email")
+            name = user_info.get("name")
+            user_id = user_info.get("sub")  # CognitoのユーザーID
+            
+            if not email:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "success": False,
+                        "error": "ユーザー情報の取得に失敗しました"
+                    },
+                    headers={
+                        "Access-Control-Allow-Origin": "http://localhost:3000",
+                        "Access-Control-Allow-Credentials": "true",
+                    }
+                )
+            
+            # 成功レスポンス（HTTP 200）
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "token": id_token,
+                    "user": {
+                        "id": user_id,  # CognitoのユーザーIDを使用
+                        "email": email,
+                        "name": name or email,
+                        "is_active": True
+                    }
+                },
+                headers={
+                    "Access-Control-Allow-Origin": "http://localhost:3000",
+                    "Access-Control-Allow-Credentials": "true",
+                }
             )
-        
-        # フロントエンドにリダイレクト（トークンを含む）
-        # 本番環境では適切なセキュリティ対策が必要
-        redirect_url = f"{FRONTEND_URL}/auth/success?token={id_token}&email={email}&name={name}"
-        return RedirectResponse(url=redirect_url)
+            
+        except JWTError as e:
+            logger.error(f"JWT decode error: {str(e)}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": "ユーザー情報の取得に失敗しました"
+                },
+                headers={
+                    "Access-Control-Allow-Origin": "http://localhost:3000",
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
         
     except requests.RequestException as e:
         logger.error(f"Token exchange failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Token exchange failed"
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "アクセストークンの取得に失敗しました"
+            },
+            headers={
+                "Access-Control-Allow-Origin": "http://localhost:3000",
+                "Access-Control-Allow-Credentials": "true",
+            }
         )
     except Exception as e:
         logger.error(f"OAuth callback error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "データベースエラーが発生しました"
+            },
+            headers={
+                "Access-Control-Allow-Origin": "http://localhost:3000",
+                "Access-Control-Allow-Credentials": "true",
+            }
         )
 
-# get_user_info関数は別途定義するか、必要に応じて削除 
+@router.options("/oauth/callback")
+async def oauth_callback_options():
+    """
+    CORSプリフライトリクエスト用のOPTIONSハンドラー
+    """
+    return JSONResponse(
+        status_code=200,
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    ) 
