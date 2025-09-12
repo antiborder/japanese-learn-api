@@ -6,6 +6,7 @@ import logging
 from pydantic import BaseModel, Field
 from typing import List, Union
 from datetime import datetime, timezone
+from common.auth import get_current_user_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
