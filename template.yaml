@@ -183,6 +183,7 @@ Resources:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
+          FRONTEND_URL: "https://nihongo.cloud"
       Events:
         LearnWordsApiRootEvent:
           Type: Api
@@ -193,6 +194,16 @@ Resources:
           Type: Api
           Properties:
             Path: /api/v1/learn_words/{proxy+}
+            Method: ANY
+        OAuthCallbackEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/oauth/callback
+            Method: ANY
+        OAuthGoogleEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/oauth/google
             Method: ANY
       Policies:
         - DynamoDBCrudPolicy:

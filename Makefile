@@ -1,3 +1,6 @@
+include .env
+export
+
 .PHONY: deploy clean build check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common
 
 # デフォルトターゲット
@@ -60,7 +63,7 @@ check-db-env:
 	@test -n "$$S3_BUCKET_NAME" || { echo "Error: S3_BUCKET_NAMEが設定されていません"; exit 1; }
 	@test -n "$$GOOGLE_APPLICATION_CREDENTIALS" || { echo "Error: GOOGLE_APPLICATION_CREDENTIALSが設定されていません"; exit 1; }
 	@test -f "$$GOOGLE_APPLICATION_CREDENTIALS" || { echo "Error: Google認証ファイルが見つかりません: $$GOOGLE_APPLICATION_CREDENTIALS"; exit 1; }
-	@python -c "import json; json.load(open('$$GOOGLE_APPLICATION_CREDENTIALS'))" 2>/dev/null || { echo "Error: Google認証ファイルが有効なJSONではありません"; exit 1; }
+	@python3 -c "import json; json.load(open('$$GOOGLE_APPLICATION_CREDENTIALS'))" 2>/dev/null || { echo "Error: Google認証ファイルが有効なJSONではありません"; exit 1; }
 
 # 依存関係チェック
 check-deps:

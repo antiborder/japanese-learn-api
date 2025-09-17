@@ -18,14 +18,8 @@ COGNITO_DOMAIN = os.environ.get("COGNITO_DOMAIN", "https://nihongo.auth.ap-north
 
 # フロントエンド設定
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-COGNITO_REDIRECT_URI = os.environ.get("COGNITO_REDIRECT_URI", f"{FRONTEND_URL}/callback")
+COGNITO_REDIRECT_URI = os.environ.get("COGNITO_REDIRECT_URI", f"{FRONTEND_URL}/callback/")
 
-def get_cors_headers():
-    """共通のCORSヘッダーを返す"""
-    return {
-        "Access-Control-Allow-Origin": "http://localhost:3000",
-        "Access-Control-Allow-Credentials": "true",
-    }
 
 @router.get("/oauth/google")
 async def google_auth():
@@ -42,7 +36,7 @@ async def google_auth():
     return JSONResponse(
         status_code=200,
         content={"auth_url": auth_url},
-        headers=get_cors_headers()
+        headers={}
     )
 
 @router.get("/oauth/callback")
@@ -62,7 +56,7 @@ async def oauth_callback(
                 "success": False,
                 "error": error_description or error
             },
-            headers=get_cors_headers()
+            headers={}
         )
     
     # 認証コードが無い場合
@@ -73,7 +67,7 @@ async def oauth_callback(
                 "success": False,
                 "error": "認証コードが無効です"
             },
-            headers=get_cors_headers()
+            headers={}
         )
     
     try:
@@ -107,7 +101,7 @@ async def oauth_callback(
                     "success": False,
                     "error": "アクセストークンの取得に失敗しました"
                 },
-                headers=get_cors_headers()
+                headers={}
             )
         
         # IDトークンからユーザー情報を取得
@@ -123,7 +117,7 @@ async def oauth_callback(
                     "success": False,
                     "error": "ユーザー情報の取得に失敗しました"
                 },
-                headers=get_cors_headers()
+                headers={}
             )
         
         # 成功レスポンス
@@ -139,7 +133,7 @@ async def oauth_callback(
                     "is_active": True
                 }
             },
-            headers=get_cors_headers()
+            headers={}
         )
         
     except (requests.RequestException, JWTError) as e:
@@ -150,7 +144,7 @@ async def oauth_callback(
                 "success": False,
                 "error": "認証処理中にエラーが発生しました"
             },
-            headers=get_cors_headers()
+            headers={}
         )
 
 @router.options("/oauth/callback")
