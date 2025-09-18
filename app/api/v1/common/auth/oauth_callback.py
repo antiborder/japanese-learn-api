@@ -41,11 +41,21 @@ async def google_auth():
 
 @router.get("/oauth/callback")
 async def oauth_callback(
+    request: Request,
     code: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
     error_description: Optional[str] = Query(None)
 ):
     """Cognito OAuth認証のコールバック処理"""
+    
+    # 動的にリダイレクトURIを決定
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    if origin and "localhost" in origin:
+        redirect_uri = "http://localhost:3000/callback/"
+    else:
+        redirect_uri = "https://nihongo.cloud/callback/"
+    
+    logger.info(f"Using redirect_uri: {redirect_uri}")
     
     # エラーレスポンス
     if error:
@@ -78,7 +88,7 @@ async def oauth_callback(
                 "grant_type": "authorization_code",
                 "client_id": COGNITO_APP_CLIENT_ID,
                 "code": code,
-                "redirect_uri": COGNITO_REDIRECT_URI,
+                "redirect_uri": redirect_uri,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
@@ -87,7 +97,7 @@ async def oauth_callback(
         if token_response.status_code != 200:
             logger.error(f"Cognito token exchange failed: {token_response.status_code}")
             logger.error(f"Response content: {token_response.text}")
-            logger.error(f"Request data: grant_type=authorization_code, client_id={COGNITO_APP_CLIENT_ID}, code={code[:10]}..., redirect_uri={COGNITO_REDIRECT_URI}")
+            logger.error(f"Request data: grant_type=authorization_code, client_id={COGNITO_APP_CLIENT_ID}, code={code[:10]}..., redirect_uri={redirect_uri}")
         
         token_response.raise_for_status()
         token_data = token_response.json()
