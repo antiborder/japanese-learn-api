@@ -14,6 +14,7 @@ SHELL := /bin/bash
 deploy: check-env check-deps check-structure prepare-build build setup-aws
 	@echo "デプロイを実行します..."
 	@echo "SAMのバージョンを確認しています..."
+	@export GOOGLE_APPLICATION_CREDENTIALS="google-tts-key.json"
 	@sam --version
 	@echo "デプロイ開始..."
 	sam deploy \
