@@ -21,7 +21,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: python3.9
+    Runtime: python3.10
     MemorySize: 256
     Timeout: 30
     Tracing: Active
@@ -127,7 +127,7 @@ Resources:
   WordsFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.10
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/words
@@ -168,7 +168,7 @@ Resources:
   LearnWordsFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.10
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/learn_words
@@ -212,7 +212,7 @@ Resources:
   KanjisFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.10
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/kanjis
