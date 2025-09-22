@@ -257,6 +257,47 @@ Resources:
             Resource:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
+  SearchFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.10
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/search
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-SearchFunction"
+      CodeUri: ./app/api/v1/search
+      Handler: app.lambda_handler
+      Description: "統合検索機能（単語、漢字、例文検索）"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+      Events:
+        SearchApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/search
+            Method: ANY
+        SearchApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/search/{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+        - Statement:
+          - Effect: Allow
+            Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+            Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/name-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/english-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/vietnamese-index"
+
   # CloudWatch Log Groups
   WordsFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -279,6 +320,13 @@ Resources:
       RetentionInDays: 14
     DependsOn: LearnWordsFunction
 
+  SearchFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SearchFunction}"
+      RetentionInDays: 14
+    DependsOn: SearchFunction
+
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
@@ -289,6 +337,9 @@ Outputs:
   KanjisFunctionArn:
     Description: "Kanjis Function ARN"
     Value: !GetAtt KanjisFunction.Arn
+  SearchFunctionArn:
+    Description: "Search Function ARN"
+    Value: !GetAtt SearchFunction.Arn
   ApiId:
     Description: "API Gateway ID"
     Value: !Ref ServerlessRestApi
