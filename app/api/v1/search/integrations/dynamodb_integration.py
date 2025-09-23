@@ -191,6 +191,126 @@ class SearchDynamoDBClient:
             logger.error(f"Unexpected error getting total count: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
+    def search_kanjis(self, query: str, limit: int = 20, offset: int = 0) -> List[Dict]:
+        """
+        漢字を検索します（character-index GSIを使用）
+        """
+        try:
+            response = self.table.query(
+                IndexName='character-index',
+                KeyConditionExpression='#character = :character',
+                ExpressionAttributeNames={
+                    '#character': 'character'
+                },
+                ExpressionAttributeValues={
+                    ':character': query
+                }
+            )
+            
+            items = response.get('Items', [])
+            kanjis = []
+            for item in items:
+                try:
+                    kanji = self._convert_kanji_dynamodb_to_model(item)
+                    kanjis.append(kanji)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting kanji item {item.get('SK', 'unknown')}: {str(e)}")
+                    continue
+            
+            # オフセットとリミットを適用
+            start_idx = offset
+            end_idx = offset + limit
+            return kanjis[start_idx:end_idx]
+            
+        except ClientError as e:
+            logger.error(f"Error searching kanjis in DynamoDB: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error")
+
+    def get_kanji_total_count(self, query: str) -> int:
+        """
+        漢字検索結果の総数を取得します
+        """
+        try:
+            response = self.table.query(
+                IndexName='character-index',
+                KeyConditionExpression='#character = :character',
+                ExpressionAttributeNames={
+                    '#character': 'character'
+                },
+                ExpressionAttributeValues={
+                    ':character': query
+                },
+                Select='COUNT'
+            )
+            
+            return response.get('Count', 0)
+            
+        except ClientError as e:
+            logger.error(f"Error getting kanji total count from DynamoDB: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error")
+
+    def search_components(self, query: str, limit: int = 20, offset: int = 0) -> List[Dict]:
+        """
+        Componentsを検索します（character-index GSIを使用）
+        """
+        try:
+            response = self.table.query(
+                IndexName='character-index',
+                KeyConditionExpression='#character = :character',
+                FilterExpression='PK = :pk',
+                ExpressionAttributeNames={
+                    '#character': 'character'
+                },
+                ExpressionAttributeValues={
+                    ':character': query,
+                    ':pk': 'COMPONENT'
+                }
+            )
+            
+            items = response.get('Items', [])
+            components = []
+            for item in items:
+                try:
+                    component = self._convert_component_dynamodb_to_model(item)
+                    components.append(component)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting component item {item.get('SK', 'unknown')}: {str(e)}")
+                    continue
+            
+            # オフセットとリミットを適用
+            start_idx = offset
+            end_idx = offset + limit
+            return components[start_idx:end_idx]
+            
+        except ClientError as e:
+            logger.error(f"Error searching components in DynamoDB: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error")
+
+    def get_component_total_count(self, query: str) -> int:
+        """
+        Components検索結果の総数を取得します
+        """
+        try:
+            response = self.table.query(
+                IndexName='character-index',
+                KeyConditionExpression='#character = :character',
+                FilterExpression='PK = :pk',
+                ExpressionAttributeNames={
+                    '#character': 'character'
+                },
+                ExpressionAttributeValues={
+                    ':character': query,
+                    ':pk': 'COMPONENT'
+                },
+                Select='COUNT'
+            )
+            
+            return response.get('Count', 0)
+            
+        except ClientError as e:
+            logger.error(f"Error getting component total count from DynamoDB: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error")
+
     def _convert_dynamodb_to_model(self, item: Dict) -> Dict:
         """
         DynamoDBのアイテムをモデル形式に変換します
@@ -206,6 +326,30 @@ class SearchDynamoDBClient:
             'lexical_category': item.get('lexical_category', ''),
             'accent_up': int(item.get('accent_up')) if item.get('accent_up') else None,
             'accent_down': int(item.get('accent_down')) if item.get('accent_down') else None
+        }
+
+    def _convert_kanji_dynamodb_to_model(self, item: Dict) -> Dict:
+        """
+        DynamoDBの漢字アイテムをモデル形式に変換します
+        """
+        return {
+            'id': int(item['SK']),
+            'character': item.get('character', ''),
+            'english': item.get('english', ''),
+            'vietnamese': item.get('vietnamese', ''),
+            'strokes': int(item.get('strokes', 0)) if item.get('strokes') else None,
+            'onyomi': item.get('onyomi', ''),
+            'kunyomi': item.get('kunyomi', ''),
+            'level': int(item.get('level', 0)) if item.get('level') else None
+        }
+
+    def _convert_component_dynamodb_to_model(self, item: Dict) -> Dict:
+        """
+        DynamoDBのComponentsアイテムをモデル形式に変換します
+        """
+        return {
+            'id': int(item['SK']),
+            'character': item.get('character', '')
         }
 
 search_dynamodb_client = SearchDynamoDBClient()

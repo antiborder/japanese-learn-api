@@ -17,8 +17,26 @@ class WordSearchResult(BaseModel):
     audio_url: Optional[str] = None
 
 
+class KanjiSearchResult(BaseModel):
+    id: int
+    character: str
+    english: Optional[str] = None
+    vietnamese: Optional[str] = None
+    strokes: Optional[int] = None
+    onyomi: Optional[str] = None
+    kunyomi: Optional[str] = None
+    level: Optional[int] = None
+
+
+class ComponentSearchResult(BaseModel):
+    id: int
+    character: str
+
+
 class SearchResponse(BaseModel):
     words: List[WordSearchResult]
+    kanjis: List[KanjiSearchResult]
+    components: List[ComponentSearchResult]
     total_count: int
     query: str
     language: Language
