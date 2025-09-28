@@ -165,24 +165,29 @@ class NextDynamoDB(DynamoDBBase):
         }
 
     async def _get_level_words(self, level: int) -> List[Dict]:
-        """指定されたレベルの単語を取得します"""
-        response = self.table.query(
-            KeyConditionExpression="PK = :pk",
-            ExpressionAttributeValues={
-                ":pk": "WORD"
-            }
-        )
-        all_words = response.get('Items', [])
-        if not all_words:
-            logger.info("No words found in the database")
-            return []
-        
-        level_words = [item for item in all_words if item.get('level') == level]
-        if not level_words:
-            logger.info(f"No words found for level {level}")
-            return []
-        
-        return level_words
+        """指定されたレベルの単語を取得します（word-level-index GSIを使用）"""
+        try:
+            response = self.table.query(
+                IndexName='word-level-index',
+                KeyConditionExpression="PK = :pk AND #level = :level",
+                ExpressionAttributeNames={
+                    "#level": "level"
+                },
+                ExpressionAttributeValues={
+                    ":pk": "WORD",
+                    ":level": int(level)
+                }
+            )
+            level_words = response.get('Items', [])
+            if not level_words:
+                logger.info(f"No words found for level {level}")
+                return []
+            
+            logger.info(f"Successfully retrieved {len(level_words)} words for level {level}")
+            return level_words
+        except Exception as e:
+            logger.error(f"Error getting words for level {level}: {str(e)}")
+            raise
 
     async def _get_user_words(self, user_id: str) -> List[Dict]:
         """ユーザーの学習履歴を取得します"""

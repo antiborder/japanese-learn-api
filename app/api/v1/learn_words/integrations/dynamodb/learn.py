@@ -17,7 +17,7 @@ BASE_INTERVAL = 6 * 60  # 基準となる間隔（6時間を分単位で表現�
 class LearnDynamoDB(DynamoDBBase):
     def calculate_proficiency(self, confidence: int, time: Decimal, current_data: Optional[Dict] = None) -> Decimal:
         """習熟度を計算します"""
-        easiness_point = Decimal('0.1') + (Decimal(str(confidence))/Decimal('3')) * Decimal('0.8')
+        easiness_point = Decimal('0.1') + (Decimal(str(confidence))/Decimal('3')) * Decimal('0.9')
         
         # 前回の学習時間との差を計算
         if current_data and 'updated_at' in current_data:

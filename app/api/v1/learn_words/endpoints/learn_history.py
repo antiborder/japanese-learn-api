@@ -76,7 +76,8 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
-        words_detail = [await next_db.get_word_detail(word_id) for word_id in word_ids]
+        import asyncio
+        words_detail = await asyncio.gather(*[next_db.get_word_detail(word_id) for word_id in word_ids])
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
@@ -185,7 +186,8 @@ async def get_random_word(request: RandomWordRequest):
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
-        words_detail = [await next_db.get_word_detail(word_id) for word_id in word_ids]
+        import asyncio
+        words_detail = await asyncio.gather(*[next_db.get_word_detail(word_id) for word_id in word_ids])
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
