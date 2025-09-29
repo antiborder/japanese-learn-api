@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse, NoWordAvailableResponse
-from integrations.dynamodb import learn_history_db, next_db, progress_db, plan_db
+from integrations.dynamodb import next_db, progress_db, plan_db
+from services.learning_service import LearningService
 import logging
 from pydantic import BaseModel, Field
 from typing import List, Union
@@ -9,6 +10,9 @@ from common.auth import get_current_user_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# LearningServiceのインスタンスを作成
+learning_service = LearningService()
 
 def parse_datetime_with_tz(dt_str):
     dt = datetime.fromisoformat(dt_str)
@@ -25,7 +29,7 @@ async def record_learning(request: LearnHistoryRequest, current_user_id: str = D
     データ範囲：トークンから取得したユーザーIDのデータのみ
     """
     try:
-        result = await learn_history_db.record_learning(
+        result = await learning_service.record_learning(
             user_id=current_user_id,
             word_id=request.word_id,
             level=request.level,
