@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from common.schemas.learn_history import LearnHistoryRequest, LearnHistoryResponse, NextWordRequest, NextWordResponse, NoWordAvailableResponse
-from integrations.dynamodb import next_db, progress_db, plan_db
+from integrations.dynamodb import progress_db, plan_db
 from services.learning_service import LearningService
+from services.next_service import NextService
 import logging
 from pydantic import BaseModel, Field
 from typing import List, Union
@@ -11,8 +12,9 @@ from common.auth import get_current_user_id
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# LearningServiceのインスタンスを作成
+# サービスのインスタンスを作成
 learning_service = LearningService()
+next_service = NextService()
 
 def parse_datetime_with_tz(dt_str):
     dt = datetime.fromisoformat(dt_str)
@@ -57,7 +59,7 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
     """
     try:
         # 1. 出題単語IDとモード取得
-        next_result = await next_db.get_next_word(
+        next_result = await next_service.get_next_word(
             user_id=current_user_id,
             level=request.level
         )
@@ -74,14 +76,14 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
         mode = next_result['mode']
 
         # 2. 他の単語ID取得
-        other_word_ids = await next_db.get_other_words(request.level, answer_word_id)
+        other_word_ids = await next_service.get_other_words(request.level, answer_word_id)
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
         import asyncio
-        words_detail = await asyncio.gather(*[next_db.get_word_detail(word_id) for word_id in word_ids])
+        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids])
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
@@ -118,7 +120,7 @@ async def get_other_words(request: OtherWordsRequest) -> List[int]:
         HTTPException: 500 - その他のエラー
     """
     try:
-        word_ids = await next_db.get_other_words(request.level, request.answer_word_id)
+        word_ids = await next_service.get_other_words(request.level, request.answer_word_id)
         if not word_ids:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
         return word_ids
@@ -176,7 +178,7 @@ async def get_random_word(request: RandomWordRequest):
     """
     try:
         # 1. ランダムに単語IDとモードを取得
-        next_result = await next_db.get_random_word(level=request.level)
+        next_result = await next_service.get_random_word(level=request.level)
         if not next_result:
             raise HTTPException(status_code=404, detail="No words found for the specified level")
         
@@ -184,14 +186,14 @@ async def get_random_word(request: RandomWordRequest):
         mode = next_result['mode']
 
         # 2. 他の単語IDを取得
-        other_word_ids = await next_db.get_other_words(request.level, answer_word_id)
+        other_word_ids = await next_service.get_other_words(request.level, answer_word_id)
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
         # 3. 単語詳細をまとめて取得
         word_ids = [answer_word_id] + other_word_ids
         import asyncio
-        words_detail = await asyncio.gather(*[next_db.get_word_detail(word_id) for word_id in word_ids])
+        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids])
         answer_word = words_detail[0]
         other_words = words_detail[1:]
 
