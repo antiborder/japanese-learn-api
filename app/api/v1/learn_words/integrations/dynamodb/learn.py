@@ -26,10 +26,6 @@ class LearnDynamoDB(DynamoDBBase):
         """次の学習モードを決定します"""
         return self.mode_service.determine_next_mode(proficiency_MJ, proficiency_JM)
 
-    def calculate_next_datetime(self, confidence: int, next_mode: str, proficiency_MJ: Decimal, proficiency_JM: Decimal) -> datetime:
-        """次の学習時間を計算します"""
-        return self.datetime_service.calculate_next_datetime(confidence, next_mode, proficiency_MJ, proficiency_JM)
-
     def get_current_learning_data(self, user_id: str, word_id: int) -> Optional[Dict]:
         """現在の学習データを取得します"""
         try:

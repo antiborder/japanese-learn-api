@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Optional
 from decimal import Decimal
 from integrations.dynamodb.learn import LearnDynamoDB
+from services.review_logic import ReviewLogic
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class LearningService:
         self.proficiency_service = self.learn_db.proficiency_service
         self.mode_service = self.learn_db.mode_service
         self.datetime_service = self.learn_db.datetime_service
+        self.review_logic = ReviewLogic()
 
     async def record_learning(self, 
                             user_id: str, 
@@ -57,8 +59,17 @@ class LearningService:
             else:
                 proficiency_JM = new_proficiency
             
-            # 次の学習時間を計算
-            next_datetime = self.datetime_service.calculate_next_datetime(confidence, next_mode, proficiency_MJ, proficiency_JM)
+            # 復習可能単語数を取得
+            reviewable_count = await self._get_reviewable_count(user_id)
+            
+            # 次の学習時間を計算（復習可能単語数による補正を適用）
+            next_datetime = self.datetime_service.calculate_next_datetime(
+                confidence, 
+                next_mode, 
+                proficiency_MJ, 
+                proficiency_JM, 
+                reviewable_count
+            )
 
             # 学習データを保存
             result = await self.learn_db.save_learning_data(
@@ -76,3 +87,30 @@ class LearningService:
         except Exception as e:
             logger.error(f"Error recording learning data: {str(e)}")
             raise
+    
+    async def _get_reviewable_count(self, user_id: str) -> int:
+        """ユーザーの復習可能単語数を取得します
+        
+        Args:
+            user_id: ユーザーID
+            
+        Returns:
+            int: 復習可能単語数
+        """
+        try:
+            # ユーザーの全学習履歴を取得
+            from integrations.dynamodb.next import NextDynamoDB
+            next_db = NextDynamoDB()
+            user_words = await next_db._get_user_words(user_id)
+            
+            # 復習可能な単語をフィルタリング
+            reviewable_words = self.review_logic.get_reviewable_words(user_words)
+            
+            reviewable_count = len(reviewable_words)
+            logger.info(f"User {user_id} has {reviewable_count} reviewable words")
+            
+            return reviewable_count
+        except Exception as e:
+            logger.error(f"Error getting reviewable count: {str(e)}")
+            # エラー時はデフォルト値0を返す（Factor=1になる）
+            return 0
