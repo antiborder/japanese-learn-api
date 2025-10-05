@@ -124,6 +124,7 @@ class DynamoDBSentenceClient:
             'sentence_id': int(item['SK']),
             'japanese': item.get('japanese', ''),
             'level': int(item.get('level', 0)),
+            'hurigana': item.get('hurigana', ''),  # huriganaフィールドを追加
             'english': item.get('english', ''),
             'vietnamese': item.get('vietnamese', ''),
             'grammar_ids': grammar_ids,

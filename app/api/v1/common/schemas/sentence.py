@@ -12,6 +12,7 @@ class Sentence(BaseModel):
     sentence_id: int
     japanese: str
     level: int
+    hurigana: str  # huriganaフィールドを追加
     english: str
     vietnamese: str
     grammar_ids: List[int]
