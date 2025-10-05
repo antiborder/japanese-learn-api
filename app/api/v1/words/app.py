@@ -6,6 +6,10 @@ from fastapi import FastAPI, HTTPException
 from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
+
+# .envファイルを読み込み
+load_dotenv()
 
 # ロギングの設定
 logger = logging.getLogger()

@@ -2,6 +2,10 @@ import boto3
 import os
 from fastapi import HTTPException
 import logging
+from dotenv import load_dotenv
+
+# .envファイルを読み込み
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

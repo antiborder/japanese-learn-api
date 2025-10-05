@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_audio_url(word_id: int, hiragana: str) -> str:
+def get_audio_url(word_id: int, word_name: str, hiragana: str) -> str:
     try:
         logger.info(f"Getting audio URL for word_id: {word_id}")
         try:
@@ -21,7 +21,8 @@ def get_audio_url(word_id: int, hiragana: str) -> str:
                     raise HTTPException(status_code=404, detail=f"Word not found with id: {word_id}")
                 
                 try:
-                    audio_content = synthesize_speech(hiragana)
+                    # 漢字と読み方を分けて音声合成
+                    audio_content = synthesize_speech(word_name, hiragana)
                 except Exception as e:
                     logger.error(f"Error synthesizing speech: {str(e)}")
                     raise HTTPException(status_code=500, detail=f"Error synthesizing speech: {str(e)}")
