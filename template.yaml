@@ -299,6 +299,37 @@ Resources:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/vietnamese-index"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/character-index"
 
+  SentencesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.10
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/sentences
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-SentencesFunction"
+      CodeUri: ./app/api/v1/sentences
+      Handler: app.lambda_handler
+      Description: "Lambda function for sentences-related endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+      Events:
+        SentencesApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/sentences
+            Method: ANY
+        SentencesApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/sentences/{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+
   # CloudWatch Log Groups
   WordsFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -327,6 +358,13 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${SearchFunction}"
       RetentionInDays: 14
     DependsOn: SearchFunction
+
+  SentencesFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SentencesFunction}"
+      RetentionInDays: 14
+    DependsOn: SentencesFunction
 
 Outputs:
   ApiEndpoint:
