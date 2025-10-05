@@ -13,8 +13,9 @@ class SentencesDataLoader:
     def parse_csv_row(self, row):
         """CSVの行を解析してDynamoDB用のデータ形式に変換する"""
         sentence_id = int(row["No."])
-        japanese = row["japanese"]
+        japanese = row["sentence"]  # 列名が変更された
         level = int(row["level"])
+        hurigana = row["hurigana"]  # 新しい列を追加
         english = row["english"]
         vietnamese = row["vietnamese"]
         grammar_raw = row["grammar"]
@@ -43,6 +44,7 @@ class SentencesDataLoader:
             "sentence_id": sentence_id,
             "japanese": japanese,
             "level": level,
+            "hurigana": hurigana,  # 新しいフィールドを追加
             "english": english,
             "vietnamese": vietnamese,
             "grammar_ids": grammar_ids,
@@ -69,6 +71,7 @@ class SentencesDataLoader:
                         "sentence_id": sentence_data["sentence_id"],
                         "japanese": sentence_data["japanese"],
                         "level": sentence_data["level"],
+                        "hurigana": sentence_data["hurigana"],  # 新しいフィールドを追加
                         "english": sentence_data["english"],
                         "vietnamese": sentence_data["vietnamese"],
                         "grammar_ids": sentence_data["grammar_ids"],
