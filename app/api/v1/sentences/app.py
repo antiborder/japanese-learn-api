@@ -37,6 +37,16 @@ def lambda_handler(event, context):
         # Mangumハンドラーでリクエストを処理
         response = handler(event, context)
         
+        # レスポンスにCORSヘッダーを追加
+        if 'headers' not in response:
+            response['headers'] = {}
+        
+        response['headers'].update({
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+        })
+        
         # レスポンス情報をログに記録
         logger.info(f"Response: {json.dumps(response)}")
         

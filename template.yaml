@@ -379,6 +379,9 @@ Outputs:
   SearchFunctionArn:
     Description: "Search Function ARN"
     Value: !GetAtt SearchFunction.Arn
+  SentencesFunctionArn:
+    Description: "Sentences Function ARN"
+    Value: !GetAtt SentencesFunction.Arn
   ApiId:
     Description: "API Gateway ID"
     Value: !Ref ServerlessRestApi
