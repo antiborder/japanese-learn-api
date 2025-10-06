@@ -340,6 +340,44 @@ Resources:
               - !Sub "arn:aws:s3:::${S3BucketName}"
               - !Sub "arn:aws:s3:::${S3BucketName}/*"
 
+  SentenceCompositionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.10
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/sentence_composition
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-SentenceCompositionFunction"
+      CodeUri: ./app/api/v1/sentence_composition
+      Handler: app.lambda_handler
+      Description: "Lambda function for sentence composition quiz endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+      Events:
+        QuizzesApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/quizzes
+            Method: ANY
+        QuizzesApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/quizzes/{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+        - Statement:
+          - Effect: Allow
+            Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+            Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+
   # CloudWatch Log Groups
   WordsFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -376,6 +414,13 @@ Resources:
       RetentionInDays: 14
     DependsOn: SentencesFunction
 
+  SentenceCompositionFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SentenceCompositionFunction}"
+      RetentionInDays: 14
+    DependsOn: SentenceCompositionFunction
+
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
@@ -392,6 +437,9 @@ Outputs:
   SentencesFunctionArn:
     Description: "Sentences Function ARN"
     Value: !GetAtt SentencesFunction.Arn
+  SentenceCompositionFunctionArn:
+    Description: "Sentence Composition Function ARN"
+    Value: !GetAtt SentenceCompositionFunction.Arn
   ApiId:
     Description: "API Gateway ID"
     Value: !Ref ServerlessRestApi
