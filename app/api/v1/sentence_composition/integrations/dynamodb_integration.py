@@ -182,4 +182,48 @@ class DynamoDBSentenceCompositionClient:
             logger.error(f"Error getting user sentences: {str(e)}")
             return []
 
+    async def get_level_sentences(self, level: int) -> List[Dict]:
+        """指定されたレベルの文を取得します"""
+        try:
+            response = self.table.query(
+                KeyConditionExpression="PK = :pk",
+                FilterExpression="#level = :level",
+                ExpressionAttributeNames={
+                    "#level": "level"
+                },
+                ExpressionAttributeValues={
+                    ":pk": "SENTENCE",
+                    ":level": level
+                }
+            )
+            return response.get('Items', [])
+        except ClientError as e:
+            logger.error(f"Error getting level sentences from DynamoDB: {str(e)}")
+            return []
+
+    async def get_sentence_detail(self, sentence_id: int) -> Optional[Dict]:
+        """文の詳細情報を取得します"""
+        try:
+            response = self.table.get_item(
+                Key={
+                    'PK': "SENTENCE",
+                    'SK': str(sentence_id)
+                }
+            )
+            
+            item = response.get('Item')
+            if not item:
+                raise HTTPException(status_code=404, detail=f"Sentence {sentence_id} not found")
+            
+            return self._convert_dynamodb_to_model(item)
+            
+        except ClientError as e:
+            logger.error(f"Error getting sentence {sentence_id} from DynamoDB: {str(e)}")
+            raise
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting sentence {sentence_id}: {str(e)}")
+            raise
+
 dynamodb_sentence_composition_client = DynamoDBSentenceCompositionClient()
