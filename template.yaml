@@ -15,13 +15,10 @@ Parameters:
   S3BucketName:
     Type: String
     Description: "S3 bucket name for resources"
-  GoogleCredentials:
-    Type: String
-    Description: "Google credentials file path"
 
 Globals:
   Function:
-    Runtime: python3.10
+    Runtime: python3.11
     MemorySize: 256
     Timeout: 30
     Tracing: Active
@@ -35,7 +32,7 @@ Globals:
         MAX_COMPONENT_COUNT: !Ref MaxComponentCount
         MIN_COLUMN_COUNT: !Ref MinColumnCount
         S3_BUCKET_NAME: !Ref S3BucketName
-        GOOGLE_APPLICATION_CREDENTIALS: !Ref GoogleCredentials
+        GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -127,7 +124,7 @@ Resources:
   WordsFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/words
@@ -141,6 +138,10 @@ Resources:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           S3_BUCKET_NAME: !Ref S3BucketName
+          GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         WordsApiRootEvent:
           Type: Api
@@ -168,7 +169,7 @@ Resources:
   LearnWordsFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/learn_words
@@ -184,6 +185,9 @@ Resources:
           COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
           FRONTEND_URL: "https://nihongo.cloud"
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         LearnWordsApiRootEvent:
           Type: Api
@@ -212,7 +216,7 @@ Resources:
   KanjisFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/kanjis
@@ -225,6 +229,9 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         KanjisApiRootEvent:
           Type: Api
@@ -260,7 +267,7 @@ Resources:
   SearchFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/search
@@ -273,6 +280,9 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         SearchApiRootEvent:
           Type: Api
@@ -302,7 +312,7 @@ Resources:
   SentencesFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/sentences
@@ -316,6 +326,10 @@ Resources:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           S3_BUCKET_NAME: !Ref S3BucketName
+          GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         SentencesApiRootEvent:
           Type: Api
@@ -343,7 +357,7 @@ Resources:
   SentenceCompositionFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.11
       BuildProperties:
         UseContainer: true
         ProjectPath: ./app/api/v1/sentence_composition
@@ -356,6 +370,9 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          DATABASE_URL: !Ref DatabaseUrl
+          MAX_COMPONENT_COUNT: !Ref MaxComponentCount
+          MIN_COLUMN_COUNT: !Ref MinColumnCount
       Events:
         QuizzesApiRootEvent:
           Type: Api

@@ -14,7 +14,6 @@ SHELL := /bin/bash
 deploy: check-env check-deps check-structure prepare-build build setup-aws
 	@echo "デプロイを実行します..."
 	@echo "SAMのバージョンを確認しています..."
-	@export GOOGLE_APPLICATION_CREDENTIALS="google-tts-key.json"
 	@sam --version
 	@echo "デプロイ開始..."
 	sam deploy \
@@ -24,7 +23,6 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		MaxComponentCount="$$MAX_COMPONENT_COUNT" \
 		MinColumnCount="$$MIN_COLUMN_COUNT" \
 		S3BucketName="$$S3_BUCKET_NAME" \
-		GoogleCredentials="$$GOOGLE_APPLICATION_CREDENTIALS" \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset \
 		--no-progressbar \
@@ -62,9 +60,6 @@ check-db-env:
 	@test -n "$$MIN_COLUMN_COUNT" || { echo "Error: MIN_COLUMN_COUNTが設定されていません"; exit 1; }
 	@echo "$$MIN_COLUMN_COUNT" | grep -q "^[0-9][0-9]*$$" || { echo "Error: MIN_COLUMN_COUNTは数値である必要があります"; exit 1; }
 	@test -n "$$S3_BUCKET_NAME" || { echo "Error: S3_BUCKET_NAMEが設定されていません"; exit 1; }
-	@test -n "$$GOOGLE_APPLICATION_CREDENTIALS" || { echo "Error: GOOGLE_APPLICATION_CREDENTIALSが設定されていません"; exit 1; }
-	@test -f "$$GOOGLE_APPLICATION_CREDENTIALS" || { echo "Error: Google認証ファイルが見つかりません: $$GOOGLE_APPLICATION_CREDENTIALS"; exit 1; }
-	@python3 -c "import json; json.load(open('$$GOOGLE_APPLICATION_CREDENTIALS'))" 2>/dev/null || { echo "Error: Google認証ファイルが有効なJSONではありません"; exit 1; }
 
 # 依存関係チェック
 check-deps:

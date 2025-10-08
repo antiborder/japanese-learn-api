@@ -3,8 +3,9 @@ from google.cloud import texttospeech
 from dotenv import load_dotenv
 
 load_dotenv()
-# 環境変数から認証情報を取得
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# 環境変数から認証情報を取得（Lambda環境ではデフォルト値を使用）
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "google-tts-key.json")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 
 tts_client = texttospeech.TextToSpeechClient()
 

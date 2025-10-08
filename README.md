@@ -9,7 +9,7 @@
 - Docker Compose
 - Make
 - AWS CLI（デプロイ時のみ必要）
-- Python 3.9以上
+- Python 3.11以上
 
 ### 開発環境の起動
 
@@ -47,7 +47,7 @@ aws configure
 2. Lambda関数の作成（初回のみ）
 - AWSコンソールでLambda関数を作成
 - 関数名: `japanese-learn-api`
-- ランタイム: Python 3.9
+- ランタイム: Python 3.11
 - アーキテクチャ: x86_64
 
 3. API Gatewayの設定
