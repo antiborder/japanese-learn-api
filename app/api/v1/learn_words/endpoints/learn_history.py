@@ -54,7 +54,7 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
     データ範囲：トークンから取得したユーザーIDのデータのみ
     
     levelパラメータ：
-    - 数値（1-14）：指定されたレベルから単語を取得
+    - 数値（1-15）：指定されたレベルから単語を取得
     - "REVIEW_ALL"：全レベルから復習可能な単語（next_datetimeが最も古いもの）を取得
     """
     try:

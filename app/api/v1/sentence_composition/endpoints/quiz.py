@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Path
 from typing import Optional
 import logging
 
 from integrations.dynamodb_integration import dynamodb_sentence_composition_client
+from schemas.attempt import SentenceAttemptRequest, SentenceAttemptResponse
+from services.learning_service import LearningService
 
 logger = logging.getLogger(__name__)
 
@@ -36,4 +38,39 @@ async def get_random_sentence(
         raise
     except Exception as e:
         logger.error(f"Error getting random sentence for level {level}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/users/{user_id}/attempts", response_model=SentenceAttemptResponse)
+async def record_sentence_attempt(
+    user_id: str = Path(..., description="ユーザーID"),
+    request: SentenceAttemptRequest = ...
+):
+    """
+    文の学習履歴を記録します
+    
+    Args:
+        user_id: ユーザーID
+        request: 学習履歴リクエスト
+    
+    Returns:
+        学習履歴レスポンス
+    """
+    try:
+        logger.info(f"Recording sentence attempt for user {user_id}, sentence {request.sentence_id}")
+        
+        learning_service = LearningService()
+        
+        result = await learning_service.record_learning(
+            user_id=user_id,
+            sentence_id=request.sentence_id,
+            level=request.level,
+            confidence=request.confidence,
+            time=request.time
+        )
+        
+        logger.info(f"Successfully recorded sentence attempt for user {user_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error recording sentence attempt for user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

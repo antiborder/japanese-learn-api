@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Literal, Optional, Union
 from datetime import datetime
 from decimal import Decimal
+from common.config import MIN_LEVEL, MAX_LEVEL
 
 LearningMode = Literal["MJ", "JM"]
 
@@ -21,7 +22,7 @@ class LearnHistoryResponse(BaseModel):
     next_datetime: datetime
 
 class NextWordRequest(BaseModel):
-    level: Union[int, str] = Field(..., description="学習レベル（1-14）または'REVIEW_ALL'（全レベルから復習）")
+    level: Union[int, str] = Field(..., description=f"学習レベル（{MIN_LEVEL}-{MAX_LEVEL}）または'REVIEW_ALL'（全レベルから復習）")
 
 class NextWordResponse(BaseModel):
     answer_word_id: int

@@ -2,9 +2,11 @@ import boto3
 import os
 import logging
 import random
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -114,5 +116,70 @@ class DynamoDBSentenceCompositionClient:
             'words': words,
             'dummy_words': dummy_words
         }
+
+    def get_current_learning_data(self, user_id: str, sentence_id: int) -> Optional[Dict]:
+        """現在の学習データを取得します"""
+        try:
+            response = self.table.get_item(
+                Key={
+                    'PK': f"USER#{user_id}",
+                    'SK': f"SENTENCE#{sentence_id}"
+                }
+            )
+            return response.get('Item')
+        except ClientError as e:
+            logger.error(f"Error getting learning data: {str(e)}")
+            return None
+
+    async def save_learning_data(self, 
+                                user_id: str, 
+                                sentence_id: int, 
+                                level: int,
+                                proficiency: Decimal,
+                                next_datetime: datetime) -> Dict:
+        """学習データをDynamoDBに保存します（DB操作のみ）"""
+        try:
+            # DynamoDBに保存するアイテムを作成
+            item = {
+                'PK': f"USER#{user_id}",
+                'SK': f"SENTENCE#{sentence_id}",
+                'user_id': user_id,
+                'sentence_id': sentence_id,
+                'level': level,
+                'proficiency': proficiency,
+                'next_datetime': next_datetime.isoformat(),
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+            # DynamoDBに保存
+            self.table.put_item(Item=item)
+            
+            return {
+                'user_id': user_id,
+                'sentence_id': sentence_id,
+                'level': level,
+                'proficiency': proficiency,
+                'next_datetime': next_datetime,
+                'updated_at': datetime.now(timezone.utc)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error saving learning data: {str(e)}")
+            raise
+
+    async def get_user_sentences(self, user_id: str) -> List[Dict]:
+        """ユーザーの学習履歴を取得します"""
+        try:
+            response = self.table.query(
+                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+                ExpressionAttributeValues={
+                    ':pk': f"USER#{user_id}",
+                    ':sk_prefix': 'SENTENCE#'
+                }
+            )
+            return response.get('Items', [])
+        except ClientError as e:
+            logger.error(f"Error getting user sentences: {str(e)}")
+            return []
 
 dynamodb_sentence_composition_client = DynamoDBSentenceCompositionClient()

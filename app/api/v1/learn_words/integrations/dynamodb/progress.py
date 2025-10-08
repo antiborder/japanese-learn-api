@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Dict
 from .base import DynamoDBBase
 from services.datetime_utils import DateTimeUtils
+from common.config import MIN_LEVEL, MAX_LEVEL
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class ProgressDynamoDB(DynamoDBBase):
             user_items = user_response.get('Items', [])
             now = datetime.now(timezone.utc)
             result = []
-            for level in range(1, 15):
+            for level in range(MIN_LEVEL, MAX_LEVEL + 1):
                 # 各レベルの全単語IDリストをPKで直接query
                 word_response = self.table.query(
                     KeyConditionExpression='PK = :pk AND SK = :sk',

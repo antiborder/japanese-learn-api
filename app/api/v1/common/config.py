@@ -7,6 +7,10 @@ from pydantic import BaseSettings
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# レベル設定
+MIN_LEVEL = 1
+MAX_LEVEL = 15
+
 class Settings(BaseSettings):
     # データベース設定
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
