@@ -71,7 +71,7 @@ class WordSelector:
         user_level_words = [item for item in user_words if item.get('level') == level_int]
         
         # ④単語選定方法の決定
-        ratio = len(user_level_words) / len(level_words)
+        ratio = len(user_level_words) / len(level_words) if level_words else 0
         if random.random() > ratio:
             # random_selection: 新しい単語を選択
             new_word_result = WordSelector.select_new_word(level_words, user_level_words)
@@ -84,6 +84,12 @@ class WordSelector:
         if review_word_result:
             logger.info(f"Successfully retrieved review word for user {user_id}, level {level_int}: {review_word_result}")
             return review_word_result
+        
+        # 復習単語がない場合、改めて新しい単語を試す
+        new_word_result = WordSelector.select_new_word(level_words, user_level_words)
+        if new_word_result:
+            logger.info(f"No review available, retrieved new word for user {user_id}, level {level_int}: {new_word_result}")
+            return new_word_result
         
         # 復習可能な単語がない場合は、次に利用可能になる時刻を計算
         next_available_dt = DateTimeUtils.get_next_available_time(user_level_words)
