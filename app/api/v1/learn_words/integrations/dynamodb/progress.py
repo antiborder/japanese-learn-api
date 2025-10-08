@@ -29,15 +29,19 @@ class ProgressDynamoDB(DynamoDBBase):
             now = datetime.now(timezone.utc)
             result = []
             for level in range(MIN_LEVEL, MAX_LEVEL + 1):
-                # 各レベルの全単語IDリストをPKで直接query
+                # 各レベルの全単語をGSIで取得
                 word_response = self.table.query(
-                    KeyConditionExpression='PK = :pk AND SK = :sk',
+                    IndexName='word-level-index',
+                    KeyConditionExpression='PK = :pk AND #level = :level',
+                    ExpressionAttributeNames={
+                        '#level': 'level'
+                    },
                     ExpressionAttributeValues={
-                        ':pk': f'WORDS#{level}',
-                        ':sk': 'METADATA'
+                        ':pk': 'WORD',
+                        ':level': level
                     }
                 )
-                all_word_ids = set(int(item['word_id']) for item in word_response.get('Items', []))
+                all_word_ids = set(int(item['SK']) for item in word_response.get('Items', []))
                 # ユーザーの学習済み単語IDリスト
                 level_user_items = [item for item in user_items if item.get('level') == level]
                 user_learned_ids = set(int(item['word_id']) for item in level_user_items)
