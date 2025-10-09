@@ -22,7 +22,7 @@ class DateTimeService:
         """
         
         # 基本の学習間隔を計算
-        minutes = float(self.BASE_INTERVAL * 2**(8*float(proficiency)))
+        minutes = float(self.BASE_HOURS * 60 * 2**(8*float(proficiency)))
         
         # 復習可能文数に基づくFactor補正を適用
         factor = self._calculate_factor(reviewable_count)
