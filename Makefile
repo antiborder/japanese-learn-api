@@ -20,8 +20,6 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		--stack-name japanese-learn \
 		--s3-bucket aws-sam-cli-managed-default-samclisourcebucket-wifzlstdcfi8 \
 		--parameter-overrides \
-		MaxComponentCount="$$MAX_COMPONENT_COUNT" \
-		MinColumnCount="$$MIN_COLUMN_COUNT" \
 		S3BucketName="$$S3_BUCKET_NAME" \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset \
@@ -55,10 +53,6 @@ check-aws-env:
 # データベース環境変数チェック
 check-db-env:
 	@echo "データベース環境変数を確認しています..."
-	@test -n "$$MAX_COMPONENT_COUNT" || { echo "Error: MAX_COMPONENT_COUNTが設定されていません"; exit 1; }
-	@echo "$$MAX_COMPONENT_COUNT" | grep -q "^[0-9][0-9]*$$" || { echo "Error: MAX_COMPONENT_COUNTは数値である必要があります"; exit 1; }
-	@test -n "$$MIN_COLUMN_COUNT" || { echo "Error: MIN_COLUMN_COUNTが設定されていません"; exit 1; }
-	@echo "$$MIN_COLUMN_COUNT" | grep -q "^[0-9][0-9]*$$" || { echo "Error: MIN_COLUMN_COUNTは数値である必要があります"; exit 1; }
 	@test -n "$$S3_BUCKET_NAME" || { echo "Error: S3_BUCKET_NAMEが設定されていません"; exit 1; }
 
 # 依存関係チェック

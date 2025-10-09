@@ -1,15 +1,17 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Optional
 from decimal import Decimal
-import math
+from .datetime_service import DateTimeService
 
 logger = logging.getLogger(__name__)
 
 TIME_LIMIT = Decimal('10')
-BASE_INTERVAL = 6 * 60  # 基準となる間隔（6時間を分単位で表現）
 
 class ProficiencyService:
+    def __init__(self):
+        self.datetime_service = DateTimeService()
+    
     def calculate_proficiency(self, confidence: int, time: Decimal, current_data: Optional[Dict] = None) -> Decimal:
         """習熟度を計算します"""
         easiness_point = Decimal('0.1') + (Decimal(str(confidence))/Decimal('3')) * Decimal('0.8')
@@ -17,11 +19,7 @@ class ProficiencyService:
         # 前回の学習時間との差を計算
         if current_data and 'updated_at' in current_data:
             previous_datetime = datetime.fromisoformat(current_data['updated_at'])
-            if previous_datetime.tzinfo is None:
-                previous_datetime = previous_datetime.replace(tzinfo=timezone.utc)
-            current_datetime = datetime.now(timezone.utc)
-            previous_min = (current_datetime - previous_datetime).total_seconds() / 60
-            interval_point = Decimal(str(max(0, min(1, math.log2(previous_min/BASE_INTERVAL) / 8))))
+            interval_point = self.datetime_service.calculate_interval_point(previous_datetime)
         else:
             interval_point = Decimal('0')
 
