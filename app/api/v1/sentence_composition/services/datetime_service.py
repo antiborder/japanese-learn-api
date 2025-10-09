@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 class DateTimeService:
     # 定数
-    BASE_HOURS = 12
-    BASE_INTERVAL = BASE_HOURS * 60  # 基準となる間隔（分単位）
+    BASE_HOURS = 12 # 基準となる間隔（6時間） 
     def calculate_next_datetime(self, confidence: int, proficiency: Decimal, reviewable_count: int = 0) -> datetime:
         """次の学習時間を計算します
         
@@ -66,9 +65,9 @@ class DateTimeService:
             previous_datetime = previous_datetime.replace(tzinfo=timezone.utc)
         
         current_datetime = datetime.now(timezone.utc)
-        previous_min = (current_datetime - previous_datetime).total_seconds() / 60
+        previous_interval = (current_datetime - previous_datetime).total_seconds()
         
         # interval_point を計算（逆算式）
-        interval_point = Decimal(str(max(0, min(1, math.log2(previous_min/self.BASE_INTERVAL) / 8))))
+        interval_point = Decimal(str(max(0, min(1, math.log2(previous_interval/(self.BASE_HOURS * 60)) / 8))))
         
         return interval_point

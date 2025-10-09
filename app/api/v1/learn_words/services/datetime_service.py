@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 class DateTimeService:
     # 定数
-    BASE_HOURS = 6
-    BASE_INTERVAL = BASE_HOURS * 60  # 基準となる間隔（分単位）
+    BASE_HOURS = 6 # 基準となる間隔（6時間） 
     def calculate_next_datetime(self, confidence: int, next_mode: str, proficiency_MJ: Decimal, proficiency_JM: Decimal, reviewable_count: int = 0) -> datetime:
         """次の学習時間を計算します
         
@@ -28,9 +27,9 @@ class DateTimeService:
         
         # 基本の学習間隔を計算
         if next_mode == "MJ":
-            minutes = float(self.BASE_INTERVAL * 2**(8*float(proficiency_MJ)))
+            minutes = float(self.BASE_HOURS * 60 * 2**(8*float(proficiency_MJ)))
         else:  # JM
-            minutes = float(self.BASE_INTERVAL * 2**(8*float(proficiency_JM)))
+            minutes = float(self.BASE_HOURS * 60 * 2**(8*float(proficiency_JM)))
         
         # 復習可能単語数に基づくFactor補正を適用
         factor = self._calculate_factor(reviewable_count)
@@ -73,9 +72,9 @@ class DateTimeService:
             previous_datetime = previous_datetime.replace(tzinfo=timezone.utc)
         
         current_datetime = datetime.now(timezone.utc)
-        previous_min = (current_datetime - previous_datetime).total_seconds() / 60
+        previous_interval = (current_datetime - previous_datetime).total_seconds()
         
         # interval_point を計算（逆算式）
-        interval_point = Decimal(str(max(0, min(1, math.log2(previous_min/self.BASE_INTERVAL) / 8))))
+        interval_point = Decimal(str(max(0, min(1, math.log2(previous_interval/(self.BASE_HOURS * 60)) / 8))))
         
         return interval_point
