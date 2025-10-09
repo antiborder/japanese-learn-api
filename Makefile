@@ -21,6 +21,8 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		--s3-bucket aws-sam-cli-managed-default-samclisourcebucket-wifzlstdcfi8 \
 		--parameter-overrides \
 		S3BucketName="$$S3_BUCKET_NAME" \
+		GoogleApiKey="$$GOOGLE_API_KEY" \
+		GoogleSearchEngineId="$$GOOGLE_SEARCH_ENGINE_ID" \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset \
 		--no-progressbar \
@@ -54,6 +56,8 @@ check-aws-env:
 check-db-env:
 	@echo "データベース環境変数を確認しています..."
 	@test -n "$$S3_BUCKET_NAME" || { echo "Error: S3_BUCKET_NAMEが設定されていません"; exit 1; }
+	@test -n "$$GOOGLE_API_KEY" || { echo "Error: GOOGLE_API_KEYが設定されていません"; exit 1; }
+	@test -n "$$GOOGLE_SEARCH_ENGINE_ID" || { echo "Error: GOOGLE_SEARCH_ENGINE_IDが設定されていません"; exit 1; }
 
 # 依存関係チェック
 check-deps:

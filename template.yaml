@@ -9,6 +9,14 @@ Parameters:
   S3BucketName:
     Type: String
     Description: "S3 bucket name for resources"
+  GoogleApiKey:
+    Type: String
+    Description: "Google Custom Search API Key"
+    NoEcho: true
+  GoogleSearchEngineId:
+    Type: String
+    Description: "Google Custom Search Engine ID"
+    NoEcho: true
 
 Globals:
   Function:
@@ -132,6 +140,8 @@ Resources:
           S3_BUCKET_NAME: !Ref S3BucketName
           GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
           DATABASE_URL: !Ref DatabaseUrl
+          GOOGLE_API_KEY: !Ref GoogleApiKey
+          GOOGLE_SEARCH_ENGINE_ID: !Ref GoogleSearchEngineId
       Events:
         WordsApiRootEvent:
           Type: Api
