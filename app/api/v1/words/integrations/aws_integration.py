@@ -71,3 +71,124 @@ def generate_presigned_url(word_id: int) -> str:
     except Exception as e:
         logger.error(f"Error generating presigned URL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {str(e)}")
+
+
+# ============================================
+# 画像関連の関数
+# ============================================
+
+def check_word_images_exist(word_id: int) -> list:
+    """
+    S3に単語の画像が存在するかチェックし、存在する画像のキーリストを返す
+    
+    Args:
+        word_id: 単語ID
+    
+    Returns:
+        画像のキーリスト（例：['images/words/100/image_1.jpg', ...]）
+        4枚未満の場合は空リストを返す
+    """
+    try:
+        prefix = f"images/words/{word_id}/"
+        logger.info(f"Checking if images exist in S3: {prefix}")
+        
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix=prefix
+        )
+        
+        if 'Contents' not in response:
+            logger.info(f"No images found in S3 for word_id: {word_id}")
+            return []
+        
+        # ファイルのキーリストを取得
+        image_keys = [obj['Key'] for obj in response['Contents']]
+        
+        # 画像があるかチェック（最低1枚あれば返す）
+        if len(image_keys) >= 1:
+            logger.info(f"Found {len(image_keys)} images in S3 for word_id: {word_id}")
+            return sorted(image_keys)[:4]  # 最大4枚
+        else:
+            logger.info(f"No images found in S3 for word_id: {word_id}")
+            return []
+            
+    except Exception as e:
+        logger.error(f"Error checking images in S3: {str(e)}")
+        return []
+
+
+def save_word_image_to_s3(word_id: int, image_index: int, image_content: bytes, extension: str):
+    """
+    単語の画像をS3に保存
+    
+    Args:
+        word_id: 単語ID
+        image_index: 画像のインデックス（1-4）
+        image_content: 画像のバイナリデータ
+        extension: ファイル拡張子（例：'jpg', 'png', 'webp'）
+    """
+    try:
+        object_key = f"images/words/{word_id}/image_{image_index}.{extension}"
+        logger.info(f"Saving image to S3: {object_key}")
+        
+        # Content-Typeのマッピング
+        content_type_map = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'bmp': 'image/bmp'
+        }
+        content_type = content_type_map.get(extension.lower(), 'image/jpeg')
+        
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=object_key,
+            Body=image_content,
+            ContentType=content_type
+        )
+        logger.info(f"Image saved successfully to S3: {object_key}")
+    except Exception as e:
+        logger.error(f"Error saving image to S3: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error saving image to S3: {str(e)}")
+
+
+def generate_presigned_url_for_image(image_key: str) -> str:
+    """
+    画像の署名付きURLを生成
+    
+    Args:
+        image_key: S3オブジェクトキー（例：'images/words/100/image_1.jpg'）
+    
+    Returns:
+        署名付きURL
+    """
+    try:
+        logger.info(f"Generating presigned URL for image: {image_key}")
+        
+        # 拡張子からContent-Typeを判定
+        extension = image_key.split('.')[-1].lower()
+        content_type_map = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'bmp': 'image/bmp'
+        }
+        content_type = content_type_map.get(extension, 'image/jpeg')
+        
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': image_key
+            },
+            ExpiresIn=604800  # 7日間有効
+        )
+        logger.info("Presigned URL generated successfully for image")
+        return url
+    except Exception as e:
+        logger.error(f"Error generating presigned URL for image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {str(e)}")

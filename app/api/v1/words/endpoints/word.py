@@ -3,9 +3,9 @@ from typing import List
 from common.schemas.word import Word, WordKanji
 from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
+from services.image_service import get_word_images
 import logging
 from integrations.dynamodb_integration import dynamodb_client
-from integrations.google_integration import search_images
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -68,13 +68,14 @@ async def fetch_word_images(word_id: int):
     """
     指定された単語の画像URLリストを取得
     
-    Google Custom Search APIを使用して、単語に関連する画像を検索します。
+    S3に画像が存在する場合はそこから取得し、
+    存在しない場合はGoogle Custom Search APIで検索してS3に保存します。
     
     Args:
         word_id: 単語ID
     
     Returns:
-        画像URLの配列（最大4件）
+        署名付き画像URLの配列（最大4件、7日間有効）
     
     Raises:
         HTTPException: 単語が見つからない、またはAPI呼び出しが失敗した場合
@@ -89,17 +90,14 @@ async def fetch_word_images(word_id: int):
         if not word_name:
             raise HTTPException(status_code=404, detail="Word name not found")
         
-        # Google画像検索APIで画像を取得
-        image_urls = search_images(word_name, num_results=4)
+        # 画像サービスを使用して画像URLを取得
+        image_urls = get_word_images(word_id, word_name)
         
         logger.info(f"Successfully fetched {len(image_urls)} images for word_id {word_id}")
         return image_urls
         
     except HTTPException:
         raise
-    except ValueError as e:
-        logger.error(f"Configuration error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Image search service is not configured properly")
     except Exception as e:
         logger.error(f"Error fetching images for word_id {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch images: {str(e)}")

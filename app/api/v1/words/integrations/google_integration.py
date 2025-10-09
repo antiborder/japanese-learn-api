@@ -93,15 +93,22 @@ def search_images(query: str, num_results: int = 4) -> List[str]:
         # レスポンス解析
         data = response.json()
         
-        # 画像URLを抽出
+        # 画像URLを抽出（サムネイルURLを優先使用）
         image_urls = []
         items = data.get('items', [])
         
         for item in items[:num_results]:
-            # item.linkが画像のURLを含む
-            image_url = item.get('link')
+            # まずサムネイルURLを試す（Googleがホストしているため安定）
+            thumbnail_url = None
+            if 'image' in item and 'thumbnailLink' in item['image']:
+                thumbnail_url = item['image']['thumbnailLink']
+            
+            # サムネイルがない場合は元のリンクを使用
+            image_url = thumbnail_url or item.get('link')
+            
             if image_url:
                 image_urls.append(image_url)
+                logger.info(f"Using {'thumbnail' if thumbnail_url else 'original'} URL: {image_url}")
         
         logger.info(f"Found {len(image_urls)} images for query: {query}")
         return image_urls
@@ -115,3 +122,63 @@ def search_images(query: str, num_results: int = 4) -> List[str]:
     except Exception as e:
         logger.error(f"Unexpected error searching images: {str(e)}")
         raise
+
+
+def download_image(image_url: str) -> tuple:
+    """
+    URLから画像をダウンロードする
+    
+    Args:
+        image_url: 画像のURL
+    
+    Returns:
+        (画像のバイナリデータ, 拡張子) のタプル
+        失敗した場合は (None, None)
+    
+    """
+    try:
+        logger.info(f"Downloading image from: {image_url}")
+        
+        response = requests.get(image_url, timeout=10, stream=True)
+        response.raise_for_status()
+        
+        # Content-Typeから拡張子を推測
+        content_type = response.headers.get('Content-Type', '').lower()
+        extension_map = {
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/bmp': 'bmp'
+        }
+        
+        # Content-Typeから拡張子を取得
+        extension = extension_map.get(content_type)
+        
+        # Content-Typeがない場合、URLから拡張子を推測
+        if not extension:
+            url_lower = image_url.lower()
+            for ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']:
+                if f'.{ext}' in url_lower:
+                    extension = ext if ext != 'jpeg' else 'jpg'
+                    break
+        
+        # それでもない場合はデフォルトでjpg
+        if not extension:
+            extension = 'jpg'
+        
+        image_content = response.content
+        logger.info(f"Successfully downloaded image, size: {len(image_content)} bytes, extension: {extension}")
+        
+        return (image_content, extension)
+        
+    except requests.exceptions.Timeout:
+        logger.warning(f"Timeout downloading image from: {image_url}")
+        return (None, None)
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"Failed to download image from {image_url}: {str(e)}")
+        return (None, None)
+    except Exception as e:
+        logger.error(f"Unexpected error downloading image: {str(e)}")
+        return (None, None)
