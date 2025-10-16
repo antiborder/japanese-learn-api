@@ -13,6 +13,7 @@ fastapi==0.99.0
 google-api-core
 google-auth
 google-cloud-texttospeech
+google-generativeai
 googleapis-common-protos
 grpcio
 grpcio-status

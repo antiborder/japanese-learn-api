@@ -17,6 +17,10 @@ Parameters:
     Type: String
     Description: "Google Custom Search Engine ID"
     NoEcho: true
+  GeminiApiKey:
+    Type: String
+    Description: "Google Gemini API Key for AI descriptions"
+    NoEcho: true
 
 Globals:
   Function:
@@ -142,6 +146,7 @@ Resources:
           DATABASE_URL: !Ref DatabaseUrl
           GOOGLE_API_KEY: !Ref GoogleApiKey
           GOOGLE_SEARCH_ENGINE_ID: !Ref GoogleSearchEngineId
+          GEMINI_API_KEY: !Ref GeminiApiKey
       Events:
         WordsApiRootEvent:
           Type: Api

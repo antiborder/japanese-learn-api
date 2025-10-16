@@ -23,6 +23,7 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		S3BucketName="$$S3_BUCKET_NAME" \
 		GoogleApiKey="$$GOOGLE_API_KEY" \
 		GoogleSearchEngineId="$$GOOGLE_SEARCH_ENGINE_ID" \
+		GeminiApiKey="$$GEMINI_API_KEY" \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset \
 		--no-progressbar \
@@ -58,6 +59,7 @@ check-db-env:
 	@test -n "$$S3_BUCKET_NAME" || { echo "Error: S3_BUCKET_NAMEが設定されていません"; exit 1; }
 	@test -n "$$GOOGLE_API_KEY" || { echo "Error: GOOGLE_API_KEYが設定されていません"; exit 1; }
 	@test -n "$$GOOGLE_SEARCH_ENGINE_ID" || { echo "Error: GOOGLE_SEARCH_ENGINE_IDが設定されていません"; exit 1; }
+	@test -n "$$GEMINI_API_KEY" || { echo "Error: GEMINI_API_KEYが設定されていません"; exit 1; }
 
 # 依存関係チェック
 check-deps:

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Query
+from typing import List, Optional
 from common.schemas.word import Word, WordKanji
 from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
 from services.image_service import get_word_images
+from services.ai_description_service import get_ai_description
 import logging
 from integrations.dynamodb_integration import dynamodb_client
 
@@ -101,3 +102,60 @@ async def fetch_word_images(word_id: int):
     except Exception as e:
         logger.error(f"Error fetching images for word_id {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch images: {str(e)}")
+
+@router.get("/{word_id}/ai-description", response_model=dict)
+async def fetch_ai_description(
+    word_id: int,
+    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")
+):
+    """
+    指定された単語のAI生成解説テキストを取得
+    
+    S3にキャッシュされた解説が存在する場合はそこから取得し、
+    存在しない場合はGemini APIで生成してS3に保存します。
+    
+    Args:
+        word_id: 単語ID
+        lang: 言語コード（デフォルト: 'en'）
+            対応言語: en (English), vi (Vietnamese), zh (Chinese), 
+                     hi (Hindi), es (Spanish), fr (French), etc.
+    
+    Returns:
+        {
+            "word_id": int,
+            "word_name": str,
+            "language": str,
+            "description": str
+        }
+    
+    Raises:
+        HTTPException: 単語が見つからない、またはAPI呼び出しが失敗した場合
+    """
+    try:
+        logger.info(f"Fetching AI description for word_id: {word_id}, lang: {lang}")
+        
+        # DynamoDBから単語情報を取得
+        word = dynamodb_client.get_word_by_id(word_id)
+        word_name = word.get('name')
+        word_meaning = word.get('meaning', '')
+        
+        if not word_name:
+            raise HTTPException(status_code=404, detail="Word name not found")
+        
+        # AI解説サービスを使用して解説を取得
+        description_text = get_ai_description(word_id, word_name, word_meaning, lang)
+        
+        logger.info(f"Successfully fetched AI description for word_id {word_id}")
+        
+        return {
+            "word_id": word_id,
+            "word_name": word_name,
+            "language": lang,
+            "description": description_text
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching AI description for word_id {word_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI description: {str(e)}")
