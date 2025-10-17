@@ -33,8 +33,7 @@ Please structure your explanation using the following format in {language_name}:
 『Provide specific examples of how this word is used (2-3 examples).
 example (in a case of english): 
 ⚫︎《Japanese sentence》
-Translation: English translation
-』
+Translation: English translation』
 
 {headers['synonyms']}
 『List similar words or synonyms (if any).』
@@ -46,17 +45,13 @@ Translation: English translation
 『Explain when and how to use this word in conversation.』
 
 {headers['sentence1']}
-『
-《[Japanese example sentence]》
+『《[Japanese example sentence]》
 ・{headers['translation']} [Translation in {language_name}]
-・{headers['explanation']} [Brief explanation]
-』
+・{headers['explanation']} [Brief explanation]』
 {headers['sentence2']} (if any)
-『
-《[Japanese example sentence]》
+『《[Japanese example sentence]》
 ・{headers['translation']} [Translation in {language_name}]
-・{headers['explanation']} [Brief explanation]
-』
+・{headers['explanation']} [Brief explanation]』
 {headers['etymology']}
 『Explain the etymology or origin of the word (if known). Do not include wrong explanation』
 
