@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_ai_description(word_id: int, word_name: str, word_meaning: str, lang_code: str = 'en') -> str:
+def get_ai_description(word_id: int, word_name: str, word_hiragana: str, lang_code: str = 'en') -> str:
     """
     単語のAI解説を取得する
     
@@ -24,7 +24,7 @@ def get_ai_description(word_id: int, word_name: str, word_meaning: str, lang_cod
     Args:
         word_id: 単語ID
         word_name: 単語名（日本語）
-        word_meaning: 単語の意味
+        word_hiragana: 単語の読み（ひらがな）
         lang_code: 言語コード（デフォルト: 'en'）
     
     Returns:
@@ -49,13 +49,13 @@ def get_ai_description(word_id: int, word_name: str, word_meaning: str, lang_cod
         if not word_name:
             raise HTTPException(status_code=404, detail="Word name is required for AI description generation")
         
-        if not word_meaning:
-            # 意味がない場合は基本的な説明で代用
-            word_meaning = "日本語の単語"
+        if not word_hiragana:
+            # 読みがない場合は基本的な説明で代用
+            word_hiragana = "日本語の単語"
         
         try:
             # Gemini APIでAI解説を生成
-            description_text = generate_ai_description(word_name, word_meaning, lang_code)
+            description_text = generate_ai_description(word_name, word_hiragana, lang_code)
             
             if not description_text:
                 raise HTTPException(

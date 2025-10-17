@@ -137,13 +137,13 @@ async def fetch_ai_description(
         # DynamoDBから単語情報を取得
         word = dynamodb_client.get_word_by_id(word_id)
         word_name = word.get('name')
-        word_meaning = word.get('meaning', '')
+        word_hiragana = word.get('hiragana', '')
         
         if not word_name:
             raise HTTPException(status_code=404, detail="Word name not found")
         
         # AI解説サービスを使用して解説を取得
-        description_text = get_ai_description(word_id, word_name, word_meaning, lang)
+        description_text = get_ai_description(word_id, word_name, word_hiragana, lang)
         
         logger.info(f"Successfully fetched AI description for word_id {word_id}")
         
