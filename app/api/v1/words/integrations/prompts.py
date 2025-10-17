@@ -30,7 +30,11 @@ Please structure your explanation using the following format in {language_name}:
 『Explain the meaning of the word in detail.』
 
 {headers['examples']}
-『Provide specific examples of how this word is used (2-3 examples).』
+『Provide specific examples of how this word is used (2-3 examples).
+example (in a case of english): 
+⚫︎《Japanese sentence》
+Translation: English translation
+』
 
 {headers['synonyms']}
 『List similar words or synonyms (if any).』
@@ -44,14 +48,14 @@ Please structure your explanation using the following format in {language_name}:
 {headers['sentence1']}
 『
 《[Japanese example sentence]》
-⚫︎{headers['translation']} [Translation in {language_name}]
-⚫︎{headers['explanation']} [Brief explanation]
+・{headers['translation']} [Translation in {language_name}]
+・{headers['explanation']} [Brief explanation]
 』
 {headers['sentence2']} (if any)
 『
 《[Japanese example sentence]》
-⚫︎{headers['translation']} [Translation in {language_name}]
-⚫︎{headers['explanation']} [Brief explanation]
+・{headers['translation']} [Translation in {language_name}]
+・{headers['explanation']} [Brief explanation]
 』
 {headers['etymology']}
 『Explain the etymology or origin of the word (if known). Do not include wrong explanation』
