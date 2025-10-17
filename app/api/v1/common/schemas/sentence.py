@@ -30,3 +30,13 @@ class Sentences(BaseModel):
 
     class Config:
         orm_mode = True
+
+class SentenceGrammarDescription(BaseModel):
+    sentence_id: int
+    sentence_text: str
+    jlpt_level: str
+    language: str
+    description: str
+
+    class Config:
+        orm_mode = True
