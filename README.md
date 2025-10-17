@@ -27,6 +27,73 @@ make down
 開発サーバーは`http://localhost:8000`で起動します。
 ソースコードを変更すると自動的に反映されます（ホットリロード）。
 
+### ローカルでのuvicornを使ったテスト
+
+個別のモジュールを直接テストする場合は、uvicornを使用できます：
+
+```bash
+# wordsモジュールのテスト例
+cd /Users/mo/Projects/japanese-learn-api/app/api/v1/words
+export PYTHONPATH="/Users/mo/Projects/japanese-learn-api/app/api/v1:$PYTHONPATH"
+uvicorn app:app --reload --port 8000
+```
+
+**注意**: `PYTHONPATH`の設定が必要です。これは`common`ディレクトリ内の共通モジュール（設定、スキーマ、ユーティリティなど）を参照するために必要です。`PYTHONPATH`を設定しないと、インポートエラーが発生します。
+
+各モジュール（words、kanjis、sentences、search、learn_words、sentence_composition）で同様の方法でテストできます。
+
+## コードスタイルガイドライン
+
+### Import文の書き方ルール
+
+このアプリケーションでは、以下のimport文のルールに従ってください：
+
+#### 1. 絶対importの使用を推奨
+- **相対import（`from .module`）は避ける**: コードの可読性と保守性を向上させるため
+- **絶対importを使用**: `from common.schemas.word import Word` のように、モジュールの完全パスを指定
+
+#### 2. Import文の順序
+```python
+# 1. 標準ライブラリ
+import json
+import logging
+import os
+from datetime import datetime, timezone
+from typing import List, Optional
+
+# 2. サードパーティライブラリ
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import boto3
+
+# 3. アプリケーション内のモジュール（絶対import）
+from common.schemas.word import Word, WordKanji
+from common.utils.utils import convert_hiragana_to_romaji
+from services.word_service import get_audio_url
+from integrations.dynamodb_integration import dynamodb_client
+```
+
+#### 3. 相対importの使用例（限定的な使用）
+相対importは以下の場合のみ使用：
+- 同一ディレクトリ内のモジュール間の参照
+- `__init__.py`でのモジュールの再エクスポート
+
+```python
+# 同一ディレクトリ内での相対import（許容される）
+from .datetime_service import DateTimeService
+from .base import DynamoDBBase
+
+# 絶対importが推奨される
+from common.schemas.word import Word
+from services.word_service import get_audio_url
+```
+
+#### 4. なぜ相対importを避けるべきか
+- **可読性**: モジュールの依存関係が明確になる
+- **保守性**: ファイルの移動やリネーム時の影響を最小化
+- **デバッグ**: エラーの原因を特定しやすい
+- **テスト**: 個別モジュールのテストが容易
+
 ## AWS Lambdaへのデプロイ
 
 ### デプロイの準備

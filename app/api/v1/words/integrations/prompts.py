@@ -17,6 +17,7 @@ Therefore, please do not omit these brackets.
 In particular, enclose headings with 【】, and enclose the text that follows with 『』.
 Also, enclose Japanese words or sentences with 《》 because we will highlight them in the web application. 
 In the texts enclosed in 《》, please add full-width brackets［ before and ］ after the words which is identical to {word_name} itself, conjugation of {word_name}, or nearly identical to {word_name}. (do not delete 《》. 《》can enclose ［］.)
+Do not include any extra text.
 
 Make it natural, educational, and easy to understand for learners. Change lines before beginning of new sentences. Use bullet points with ⚫︎ as often as possible for users to read. Do not continue without changeng lines.
 Attention!!: Do not include any explanations that have not been verified as accurate.
