@@ -198,6 +198,43 @@ make package  # Lambda用にパッケージング
 make upload   # AWSにアップロード
 ```
 
+## 本番環境デプロイ前のチェック項目
+
+### 必須チェック項目
+
+デプロイ前に以下の項目を必ず確認してください：
+
+1. **環境変数の設定確認**
+   - 各Lambda関数に必要な環境変数が設定されているか確認
+   - 特に以下の環境変数が不足していないかチェック：
+     - `GEMINI_API_KEY`: AI解説機能に必要
+     - `S3_BUCKET_NAME`: S3操作に必要
+     - `AWS_REGION`: AWS操作に必要
+   - 環境変数が設定されていない場合、API呼び出し時に500エラーが発生する
+
+2. **パッケージ依存関係の確認**
+   - 各Lambda関数の`requirements.txt`に必要なパッケージが含まれているか確認
+   - 特に新機能追加時に以下のパッケージが不足していないかチェック：
+     - `google-generativeai`: AI解説機能に必要
+     - `boto3`: AWS操作に必要
+     - `fastapi`: API機能に必要
+   - パッケージが不足している場合、Lambda関数のインポートエラーが発生する
+
+3. **IAMロールとポリシーの確認**
+   - Lambda関数に必要なAWS権限が設定されているか確認
+   - S3、DynamoDB、CloudWatch Logsへのアクセス権限が適切に設定されているか確認
+
+### チェック方法
+
+```bash
+# 環境変数の確認
+aws lambda get-function-configuration --function-name japanese-learn-SentencesFunction --query "Environment.Variables"
+
+# パッケージの確認（ローカルで）
+pip list | grep google-generativeai
+pip list | grep boto3
+```
+
 ## トラブルシューティング
 
 ### よくある問題と解決方法
@@ -215,3 +252,13 @@ make upload   # AWSにアップロード
 - CloudWatchログで詳細なエラーメッセージを確認
 - 環境変数が正しく設定されているか確認
 - 必要なIAMロールとポリシーが設定されているか確認
+
+4. 環境変数不足エラー
+- `"GEMINI_API_KEY not found in environment variables"`エラーが発生した場合
+- 該当するLambda関数の環境変数に`GEMINI_API_KEY`を設定する
+- AWS LambdaコンソールまたはAWS CLIで環境変数を追加
+
+5. パッケージ不足エラー
+- `"No module named 'google.generativeai'"`エラーが発生した場合
+- 該当するLambda関数の`requirements.txt`に`google-generativeai==0.8.5`を追加
+- パッケージを再デプロイする

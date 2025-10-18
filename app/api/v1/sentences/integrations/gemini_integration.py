@@ -95,12 +95,25 @@ def generate_sentence_grammar_description(sentence_text: str, jlpt_level: str, l
         prompt = create_sentence_grammar_prompt(sentence_text, jlpt_level, language_name)
         
         # AI文法解説を生成
+        logger.info(f"Calling Gemini API with prompt length: {len(prompt)}")
         response = model.generate_content(prompt)
         
+        logger.info(f"Gemini API response received. Response type: {type(response)}")
+        logger.info(f"Response text length: {len(response.text) if response.text else 0}")
+        
+        # レスポンスの詳細をログに記録
+        if hasattr(response, 'candidates'):
+            logger.info(f"Response candidates: {len(response.candidates) if response.candidates else 0}")
+        if hasattr(response, 'prompt_feedback'):
+            logger.info(f"Prompt feedback: {response.prompt_feedback}")
+        if hasattr(response, 'usage_metadata'):
+            logger.info(f"Usage metadata: {response.usage_metadata}")
+        
         if not response.text:
+            logger.error("Gemini API returned empty response")
             raise HTTPException(
                 status_code=500,
-                detail="Failed to generate AI grammar description: Empty response"
+                detail="Failed to generate AI grammar description: Empty response from Gemini API"
             )
         
         logger.info(f"Successfully generated AI grammar description for sentence: {sentence_text}")
@@ -110,6 +123,8 @@ def generate_sentence_grammar_description(sentence_text: str, jlpt_level: str, l
         raise
     except Exception as e:
         logger.error(f"Error generating AI grammar description: {str(e)}")
+        logger.error(f"Exception type: {type(e)}")
+        logger.error(f"Exception args: {e.args}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate AI grammar description: {str(e)}"
