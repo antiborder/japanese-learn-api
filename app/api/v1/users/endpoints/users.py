@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
-from integrations.dynamodb import progress_db, plan_db, sentences_progress_db, sentences_plan_db
+from integrations.dynamodb import progress_db, plan_db, sentences_progress_db, sentences_plan_db, user_settings_db
+from schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
 import logging
 from common.auth import get_current_user_id
 
@@ -139,4 +140,122 @@ async def get_sentences_plan_test():
         return result
     except Exception as e:
         logger.error(f"Error in get_sentences_plan_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ユーザー設定関連のエンドポイント
+@router.get("/settings")
+async def get_user_settings(current_user_id: str = Depends(get_current_user_id)):
+    """
+    ログインユーザーの設定を取得する
+    認証：必須（Bearerトークン）
+    """
+    try:
+        settings = await user_settings_db.get_user_settings(current_user_id)
+        if not settings:
+            raise HTTPException(status_code=404, detail="User settings not found")
+        return settings
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_user_settings endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/settings")
+async def create_user_settings(
+    settings: UserSettingsCreate,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    ログインユーザーの設定を作成する
+    認証：必須（Bearerトークン）
+    """
+    try:
+        # 既存の設定があるかチェック
+        existing_settings = await user_settings_db.get_user_settings(current_user_id)
+        if existing_settings:
+            raise HTTPException(status_code=409, detail="User settings already exist. Use PUT to update.")
+        
+        result = await user_settings_db.create_user_settings(current_user_id, settings)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in create_user_settings endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/settings")
+async def update_user_settings(
+    settings: UserSettingsUpdate,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    ログインユーザーの設定を更新する
+    認証：必須（Bearerトークン）
+    """
+    try:
+        result = await user_settings_db.update_user_settings(current_user_id, settings)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error in update_user_settings endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/settings")
+async def delete_user_settings(current_user_id: str = Depends(get_current_user_id)):
+    """
+    ログインユーザーの設定を削除する
+    認証：必須（Bearerトークン）
+    """
+    try:
+        await user_settings_db.delete_user_settings(current_user_id)
+        return {"message": "User settings deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error in delete_user_settings endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# テスト用エンドポイント（認証バイパス）
+@router.get("/test/settings")
+async def get_user_settings_test():
+    """
+    テスト用：認証なしでsettingsエンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        settings = await user_settings_db.get_user_settings(TEST_USER_ID)
+        if not settings:
+            raise HTTPException(status_code=404, detail="User settings not found")
+        return settings
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_user_settings_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test/settings")
+async def create_user_settings_test(settings: UserSettingsCreate):
+    """
+    テスト用：認証なしでsettings作成エンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        result = await user_settings_db.create_user_settings(TEST_USER_ID, settings)
+        return result
+    except Exception as e:
+        logger.error(f"Error in create_user_settings_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/test/settings")
+async def update_user_settings_test(settings: UserSettingsUpdate):
+    """
+    テスト用：認証なしでsettings更新エンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        result = await user_settings_db.update_user_settings(TEST_USER_ID, settings)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error in update_user_settings_test endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,1 @@
+{"isBase64Encoded": false, "statusCode": 401, "headers": {"content-length": "37", "content-type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT,DELETE", "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"}, "body": "{\"detail\":\"Invalid or expired token\"}"}
