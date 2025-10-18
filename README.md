@@ -214,6 +214,7 @@ make upload   # AWSにアップロード
 
 2. **パッケージ依存関係の確認**
    - 各Lambda関数の`requirements.txt`に必要なパッケージが含まれているか確認
+   - ローカルで使うrequiremtents.txtはルートにあるが、lambdaで使うrequirements.txtは各ラムダのフォルダにある。
    - 特に新機能追加時に以下のパッケージが不足していないかチェック：
      - `google-generativeai`: AI解説機能に必要
      - `boto3`: AWS操作に必要
@@ -223,6 +224,12 @@ make upload   # AWSにアップロード
 3. **IAMロールとポリシーの確認**
    - Lambda関数に必要なAWS権限が設定されているか確認
    - S3、DynamoDB、CloudWatch Logsへのアクセス権限が適切に設定されているか確認
+   
+4. **makefileの確認**
+   - 他のlambdaのコードを参考にして、不足がないか確認
+
+5. **template.yamlの確認**
+   - 他のlambdaの設定を参考にして、不足がないか確認
 
 ### チェック方法
 

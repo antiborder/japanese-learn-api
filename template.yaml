@@ -216,6 +216,41 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref DynamoDBTable
 
+  UsersFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/users
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-UsersFunction"
+      CodeUri: ./app/api/v1/users
+      Handler: app.lambda_handler
+      Description: "Lambda function for user progress and plan endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
+          FRONTEND_URL: "https://nihongo.cloud"
+          DATABASE_URL: !Ref DatabaseUrl
+      Events:
+        UsersApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/users
+            Method: ANY
+        UsersApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/users/{proxy+}
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+
   KanjisFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -411,6 +446,13 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${LearnWordsFunction}"
       RetentionInDays: 14
     DependsOn: LearnWordsFunction
+
+  UsersFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${UsersFunction}"
+      RetentionInDays: 14
+    DependsOn: UsersFunction
 
   SearchFunctionLogGroup:
     Type: AWS::Logs::LogGroup
