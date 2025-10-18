@@ -52,8 +52,16 @@ class ProgressDynamoDB(DynamoDBBase):
                     if self.datetime_utils.is_reviewable(item)
                 )
                 if level_user_items:
-                    avg_progress = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items) / (2 * learned)
-                    progress = int(round(avg_progress * 100))
+                    # 学習済み単語の習熟度の平均を計算
+                    gross_proficiency = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items)
+                    avg_proficiency_of_learned = gross_proficiency / (2 * learned) if learned > 0 else 0
+                    
+                    # 全体の進捗率を計算（学習済み単語数 / 全単語数）
+                    learned_ratio = learned / len(all_word_ids) if len(all_word_ids) > 0 else 0
+                    
+                    # 最終的なproficiencyは、完了率と習熟度の平均を組み合わせる
+                    # 完了率が高いほど、習熟度の重みが高くなる
+                    progress = int(round((learned_ratio * avg_proficiency_of_learned) * 100))
                 else:
                     progress = 0
                 result.append({
