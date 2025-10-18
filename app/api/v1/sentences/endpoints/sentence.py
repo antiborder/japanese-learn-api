@@ -64,7 +64,7 @@ async def fetch_sentence_audio(sentence_id: int):
         logger.error(f"Error fetching audio URL for sentence_id {sentence_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{sentence_id}/ai-grammar", response_model=SentenceGrammarDescription)
+@router.get("/{sentence_id}/ai-explanation", response_model=SentenceGrammarDescription)
 async def fetch_ai_grammar_description(
     sentence_id: int,
     lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")

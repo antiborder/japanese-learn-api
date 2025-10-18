@@ -103,7 +103,7 @@ async def fetch_word_images(word_id: int):
         logger.error(f"Error fetching images for word_id {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch images: {str(e)}")
 
-@router.get("/{word_id}/ai-description", response_model=dict)
+@router.get("/{word_id}/ai-explanation", response_model=dict)
 async def fetch_ai_description(
     word_id: int,
     lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")
