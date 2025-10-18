@@ -6,6 +6,10 @@ from fastapi import FastAPI, HTTPException
 from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
+
+# .envファイルを読み込み
+load_dotenv()
 
 # ロギングの設定
 logger = logging.getLogger()
@@ -16,18 +20,18 @@ ROOT_PATH = os.getenv('ROOT_PATH', '')
 
 # FastAPIアプリケーションの初期化
 app = FastAPI(
-    title="Users API",
-    description="API for user progress and plan endpoints",
+    title="Japanese Learn API - Users",
+    description="API for managing user settings and recommendations",
     version="1.0.0",
     root_path=ROOT_PATH
 )
 
 # エンドポイントのインポート
 from endpoints.users import router as users_router
-from common.auth import oauth_router
+from endpoints.recommendation import router as recommendation_router
 
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
-app.include_router(oauth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(recommendation_router, prefix="/api/v1/users", tags=["recommendations"])
 
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
