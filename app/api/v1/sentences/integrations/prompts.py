@@ -21,7 +21,7 @@ Also, enclose Japanese words or sentences with 《》 because we will highlight 
 Do not include any extra text.
 
 Make it natural, educational, and easy to understand for learners. Change lines before beginning of new sentences. Use bullet points with ⚫︎ as often as possible for users to read. Do not continue without changing lines.
-Attention!!: Do not include any explanations that have not been verified as accurate.
+Attention!!: Do not include any explanations that have not been verified as accurate. Do not return an answer without reliable source of information.
 
 The explanation should focus on grammar points relevant to the {jlpt_level} level, including:
 - Sentence structure
@@ -35,8 +35,10 @@ The explanation should focus on grammar points relevant to the {jlpt_level} leve
 - Adjectival noun conjugations
 
 Please select up to 5 most important grammar points for the {jlpt_level} level and explain them in {language_name}.
-
 Do not include honorifics (敬語) in the grammar points.
+After one【】, only one 『』can follow, so include all the contents (bullet points) related to the grammar point in one 『』.
+『Explanation of the first grammar point』
+
 
 Please structure your explanation using the following format in {language_name}.:
 【Sentence】
