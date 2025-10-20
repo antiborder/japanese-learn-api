@@ -1,6 +1,8 @@
 import boto3
 import csv
 import os
+import glob
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
@@ -12,7 +14,8 @@ class SentencesDataLoader:
 
     def parse_csv_row(self, row):
         """CSVの行を解析してDynamoDB用のデータ形式に変換する"""
-        sentence_id = int(row["No."])
+        # 列名が "No." または "ID" のどちらでも対応
+        sentence_id = int(row.get("No.", row.get("ID")))
         japanese = row["sentence"]  # 列名が変更された
         level = int(row["level"])
         hurigana = row["hurigana"]  # 新しい列を追加
@@ -105,6 +108,21 @@ class SentencesDataLoader:
             except Exception as e:
                 print(f"Error in batch {i+1}: {str(e)}")
 
+def find_sentences_csv_files(directory: str) -> List[str]:
+    """指定されたディレクトリからsentences_XXXXXXXX.csv形式のファイルを検索する"""
+    pattern = os.path.join(directory, "sentences_*.csv")
+    files = glob.glob(pattern)
+    
+    # sentences_YYYYMMDD.csv形式のファイルのみをフィルタリング
+    sentences_files = []
+    for file_path in files:
+        filename = os.path.basename(file_path)
+        # sentences_YYYYMMDD.csv形式かチェック
+        if re.match(r'sentences_\d{8}\.csv$', filename):
+            sentences_files.append(file_path)
+    
+    return sorted(sentences_files)
+
 def main():
     # 環境変数からテーブル名を取得
     table_name = os.environ.get('DYNAMODB_TABLE_NAME', 'japanese-learn-table')
@@ -112,25 +130,33 @@ def main():
     # ローダーの初期化
     loader = SentencesDataLoader(table_name)
     
-    # sentences CSVファイルを処理
-    csv_path = 'data/dynamodb_source/sentences_20251005.csv'
+    # sentences CSVファイルを検索
+    directory = 'data/dynamodb_source'
+    csv_files = find_sentences_csv_files(directory)
     
-    if not os.path.exists(csv_path):
-        print(f"CSVファイルが見つかりません: {csv_path}")
+    if not csv_files:
+        print(f"sentences_XXXXXXXX.csv形式のファイルが見つかりません: {directory}")
         return
     
-    print(f"Processing sentences from {csv_path}")
+    print(f"Found {len(csv_files)} sentences CSV files:")
+    for file_path in csv_files:
+        print(f"  - {file_path}")
     
-    try:
-        items = loader.load_sentences_csv(csv_path)
-        print(f"Found {len(items)} sentence items in CSV file.")
+    # 各ファイルを処理
+    for csv_path in csv_files:
+        print(f"\nProcessing sentences from {csv_path}")
         
-        if items:
-            print(f"Starting batch write to {table_name}...")
-            loader.batch_write_items(items)
-            print(f"Batch write completed for sentences.")
-    except Exception as e:
-        print(f"Error processing {csv_path}: {str(e)}")
+        try:
+            items = loader.load_sentences_csv(csv_path)
+            print(f"Found {len(items)} sentence items in CSV file.")
+            
+            if items:
+                print(f"Starting batch write to {table_name}...")
+                loader.batch_write_items(items)
+                print(f"Batch write completed for {os.path.basename(csv_path)}.")
+        except Exception as e:
+            print(f"Error processing {csv_path}: {str(e)}")
+            continue
 
 if __name__ == "__main__":
     main()
