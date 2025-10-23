@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from common.schemas.kanji_component import Kanji, KanjiWord
-from crud.kanji_crud import get_kanji, get_kanjis
+from services.kanji_service import get_kanji, get_kanjis
 import logging
 from pydantic import BaseModel
-from integrations.dynamodb_kanji import dynamodb_kanji_client
+from integrations.dynamodb.kanji import dynamodb_kanji_client
 from services.ai_description_service import get_kanji_ai_description
 from schemas.ai_description_schema import KanjiAIDescriptionResponse
 

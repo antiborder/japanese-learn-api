@@ -1,4 +1,4 @@
-from integrations.dynamodb_kanji import dynamodb_kanji_client
+from integrations.dynamodb.kanji import dynamodb_kanji_client
 import logging
 
 logger = logging.getLogger(__name__)

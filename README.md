@@ -42,6 +42,18 @@ uvicorn app:app --reload --port 8000
 
 各モジュール（words、kanjis、sentences、search、learn_words、sentence_composition）で同様の方法でテストできます。
 
+curl コマンドの例：
+```bash
+curl http://localhost:8000/api/v1/kanjis/101/ai-explanation
+```
+
+## デプロイ後のテスト
+
+curlコマンドの例
+```bash
+curl https://omqihdsdi1.execute-api.ap-northeast-1.amazonaws.com/Prod/api/v1/kanjis/101/ai-explanation
+```
+
 ## コードスタイルガイドライン
 
 ### Import文の書き方ルール
