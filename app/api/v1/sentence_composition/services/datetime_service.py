@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class DateTimeService:
     # 定数
-    BASE_HOURS = 12 # 基準となる間隔（6時間） 
+    BASE_HOURS = 6 # 基準となる間隔（6時間） 
     def calculate_next_datetime(self, confidence: int, proficiency: Decimal, reviewable_count: int = 0) -> datetime:
         """次の学習時間を計算します
         
