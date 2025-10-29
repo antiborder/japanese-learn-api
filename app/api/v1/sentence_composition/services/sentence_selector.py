@@ -69,6 +69,12 @@ class SentenceSelector:
             logger.info(f"Successfully retrieved review sentence for user {user_id}, level {level}: {review_sentence_result}")
             return review_sentence_result
         
+        # 復習文がない場合、改めて新しい文を試す
+        new_sentence_result = SentenceSelector.select_new_sentence(level_sentences, user_level_sentences)
+        if new_sentence_result:
+            logger.info(f"No review available, retrieved new sentence for user {user_id}, level {level}: {new_sentence_result}")
+            return new_sentence_result
+        
         # 復習可能な文がない場合は、次に利用可能になる時刻を計算
         next_available_dt = DateTimeUtils.get_next_available_time(user_level_sentences)
         if next_available_dt:

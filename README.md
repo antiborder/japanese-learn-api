@@ -254,6 +254,25 @@ pip list | grep google-generativeai
 pip list | grep boto3
 ```
 
+## DynamoDBへのデータimport
+
+```bash
+# venv環境へ入る。
+source venv/bin/activate
+
+# word-kanji mappingの作成
+# data/word_kanji_XXXXXXXX.csvとdata/kanji_word_XXXXXXXX.csvが作成される
+python3 scripts/create_word_kanji_mapping.py
+
+# wordsのimport
+python3 scripts/import_dynamodb.py
+
+# sentencesのimport
+python3 scripts/import_sentences_to_dynamodb.py
+```
+
+
+
 ## トラブルシューティング
 
 ### よくある問題と解決方法

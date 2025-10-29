@@ -36,14 +36,19 @@ example (in a case of english):
 ⚫︎《Japanese sentence》
 Translation: English translation』
 
+{headers['usage']}
+『Explain when and how to use this word in conversation.』
+
+{headers['notation']}
+『Explain how this word is typically written (hiragana, katakana, kanji).
+Are there other ways to write this word?
+Are there variations in the okurigana (suffix hiragana)?』
+
 {headers['synonyms']}
 『List similar words or synonyms (if any).』
 
 {headers['antonyms']}
 『List antonyms or opposite words (if any).』
-
-{headers['usage']}
-『Explain when and how to use this word in conversation.』
 
 {headers['sentence1']}
 『《[Japanese example sentence]》
