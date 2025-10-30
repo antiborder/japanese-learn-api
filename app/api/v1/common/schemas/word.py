@@ -9,6 +9,10 @@ class Word(BaseModel):
     level: Optional[int] = None
     english: Optional[str] = None
     vietnamese: Optional[str] = None
+    chinese: Optional[str] = None
+    korean: Optional[str] = None
+    indonesian: Optional[str] = None
+    hindi: Optional[str] = None
     lexical_category: Optional[str] = None
     accent_up: Optional[int] = None
     accent_down: Optional[int] = None

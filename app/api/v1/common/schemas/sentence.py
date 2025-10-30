@@ -12,6 +12,12 @@ class Sentence(BaseModel):
     sentence_id: int
     japanese: str
     level: int
+    english: Optional[str] = None
+    vietnamese: Optional[str] = None
+    chinese: Optional[str] = None
+    korean: Optional[str] = None
+    indonesian: Optional[str] = None
+    hindi: Optional[str] = None
     hurigana: str  # huriganaフィールドを追加
     english: str
     vietnamese: str
