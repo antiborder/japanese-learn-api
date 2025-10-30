@@ -25,6 +25,10 @@ else:
 LANGUAGE_NAMES = {
     'en': 'English',
     'vi': 'Vietnamese',
+    'zh-hans': 'Chinese',
+    'ko': 'Korean',
+    'id': 'Indonesian',
+    'hi': 'Hindi',
 }
 
 

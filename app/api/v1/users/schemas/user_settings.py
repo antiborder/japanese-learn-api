@@ -9,6 +9,10 @@ class ThemeEnum(str, Enum):
 class LanguageEnum(str, Enum):
     EN = "en"
     VI = "vi"
+    ZH_HANS = "zh-Hans"
+    KO = "ko"
+    ID = "id"
+    HI = "hi"
 
 class UserSettingsBase(BaseModel):
     """ユーザー設定のベーススキーマ"""

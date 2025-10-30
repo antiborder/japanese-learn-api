@@ -106,7 +106,7 @@ async def fetch_word_images(word_id: int):
 @router.get("/{word_id}/ai-explanation", response_model=dict)
 async def fetch_ai_description(
     word_id: int,
-    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")
+    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh-Hans, hi, etc.)")
 ):
     """
     指定された単語のAI生成解説テキストを取得
@@ -117,7 +117,7 @@ async def fetch_ai_description(
     Args:
         word_id: 単語ID
         lang: 言語コード（デフォルト: 'en'）
-            対応言語: en (English), vi (Vietnamese), zh (Chinese), 
+            対応言語: en (English), vi (Vietnamese), zh-Hans (Chinese Simplified), 
                      hi (Hindi), es (Spanish), fr (French), etc.
     
     Returns:

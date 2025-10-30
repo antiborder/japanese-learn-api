@@ -59,7 +59,7 @@ GET /words/{word_id}/ai-description
 |-----------|-------|
 | en | English (英語) |
 | vi | Vietnamese (ベトナム語) |
-| zh | Chinese (中国語) |
+| zh-Hans | Chinese Simplified (中国語・簡体字) |
 | hi | Hindi (ヒンディー語) |
 | es | Spanish (スペイン語) |
 | fr | French (フランス語) |
@@ -81,8 +81,8 @@ curl "http://localhost:8000/api/v1/words/100/ai-description?lang=en"
 # ベトナム語で解説を取得
 curl "http://localhost:8000/api/v1/words/100/ai-description?lang=vi"
 
-# 中国語で解説を取得
-curl "http://localhost:8000/api/v1/words/100/ai-description?lang=zh"
+# 中国語（簡体字）で解説を取得
+curl "http://localhost:8000/api/v1/words/100/ai-description?lang=zh-Hans"
 ```
 
 ### レスポンス例
@@ -123,7 +123,7 @@ s3://{bucket_name}/ai_descriptions/words/{word_id}_{lang_code}.txt
 例：
 - `ai_descriptions/words/100_en.txt` - 単語ID 100の英語解説
 - `ai_descriptions/words/100_vi.txt` - 単語ID 100のベトナム語解説
-- `ai_descriptions/words/200_zh.txt` - 単語ID 200の中国語解説
+- `ai_descriptions/words/200_zh-Hans.txt` - 単語ID 200の中国語（簡体字）解説
 
 ## 処理フロー
 

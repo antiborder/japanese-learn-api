@@ -67,7 +67,7 @@ async def fetch_sentence_audio(sentence_id: int):
 @router.get("/{sentence_id}/ai-explanation", response_model=SentenceGrammarDescription)
 async def fetch_ai_grammar_description(
     sentence_id: int,
-    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")
+    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh-Hans, hi, etc.)")
 ):
     """
     指定された例文のAI生成文法解説テキストを取得
@@ -78,7 +78,7 @@ async def fetch_ai_grammar_description(
     Args:
         sentence_id: 例文ID
         lang: 言語コード（デフォルト: 'en'）
-            対応言語: en (English), vi (Vietnamese), zh (Chinese), 
+            対応言語: en (English), vi (Vietnamese), zh-Hans (Chinese Simplified), 
                      hi (Hindi), es (Spanish), fr (French), etc.
     
     Returns:

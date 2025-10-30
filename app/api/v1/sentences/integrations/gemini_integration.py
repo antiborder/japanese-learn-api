@@ -24,7 +24,7 @@ else:
 LANGUAGE_NAMES = {
     'en': 'English',
     'vi': 'Vietnamese',
-    'zh': 'Chinese',
+    'zh-hans': 'Chinese',
     'hi': 'Hindi',
     'es': 'Spanish',
     'fr': 'French',

@@ -65,7 +65,7 @@ def get_components_by_kanji_id(kanji_id: str):
 @router.get("/{kanji_id}/ai-explanation", response_model=KanjiAIDescriptionResponse)
 async def fetch_kanji_ai_description(
     kanji_id: int,
-    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh, hi, etc.)")
+    lang: Optional[str] = Query(default='en', description="言語コード (en, vi, zh-Hans, hi, etc.)")
 ):
     """
     指定された漢字のAI生成解説テキストを取得
@@ -76,7 +76,7 @@ async def fetch_kanji_ai_description(
     Args:
         kanji_id: 漢字ID
         lang: 言語コード（デフォルト: 'en'）
-            対応言語: en (English), vi (Vietnamese), zh (Chinese), 
+            対応言語: en (English), vi (Vietnamese), zh-Hans (Chinese Simplified), 
                      hi (Hindi), es (Spanish), fr (French), etc.
     
     Returns:
