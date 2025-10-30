@@ -127,6 +127,10 @@ class DynamoDBSentenceClient:
             'hurigana': item.get('hurigana', ''),  # huriganaフィールドを追加
             'english': item.get('english', ''),
             'vietnamese': item.get('vietnamese', ''),
+            'chinese': item.get('chinese'),
+            'korean': item.get('korean'),
+            'indonesian': item.get('indonesian'),
+            'hindi': item.get('hindi'),
             'grammar_ids': grammar_ids,
             'words': words,
             'dummy_words': dummy_words

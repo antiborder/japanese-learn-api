@@ -115,6 +115,10 @@ class DynamoDBClient:
             'level': int(item.get('level', 0)),
             'english': item.get('english', ''),
             'vietnamese': item.get('vietnamese', ''),
+            'chinese': item.get('chinese'),
+            'korean': item.get('korean'),
+            'indonesian': item.get('indonesian'),
+            'hindi': item.get('hindi'),
             'lexical_category': item.get('lexical_category', ''),
             'accent_up': int(item.get('accent_up')) if item.get('accent_up') else None,
             'accent_down': int(item.get('accent_down')) if item.get('accent_down') else None

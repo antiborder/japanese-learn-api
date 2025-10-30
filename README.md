@@ -272,6 +272,12 @@ python3 scripts/import_sentences_to_dynamodb.py
 ```
 
 
+## 言語の追加
+1. data/dynamodb_sourceのwordsとsentencesのcsvに、対象言語のカラムを足して、import
+2. LanguageEnumへ言語を追加。
+3. バックエンドのschemaとapiでの戻り値に対象言語を追加。
+4. 漢字AI解説の見出しを新言語分追加
+
 
 ## トラブルシューティング
 
