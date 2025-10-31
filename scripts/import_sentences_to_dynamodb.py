@@ -14,13 +14,16 @@ class SentencesDataLoader:
 
     def parse_csv_row(self, row):
         """CSVの行を解析してDynamoDB用のデータ形式に変換する"""
-        # 列名が "No." または "ID" のどちらでも対応
-        sentence_id = int(row.get("No.", row.get("ID")))
-        japanese = row["sentence"]  # 列名が変更された
+        sentence_id = int(row.get("ID"))
+        japanese = row["sentence"]
         level = int(row["level"])
-        hurigana = row["hurigana"]  # 新しい列を追加
-        english = row["english"]
-        vietnamese = row["vietnamese"]
+        hurigana = row["hurigana"]
+        english = row.get("english")
+        vietnamese = row.get("vietnamese")
+        chinese = row.get("chinese")
+        korean = row.get("korean")
+        indonesian = row.get("indonesian")
+        hindi = row.get("hindi")
         grammar_raw = row["grammar"]
         
         # grammar列は "65" や "3,3" のように複数の場合がある
@@ -50,6 +53,10 @@ class SentencesDataLoader:
             "hurigana": hurigana,  # 新しいフィールドを追加
             "english": english,
             "vietnamese": vietnamese,
+            "chinese": chinese,
+            "korean": korean,
+            "indonesian": indonesian,
+            "hindi": hindi,
             "grammar_ids": grammar_ids,
             "words": words,
             "dummy_words": dummy_candidates
@@ -77,6 +84,10 @@ class SentencesDataLoader:
                         "hurigana": sentence_data["hurigana"],  # 新しいフィールドを追加
                         "english": sentence_data["english"],
                         "vietnamese": sentence_data["vietnamese"],
+                        "chinese": sentence_data.get("chinese"),
+                        "korean": sentence_data.get("korean"),
+                        "indonesian": sentence_data.get("indonesian"),
+                        "hindi": sentence_data.get("hindi"),
                         "grammar_ids": sentence_data["grammar_ids"],
                         "words": sentence_data["words"],
                         "dummy_words": sentence_data["dummy_words"],

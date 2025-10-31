@@ -19,8 +19,6 @@ class Sentence(BaseModel):
     indonesian: Optional[str] = None
     hindi: Optional[str] = None
     hurigana: str  # huriganaフィールドを追加
-    english: str
-    vietnamese: str
     grammar_ids: List[int]
     words: List[WordInSentence]
     dummy_words: List[str]

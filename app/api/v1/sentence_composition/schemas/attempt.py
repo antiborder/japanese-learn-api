@@ -29,8 +29,12 @@ class SentenceResponse(BaseModel):
     japanese: str
     level: int
     hurigana: str
-    english: str
-    vietnamese: str
+    english: Optional[str] = None
+    vietnamese: Optional[str] = None
+    chinese: Optional[str] = None
+    korean: Optional[str] = None
+    indonesian: Optional[str] = None
+    hindi: Optional[str] = None
     grammar_ids: List[int]
     words: List[WordInSentence]
     dummy_words: List[str]
