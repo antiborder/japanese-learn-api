@@ -39,11 +39,11 @@ class RecommendationService:
             
             # レコメンドロジックを実行
             if total_learnable >= 100:
-                return self._recommend_by_ratio(words_progress, sentences_progress, base_level)
+                return self._recommend_by_ratio(words_progress, sentences_progress, base_level, total_learnable)
             elif total_learnable >= 21:
-                return self._recommend_mixed(words_progress, sentences_progress, base_level, started_subjects)
+                return self._recommend_mixed(words_progress, sentences_progress, base_level, started_subjects, total_learnable)
             else:
-                return self._recommend_low_learnable(words_progress, sentences_progress, base_level, started_subjects)
+                return self._recommend_low_learnable(words_progress, sentences_progress, base_level, started_subjects, total_learnable)
                 
         except Exception as e:
             logger.error(f"Error getting recommendations for user {user_id}: {str(e)}")
@@ -83,7 +83,7 @@ class RecommendationService:
         
         return started
     
-    def _recommend_by_ratio(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int) -> List[Dict]:
+    def _recommend_by_ratio(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, total_learnable: int) -> List[Dict]:
         """learnableが100以上の場合のレコメンド"""
         subject_ratios = []
         
@@ -92,7 +92,6 @@ class RecommendationService:
             # 単語の割合を計算
             words_data = next((p for p in words_progress if p.get('level') == level), None)
             if words_data and words_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = words_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 subject_ratios.append({
                     'subject': 'words',
@@ -103,7 +102,6 @@ class RecommendationService:
             # 例文の割合を計算
             sentences_data = next((p for p in sentences_progress if p.get('level') == level), None)
             if sentences_data and sentences_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = sentences_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 subject_ratios.append({
                     'subject': 'sentences',
@@ -115,12 +113,12 @@ class RecommendationService:
         subject_ratios.sort(key=lambda x: x['ratio'], reverse=True)
         return [{'subject': item['subject'], 'level': item['level']} for item in subject_ratios[:3]]
     
-    def _recommend_mixed(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, started_subjects: List[Tuple[str, int]]) -> List[Dict]:
+    def _recommend_mixed(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, started_subjects: List[Tuple[str, int]], total_learnable: int) -> List[Dict]:
         """learnableが21-100の場合のレコメンド"""
         recommendations = []
         
         # 第一オススメ：learnableの割合が最も多い科目・レベル
-        first_recommendation = self._get_highest_ratio_subject(words_progress, sentences_progress, base_level)
+        first_recommendation = self._get_highest_ratio_subject(words_progress, sentences_progress, base_level, total_learnable)
         if first_recommendation:
             recommendations.append(first_recommendation)
         
@@ -131,13 +129,13 @@ class RecommendationService:
         
         # 第三オススメ：learnableの割合が二番目に多い科目・レベル
         if len(recommendations) < 3:
-            third_recommendation = self._get_second_highest_ratio_subject(words_progress, sentences_progress, base_level, recommendations)
+            third_recommendation = self._get_second_highest_ratio_subject(words_progress, sentences_progress, base_level, recommendations, total_learnable)
             if third_recommendation:
                 recommendations.append(third_recommendation)
         
         return recommendations[:3]
     
-    def _recommend_low_learnable(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, started_subjects: List[Tuple[str, int]]) -> List[Dict]:
+    def _recommend_low_learnable(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, started_subjects: List[Tuple[str, int]], total_learnable: int) -> List[Dict]:
         """learnableが0-20の場合のレコメンド"""
         recommendations = []
         
@@ -153,13 +151,13 @@ class RecommendationService:
         
         # 第二オススメ：learnableの割合が最も多い科目・レベル
         if len(recommendations) < 3:
-            second_recommendation = self._get_highest_ratio_subject(words_progress, sentences_progress, base_level)
+            second_recommendation = self._get_highest_ratio_subject(words_progress, sentences_progress, base_level, total_learnable)
             if second_recommendation and second_recommendation not in recommendations:
                 recommendations.append(second_recommendation)
         
         return recommendations[:3]
     
-    def _get_highest_ratio_subject(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int) -> Optional[Dict]:
+    def _get_highest_ratio_subject(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, total_learnable: int) -> Optional[Dict]:
         """learnableの割合が最も高い科目・レベルを取得"""
         max_ratio = 0
         best_subject = None
@@ -168,7 +166,6 @@ class RecommendationService:
             # 単語の割合を計算
             words_data = next((p for p in words_progress if p.get('level') == level), None)
             if words_data and words_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = words_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 if ratio > max_ratio:
                     max_ratio = ratio
@@ -177,7 +174,6 @@ class RecommendationService:
             # 例文の割合を計算
             sentences_data = next((p for p in sentences_progress if p.get('level') == level), None)
             if sentences_data and sentences_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = sentences_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 if ratio > max_ratio:
                     max_ratio = ratio
@@ -185,7 +181,7 @@ class RecommendationService:
         
         return best_subject
     
-    def _get_second_highest_ratio_subject(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, existing_recommendations: List[Dict]) -> Optional[Dict]:
+    def _get_second_highest_ratio_subject(self, words_progress: List[Dict], sentences_progress: List[Dict], base_level: int, existing_recommendations: List[Dict], total_learnable: int) -> Optional[Dict]:
         """learnableの割合が二番目に高い科目・レベルを取得"""
         ratios = []
         
@@ -193,7 +189,6 @@ class RecommendationService:
             # 単語の割合を計算
             words_data = next((p for p in words_progress if p.get('level') == level), None)
             if words_data and words_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = words_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 subject_level = {'subject': 'words', 'level': level}
                 if subject_level not in existing_recommendations:
@@ -202,7 +197,6 @@ class RecommendationService:
             # 例文の割合を計算
             sentences_data = next((p for p in sentences_progress if p.get('level') == level), None)
             if sentences_data and sentences_data.get('reviewable', 0) > 0:
-                total_learnable = self._calculate_total_learnable(words_progress, sentences_progress)
                 ratio = sentences_data['reviewable'] / total_learnable if total_learnable > 0 else 0
                 subject_level = {'subject': 'sentences', 'level': level}
                 if subject_level not in existing_recommendations:

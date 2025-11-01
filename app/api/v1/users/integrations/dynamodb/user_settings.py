@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from .base import DynamoDBBase
-from schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
+from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
 
 logger = logging.getLogger(__name__)
 

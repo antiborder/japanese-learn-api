@@ -63,6 +63,7 @@ curl https://omqihdsdi1.execute-api.ap-northeast-1.amazonaws.com/Prod/api/v1/kan
 #### 1. 絶対importの使用を推奨
 - **相対import（`from .module`）は避ける**: コードの可読性と保守性を向上させるため
 - **絶対importを使用**: `from common.schemas.word import Word` のように、モジュールの完全パスを指定
+- schemaはcommonに記述。
 
 #### 2. Import文の順序
 ```python

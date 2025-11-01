@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from integrations.dynamodb import progress_db, plan_db, sentences_progress_db, sentences_plan_db, user_settings_db
-from schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
+from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
 import logging
 from common.auth import get_current_user_id
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from schemas.recommendation import RecommendationResponse, RecommendationItem
+from common.schemas.recommendation import RecommendationResponse, RecommendationItem
 from services.recommendation_service import RecommendationService
 from common.auth import get_current_user_id
 import logging

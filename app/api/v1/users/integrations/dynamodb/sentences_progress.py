@@ -12,6 +12,36 @@ class SentencesProgressDynamoDB(DynamoDBBase):
         super().__init__()
         self.datetime_utils = DateTimeUtils()
 
+    def _get_all_sentences_with_pagination(self) -> List[Dict]:
+        """全例文をページネーション対応で取得"""
+        all_sentences = []
+        last_evaluated_key = None
+        
+        while True:
+            if last_evaluated_key:
+                response = self.table.query(
+                    KeyConditionExpression='PK = :pk',
+                    ExpressionAttributeValues={
+                        ':pk': 'SENTENCE'
+                    },
+                    ExclusiveStartKey=last_evaluated_key
+                )
+            else:
+                response = self.table.query(
+                    KeyConditionExpression='PK = :pk',
+                    ExpressionAttributeValues={
+                        ':pk': 'SENTENCE'
+                    }
+                )
+            
+            all_sentences.extend(response.get('Items', []))
+            
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break
+        
+        return all_sentences
+
     async def get_progress(self, current_user_id: str) -> List[Dict]:
         """
         ログインユーザーの例文のレベルごとの進捗情報を返す（unlearnedも含む）
@@ -26,22 +56,26 @@ class SentencesProgressDynamoDB(DynamoDBBase):
                 }
             )
             user_items = user_response.get('Items', [])
+            
+            # 全例文を1回のクエリ（ページネーション対応）で取得
+            all_sentences = self._get_all_sentences_with_pagination()
+            
+            # レベルごとに例文を分類
+            sentences_by_level = {}
+            for sentence in all_sentences:
+                level = sentence.get('level')
+                if level:
+                    if level not in sentences_by_level:
+                        sentences_by_level[level] = []
+                    sentences_by_level[level].append(sentence)
+            
             now = datetime.now(timezone.utc)
             result = []
             for level in range(MIN_LEVEL, MAX_LEVEL + 1):
-                # 各レベルの全例文をFilterExpressionで取得
-                sentence_response = self.table.query(
-                    KeyConditionExpression='PK = :pk',
-                    FilterExpression='#level = :level',
-                    ExpressionAttributeNames={
-                        '#level': 'level'
-                    },
-                    ExpressionAttributeValues={
-                        ':pk': 'SENTENCE',
-                        ':level': level
-                    }
-                )
-                all_sentence_ids = set(int(item['SK']) for item in sentence_response.get('Items', []))
+                # レベルごとの全例文IDを取得
+                level_sentences = sentences_by_level.get(level, [])
+                all_sentence_ids = set(int(item['SK']) for item in level_sentences)
+                
                 # ユーザーの学習済み例文IDリスト
                 level_user_items = [item for item in user_items if item.get('level') == level]
                 user_learned_ids = set(int(item['sentence_id']) for item in level_user_items)

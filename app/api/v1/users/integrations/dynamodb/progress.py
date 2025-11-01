@@ -12,6 +12,36 @@ class ProgressDynamoDB(DynamoDBBase):
         super().__init__()
         self.datetime_utils = DateTimeUtils()
 
+    def _get_all_words_with_pagination(self) -> List[Dict]:
+        """全単語をページネーション対応で取得"""
+        all_words = []
+        last_evaluated_key = None
+        
+        while True:
+            if last_evaluated_key:
+                response = self.table.query(
+                    KeyConditionExpression='PK = :pk',
+                    ExpressionAttributeValues={
+                        ':pk': 'WORD'
+                    },
+                    ExclusiveStartKey=last_evaluated_key
+                )
+            else:
+                response = self.table.query(
+                    KeyConditionExpression='PK = :pk',
+                    ExpressionAttributeValues={
+                        ':pk': 'WORD'
+                    }
+                )
+            
+            all_words.extend(response.get('Items', []))
+            
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break
+        
+        return all_words
+
     async def get_progress(self, current_user_id: str) -> List[Dict]:
         """
         ログインユーザーのレベルごとの進捗情報を返す（unlearnedも含む）
@@ -26,22 +56,26 @@ class ProgressDynamoDB(DynamoDBBase):
                 }
             )
             user_items = user_response.get('Items', [])
+            
+            # 全単語を1回のクエリ（ページネーション対応）で取得
+            all_words = self._get_all_words_with_pagination()
+            
+            # レベルごとに単語を分類
+            words_by_level = {}
+            for word in all_words:
+                level = word.get('level')
+                if level:
+                    if level not in words_by_level:
+                        words_by_level[level] = []
+                    words_by_level[level].append(word)
+            
             now = datetime.now(timezone.utc)
             result = []
             for level in range(MIN_LEVEL, MAX_LEVEL + 1):
-                # 各レベルの全単語をGSIで取得
-                word_response = self.table.query(
-                    IndexName='word-level-index',
-                    KeyConditionExpression='PK = :pk AND #level = :level',
-                    ExpressionAttributeNames={
-                        '#level': 'level'
-                    },
-                    ExpressionAttributeValues={
-                        ':pk': 'WORD',
-                        ':level': level
-                    }
-                )
-                all_word_ids = set(int(item['SK']) for item in word_response.get('Items', []))
+                # レベルごとの全単語IDを取得
+                level_words = words_by_level.get(level, [])
+                all_word_ids = set(int(item['SK']) for item in level_words)
+                
                 # ユーザーの学習済み単語IDリスト
                 level_user_items = [item for item in user_items if item.get('level') == level]
                 user_learned_ids = set(int(item['word_id']) for item in level_user_items)
