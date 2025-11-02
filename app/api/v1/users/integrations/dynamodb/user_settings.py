@@ -31,6 +31,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 base_level=item['base_level'],
                 theme=item['theme'],
                 language=item['language'],
+                is_onboarding_modal_closed=item.get('is_onboarding_modal_closed', False),
                 created_at=item['created_at'],
                 updated_at=item['updated_at']
             )
@@ -51,6 +52,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 'base_level': settings.base_level,
                 'theme': settings.theme.value,
                 'language': settings.language.value,
+                'is_onboarding_modal_closed': settings.is_onboarding_modal_closed,
                 'created_at': now,
                 'updated_at': now
             }
@@ -62,6 +64,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 base_level=settings.base_level,
                 theme=settings.theme,
                 language=settings.language,
+                is_onboarding_modal_closed=settings.is_onboarding_modal_closed,
                 created_at=now,
                 updated_at=now
             )
@@ -98,6 +101,11 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 update_expression_parts.append("#language = :language")
                 expression_attribute_values[":language"] = settings.language.value
                 expression_attribute_names["#language"] = "language"
+            
+            if settings.is_onboarding_modal_closed is not None:
+                update_expression_parts.append("#is_onboarding_modal_closed = :is_onboarding_modal_closed")
+                expression_attribute_values[":is_onboarding_modal_closed"] = settings.is_onboarding_modal_closed
+                expression_attribute_names["#is_onboarding_modal_closed"] = "is_onboarding_modal_closed"
             
             if not update_expression_parts:
                 # 更新するフィールドがない場合は既存の設定を返す
