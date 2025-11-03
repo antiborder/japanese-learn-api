@@ -13,6 +13,17 @@ class RecommendationService:
         """
         ユーザーのレコメンドを取得する
         
+        base_level（または1）から順に見ていき、おすすめする場合は配列に[科目・レベル]を格納。
+        配列におすすめが2つ格納されたら早期リターンでその配列を返す。
+        recommendationは最大2つとする。
+        
+        復習単語があるものを最優先。
+        順番：
+        1. words level N reviewable >= 10
+        2. sentences level N reviewable >= 3
+        3. words level N unlearned >= 10
+        4. sentences level N unlearned >= 3
+        
         Returns:
             List[Dict]: レコメンドリスト（最大2件）
         """
@@ -23,100 +34,52 @@ class RecommendationService:
                 logger.warning(f"User settings not found for user {user_id}")
                 return []
             
-            base_level = user_settings.base_level
+            base_level = user_settings.base_level if user_settings.base_level else MIN_LEVEL
             recommendations = []
             
-            # ユーザーの学習履歴を一度だけ取得（再利用のため）
-            words_user_items = await self._get_user_words_items(user_id)
-            sentences_user_items = await self._get_user_sentences_items(user_id)
-            
-            # レベルごとのprogressデータをキャッシュ（ステップ2で再利用）
-            words_progress_cache = {}
-            sentences_progress_cache = {}
-            
-            # ステップ1: 復習単語があるものを最優先（レベル1-15まで順に見ていく）
-            for level in range(base_level, min(16, MAX_LEVEL + 1)):  # レベル15まで
-                if len(recommendations) >= 2:
-                    return recommendations
+            # base_levelから順にレベル15まで見ていく
+            for level in range(base_level, min(MAX_LEVEL, 15) + 1):
+                # レベルごとにwordsとsentencesのprogressを取得
+                words_progress = await progress_db.get_progress_by_level(user_id, level)
+                sentences_progress = await sentences_progress_db.get_progress_by_level(user_id, level)
                 
-                # 1-a: words level reviewable >= 10 なら、words level をおすすめ
-                words_progress = await progress_db.get_progress_by_level(
-                    user_id, level, words_user_items
-                )
-                words_progress_cache[level] = words_progress
+                # 1-a: words level N reviewable >= 10
                 if words_progress and words_progress.get('reviewable', 0) >= 10:
-                    recommendations.append({'subject': 'words', 'level': level})
-                    if len(recommendations) >= 2:
-                        return recommendations
+                    rec = {'subject': 'words', 'level': level}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
                 
-                # 1-b: sentences level reviewable >= 3 なら、sentences level をおすすめ
-                sentences_progress = await sentences_progress_db.get_progress_by_level(
-                    user_id, level, sentences_user_items
-                )
-                sentences_progress_cache[level] = sentences_progress
+                # 1-b: sentences level N reviewable >= 3
                 if sentences_progress and sentences_progress.get('reviewable', 0) >= 3:
-                    recommendations.append({'subject': 'sentences', 'level': level})
-                    if len(recommendations) >= 2:
-                        return recommendations
-            
-            # ここまででおすすめが1つだけなら、それを返す
-            if len(recommendations) == 1:
-                return recommendations
-            
-            # ステップ2: 未習単語があるものを次に優先（レベル1-15まで順に見ていく）
-            for level in range(base_level, min(16, MAX_LEVEL + 1)):  # レベル15まで
-                if len(recommendations) >= 2:
-                    return recommendations
+                    rec = {'subject': 'sentences', 'level': level}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
                 
-                # 2-a: words level unlearned >= 10 なら、words level をおすすめ
-                # (ステップ1で取得済みのデータを再利用)
-                words_progress = words_progress_cache.get(level)
+                # 2-a: words level N unlearned >= 10
+                # （words_progressは上で既に取得済み）
                 if words_progress and words_progress.get('unlearned', 0) >= 10:
-                    recommendations.append({'subject': 'words', 'level': level})
-                    if len(recommendations) >= 2:
-                        return recommendations
+                    rec = {'subject': 'words', 'level': level}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
                 
-                # 2-b: sentences level unlearned >= 3 なら、sentences level をおすすめ
-                # (ステップ1で取得済みのデータを再利用)
-                sentences_progress = sentences_progress_cache.get(level)
+                # 2-b: sentences level N unlearned >= 3
+                # （sentences_progressは上で既に取得済み）
                 if sentences_progress and sentences_progress.get('unlearned', 0) >= 3:
-                    recommendations.append({'subject': 'sentences', 'level': level})
-                    if len(recommendations) >= 2:
-                        return recommendations
+                    rec = {'subject': 'sentences', 'level': level}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
             
-            # ここまででおすすめがあれば返す（0件または1件）
+            # ここまででおすすめが0個または1個の場合はそのまま返す
             return recommendations
                 
         except Exception as e:
             logger.error(f"Error getting recommendations for user {user_id}: {str(e)}")
-            return []
-    
-    async def _get_user_words_items(self, user_id: str) -> List[Dict]:
-        """ユーザーの単語学習履歴を取得"""
-        try:
-            user_response = progress_db.table.query(
-                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
-                ExpressionAttributeValues={
-                    ':pk': f"USER#{user_id}",
-                    ':sk_prefix': 'WORD#'
-                }
-            )
-            return user_response.get('Items', [])
-        except Exception as e:
-            logger.error(f"Error getting user words items: {str(e)}")
-            return []
-    
-    async def _get_user_sentences_items(self, user_id: str) -> List[Dict]:
-        """ユーザーの例文学習履歴を取得"""
-        try:
-            user_response = sentences_progress_db.table.query(
-                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
-                ExpressionAttributeValues={
-                    ':pk': f"USER#{user_id}",
-                    ':sk_prefix': 'SENTENCE#'
-                }
-            )
-            return user_response.get('Items', [])
-        except Exception as e:
-            logger.error(f"Error getting user sentences items: {str(e)}")
             return []

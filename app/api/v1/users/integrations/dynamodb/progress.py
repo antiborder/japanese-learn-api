@@ -156,37 +156,43 @@ class ProgressDynamoDB(DynamoDBBase):
             logger.error(f"Error in get_progress: {str(e)}")
             raise
     
-    async def get_progress_by_level(self, current_user_id: str, level: int, user_items: Optional[List[Dict]] = None) -> Optional[Dict]:
+    async def get_progress_by_level(self, current_user_id: str, level: int) -> Optional[Dict]:
         """
-        指定されたレベルの進捗情報を取得する（reviewableとunlearnedを含む）
+        指定されたレベルの進捗情報を返す（単一レベル）
         
         Args:
             current_user_id: ユーザーID
             level: レベル
-            user_items: ユーザーの学習履歴（再利用のため、既に取得済みの場合は渡す）
         
         Returns:
-            Dict: レベルごとの進捗情報、またはNone
+            Dict: レベルごとの進捗情報（level, progress, reviewable, learned, unlearned）
+                  または None（データがない場合）
         """
         try:
-            # ユーザーの学習履歴を取得（未取得の場合のみ）
-            if user_items is None:
-                user_response = self.table.query(
-                    KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
-                    ExpressionAttributeValues={
-                        ':pk': f"USER#{current_user_id}",
-                        ':sk_prefix': 'WORD#'
-                    }
-                )
-                user_items = user_response.get('Items', [])
+            # ユーザーの学習履歴を取得（レベルでフィルタリング）
+            user_response = self.table.query(
+                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+                ExpressionAttributeValues={
+                    ':pk': f"USER#{current_user_id}",
+                    ':sk_prefix': 'WORD#'
+                }
+            )
+            user_items = user_response.get('Items', [])
             
             # 指定レベルの単語を取得
             level_words = self._get_level_words(level)
+            if not level_words:
+                # インデックス取得が失敗した場合のフォールバック
+                all_words = self._get_all_words_with_pagination()
+                level_words = [word for word in all_words if word.get('level') == level]
+            
+            if not level_words:
+                return None
             
             # レベルごとの全単語IDを取得
             all_word_ids = set(int(item['SK']) for item in level_words)
             
-            # ユーザーの学習済み単語IDリスト（該当レベルのみ）
+            # ユーザーの学習済み単語IDリスト
             level_user_items = [item for item in user_items if item.get('level') == level]
             user_learned_ids = set(int(item['word_id']) for item in level_user_items)
             learned = len(user_learned_ids)
