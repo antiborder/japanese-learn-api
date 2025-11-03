@@ -155,3 +155,67 @@ class ProgressDynamoDB(DynamoDBBase):
         except Exception as e:
             logger.error(f"Error in get_progress: {str(e)}")
             raise
+    
+    async def get_progress_by_level(self, current_user_id: str, level: int, user_items: Optional[List[Dict]] = None) -> Optional[Dict]:
+        """
+        指定されたレベルの進捗情報を取得する（reviewableとunlearnedを含む）
+        
+        Args:
+            current_user_id: ユーザーID
+            level: レベル
+            user_items: ユーザーの学習履歴（再利用のため、既に取得済みの場合は渡す）
+        
+        Returns:
+            Dict: レベルごとの進捗情報、またはNone
+        """
+        try:
+            # ユーザーの学習履歴を取得（未取得の場合のみ）
+            if user_items is None:
+                user_response = self.table.query(
+                    KeyConditionExpression='PK = :pk AND begins_with(SK, :sk_prefix)',
+                    ExpressionAttributeValues={
+                        ':pk': f"USER#{current_user_id}",
+                        ':sk_prefix': 'WORD#'
+                    }
+                )
+                user_items = user_response.get('Items', [])
+            
+            # 指定レベルの単語を取得
+            level_words = self._get_level_words(level)
+            
+            # レベルごとの全単語IDを取得
+            all_word_ids = set(int(item['SK']) for item in level_words)
+            
+            # ユーザーの学習済み単語IDリスト（該当レベルのみ）
+            level_user_items = [item for item in user_items if item.get('level') == level]
+            user_learned_ids = set(int(item['word_id']) for item in level_user_items)
+            learned = len(user_learned_ids)
+            unlearned = len(all_word_ids - user_learned_ids)
+            reviewable = sum(
+                1 for item in level_user_items
+                if self.datetime_utils.is_reviewable(item)
+            )
+            
+            if level_user_items:
+                # 学習済み単語の習熟度の平均を計算
+                gross_proficiency = sum(float(item.get('proficiency_MJ', 0)) + float(item.get('proficiency_JM', 0)) for item in level_user_items)
+                avg_proficiency_of_learned = gross_proficiency / (2 * learned) if learned > 0 else 0
+                
+                # 全体の進捗率を計算（学習済み単語数 / 全単語数）
+                learned_ratio = learned / len(all_word_ids) if len(all_word_ids) > 0 else 0
+                
+                # 最終的なproficiencyは、完了率と習熟度の平均を組み合わせる
+                progress = int(round((learned_ratio * avg_proficiency_of_learned) * 100))
+            else:
+                progress = 0
+            
+            return {
+                "level": level,
+                "progress": progress,
+                "reviewable": reviewable,
+                "learned": learned,
+                "unlearned": unlearned
+            }
+        except Exception as e:
+            logger.error(f"Error in get_progress_by_level for level {level}: {str(e)}")
+            return None

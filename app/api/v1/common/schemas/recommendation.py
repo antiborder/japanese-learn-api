@@ -8,5 +8,5 @@ class RecommendationItem(BaseModel):
 
 class RecommendationResponse(BaseModel):
     """レコメンドレスポンスのスキーマ"""
-    recommendations: List[RecommendationItem] = Field(..., description="おすすめリスト（最大3件）")
+    recommendations: List[RecommendationItem] = Field(..., description="おすすめリスト（最大2件）")
 
