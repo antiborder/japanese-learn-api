@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 from integrations.dynamodb import progress_db, plan_db, sentences_progress_db, sentences_plan_db, user_settings_db
 from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
-from common.config import VALID_GROUPS, MIN_LEVEL, MAX_LEVEL
+from common.config import VALID_GROUPS
 import logging
 from common.auth import get_current_user_id
 
@@ -15,20 +15,31 @@ TEST_USER_ID = "test-user-123"
 @router.get("/words/progress")
 async def get_words_progress(
     current_user_id: str = Depends(get_current_user_id),
-    level: int = Query(..., description=f"レベル（{MIN_LEVEL}-{MAX_LEVEL}）", ge=MIN_LEVEL, le=MAX_LEVEL)
+    group: str = Query(..., description="級を指定する文字列（N5, N4, N3, N2, N1）")
 ):
     """
-    ログインユーザーの単語の指定レベルの進捗情報を返す（unlearnedも含む）
+    ログインユーザーの単語のレベルごとの進捗情報を返す（unlearnedも含む）
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
     
     パラメータ:
-    - level: 必須。レベル（1-16）
+    - group: 必須。級パラメータ。指定された級に属するレベルのprogressを返す。
+            有効な値: N5, N4, N3, N2, N1
+            - N5: レベル 1, 2, 3
+            - N4: レベル 4, 5, 6
+            - N3: レベル 7, 8, 9
+            - N2: レベル 10, 11, 12
+            - N1: レベル 13, 14, 15
     """
     try:
-        result = await progress_db.get_progress_by_level(current_user_id, level)
-        if result is None:
-            raise HTTPException(status_code=404, detail=f"No progress data found for level {level}")
+        # groupパラメータのバリデーション
+        if group not in VALID_GROUPS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid group: {group}. Valid groups are: {VALID_GROUPS}"
+            )
+        
+        result = await progress_db.get_progress(current_user_id, group=group)
         return result
     except HTTPException:
         raise
@@ -67,16 +78,21 @@ async def get_words_plan(current_user_id: str = Depends(get_current_user_id)):
 # テスト用エンドポイント（認証バイパス）
 @router.get("/test/words/progress")
 async def get_words_progress_test(
-    level: int = Query(..., description=f"レベル（{MIN_LEVEL}-{MAX_LEVEL}）", ge=MIN_LEVEL, le=MAX_LEVEL)
+    group: str = Query(..., description="級を指定する文字列（N5, N4, N3, N2, N1）")
 ):
     """
     テスト用：認証なしでwords/progressエンドポイントをテスト
     本番環境では削除してください
     """
     try:
-        result = await progress_db.get_progress_by_level(TEST_USER_ID, level)
-        if result is None:
-            raise HTTPException(status_code=404, detail=f"No progress data found for level {level}")
+        # groupパラメータのバリデーション
+        if group not in VALID_GROUPS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid group: {group}. Valid groups are: {VALID_GROUPS}"
+            )
+        
+        result = await progress_db.get_progress(TEST_USER_ID, group=group)
         return result
     except HTTPException:
         raise
@@ -103,20 +119,31 @@ async def get_words_plan_test():
 @router.get("/sentences/progress")
 async def get_sentences_progress(
     current_user_id: str = Depends(get_current_user_id),
-    level: int = Query(..., description=f"レベル（{MIN_LEVEL}-{MAX_LEVEL}）", ge=MIN_LEVEL, le=MAX_LEVEL)
+    group: str = Query(..., description="級を指定する文字列（N5, N4, N3, N2, N1）")
 ):
     """
-    ログインユーザーの例文の指定レベルの進捗情報を返す（unlearnedも含む）
+    ログインユーザーの例文のレベルごとの進捗情報を返す（unlearnedも含む）
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
     
     パラメータ:
-    - level: 必須。レベル（1-16）
+    - group: 必須。級パラメータ。指定された級に属するレベルのprogressを返す。
+            有効な値: N5, N4, N3, N2, N1
+            - N5: レベル 1, 2, 3
+            - N4: レベル 4, 5, 6
+            - N3: レベル 7, 8, 9
+            - N2: レベル 10, 11, 12
+            - N1: レベル 13, 14, 15
     """
     try:
-        result = await sentences_progress_db.get_progress_by_level(current_user_id, level)
-        if result is None:
-            raise HTTPException(status_code=404, detail=f"No progress data found for level {level}")
+        # groupパラメータのバリデーション
+        if group not in VALID_GROUPS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid group: {group}. Valid groups are: {VALID_GROUPS}"
+            )
+        
+        result = await sentences_progress_db.get_progress(current_user_id, group=group)
         return result
     except HTTPException:
         raise
@@ -155,16 +182,21 @@ async def get_sentences_plan(current_user_id: str = Depends(get_current_user_id)
 # テスト用エンドポイント（認証バイパス）
 @router.get("/test/sentences/progress")
 async def get_sentences_progress_test(
-    level: int = Query(..., description=f"レベル（{MIN_LEVEL}-{MAX_LEVEL}）", ge=MIN_LEVEL, le=MAX_LEVEL)
+    group: str = Query(..., description="級を指定する文字列（N5, N4, N3, N2, N1）")
 ):
     """
     テスト用：認証なしでsentences/progressエンドポイントをテスト
     本番環境では削除してください
     """
     try:
-        result = await sentences_progress_db.get_progress_by_level(TEST_USER_ID, level)
-        if result is None:
-            raise HTTPException(status_code=404, detail=f"No progress data found for level {level}")
+        # groupパラメータのバリデーション
+        if group not in VALID_GROUPS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid group: {group}. Valid groups are: {VALID_GROUPS}"
+            )
+        
+        result = await sentences_progress_db.get_progress(TEST_USER_ID, group=group)
         return result
     except HTTPException:
         raise
