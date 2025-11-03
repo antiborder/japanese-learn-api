@@ -94,6 +94,14 @@ Resources:
           AttributeType: S
         - AttributeName: level
           AttributeType: N
+        - AttributeName: chinese
+          AttributeType: S
+        - AttributeName: korean
+          AttributeType: S
+        - AttributeName: indonesian
+          AttributeType: S
+        - AttributeName: hindi
+          AttributeType: S
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
@@ -106,6 +114,42 @@ Resources:
               KeyType: HASH
             - AttributeName: level
               KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: chinese-index
+          KeySchema:
+            - AttributeName: chinese
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: korean-index
+          KeySchema:
+            - AttributeName: korean
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: indonesian-index
+          KeySchema:
+            - AttributeName: indonesian
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: hindi-index
+          KeySchema:
+            - AttributeName: hindi
+              KeyType: HASH
           Projection:
             ProjectionType: ALL
           ProvisionedThroughput:
@@ -343,6 +387,10 @@ Resources:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/name-index"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/english-index"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/vietnamese-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/chinese-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/korean-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/indonesian-index"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/hindi-index"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/character-index"
 
   SentencesFunction:

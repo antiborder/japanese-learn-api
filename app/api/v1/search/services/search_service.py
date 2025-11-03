@@ -40,6 +40,10 @@ class SearchService:
                     hiragana=word_data['hiragana'],
                     english=word_data.get('english'),
                     vietnamese=word_data.get('vietnamese'),
+                    chinese=word_data.get('chinese'),
+                    korean=word_data.get('korean'),
+                    indonesian=word_data.get('indonesian'),
+                    hindi=word_data.get('hindi'),
                     audio_url=None  # 音声URLは別途生成が必要
                 )
                 words.append(word)

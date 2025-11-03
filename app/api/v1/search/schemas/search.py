@@ -6,6 +6,10 @@ from enum import Enum
 class Language(str, Enum):
     EN = "en"
     VI = "vi"
+    ZH_HANS = "zh-Hans"
+    KO = "ko"
+    ID = "id"
+    HI = "hi"
 
 
 class WordSearchResult(BaseModel):
@@ -14,6 +18,10 @@ class WordSearchResult(BaseModel):
     hiragana: str
     english: Optional[str] = None
     vietnamese: Optional[str] = None
+    chinese: Optional[str] = None
+    korean: Optional[str] = None
+    indonesian: Optional[str] = None
+    hindi: Optional[str] = None
     audio_url: Optional[str] = None
 
 

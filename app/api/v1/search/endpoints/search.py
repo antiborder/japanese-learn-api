@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/words", response_model=SearchResponse)
 async def search_words(
     q: str = Query(..., description="検索クエリ"),
-    lang: str = Query(..., description="言語コード (en または vi)"),
+    lang: str = Query(..., description="言語コード (en, vi, zh-Hans, ko, id, hi)"),
     limit: Optional[int] = Query(20, ge=1, le=100, description="取得件数"),
     offset: Optional[int] = Query(0, ge=0, description="オフセット")
 ):
@@ -25,7 +25,7 @@ async def search_words(
         except ValueError:
             raise HTTPException(
                 status_code=400, 
-                detail="Invalid language code. Must be 'en' or 'vi'"
+                detail="Invalid language code. Must be 'en', 'vi', 'zh-Hans', 'ko', 'id', or 'hi'"
             )
         
         # リクエスト作成
@@ -50,7 +50,7 @@ async def search_words(
 @router.get("/all")
 async def search_all(
     q: str = Query(..., description="検索クエリ"),
-    lang: str = Query(..., description="言語コード (en または vi)"),
+    lang: str = Query(..., description="言語コード (en, vi, zh-Hans, ko, id, hi)"),
     limit: Optional[int] = Query(20, ge=1, le=100, description="取得件数"),
     offset: Optional[int] = Query(0, ge=0, description="オフセット")
 ):
@@ -64,7 +64,7 @@ async def search_all(
         except ValueError:
             raise HTTPException(
                 status_code=400, 
-                detail="Invalid language code. Must be 'en' or 'vi'"
+                detail="Invalid language code. Must be 'en', 'vi', 'zh-Hans', 'ko', 'id', or 'hi'"
             )
         
         # 統合検索実行
