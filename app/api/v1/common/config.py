@@ -9,7 +9,18 @@ logger.setLevel(logging.INFO)
 
 # レベル設定
 MIN_LEVEL = 1
-MAX_LEVEL = 15
+MAX_LEVEL = 16  # N1はレベル13-16まで対応
+
+# 級（JLPT）とレベルのマッピング
+GROUP_TO_LEVELS = {
+    "N5": [1, 2, 3],
+    "N4": [4, 5, 6],
+    "N3": [7, 8, 9],
+    "N2": [10, 11, 12],
+    "N1": [13, 14, 15, 16]
+}
+
+VALID_GROUPS = list(GROUP_TO_LEVELS.keys())
 
 class Settings(BaseSettings):
     # データベース設定
