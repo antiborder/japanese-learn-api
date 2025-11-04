@@ -96,13 +96,19 @@ Resources:
           AttributeType: N
         - AttributeName: name
           AttributeType: S
+        - AttributeName: english
+          AttributeType: S
         - AttributeName: chinese
           AttributeType: S
         - AttributeName: korean
           AttributeType: S
         - AttributeName: indonesian
           AttributeType: S
+        - AttributeName: vietnamese
+          AttributeType: S
         - AttributeName: hindi
+          AttributeType: S
+        - AttributeName: character
           AttributeType: S
       KeySchema:
         - AttributeName: PK
@@ -124,6 +130,12 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        - IndexName: english-index
+          KeySchema:
+            - AttributeName: english
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
         - IndexName: chinese-index
           KeySchema:
             - AttributeName: chinese
@@ -142,9 +154,21 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        - IndexName: vietnamese-index
+          KeySchema:
+            - AttributeName: vietnamese
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
         - IndexName: hindi-index
           KeySchema:
             - AttributeName: hindi
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: character-index
+          KeySchema:
+            - AttributeName: character
               KeyType: HASH
           Projection:
             ProjectionType: ALL

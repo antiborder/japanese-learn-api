@@ -379,11 +379,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='character-index',
                 KeyConditionExpression='#character = :character',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#character': 'character'
                 },
                 ExpressionAttributeValues={
-                    ':character': query
+                    ':character': query,
+                    ':pk': 'KANJI'
                 }
             )
             
@@ -414,11 +416,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='character-index',
                 KeyConditionExpression='#character = :character',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#character': 'character'
                 },
                 ExpressionAttributeValues={
-                    ':character': query
+                    ':character': query,
+                    ':pk': 'KANJI'
                 },
                 Select='COUNT'
             )
