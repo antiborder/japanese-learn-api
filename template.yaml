@@ -94,6 +94,8 @@ Resources:
           AttributeType: S
         - AttributeName: level
           AttributeType: N
+        - AttributeName: name
+          AttributeType: S
         - AttributeName: chinese
           AttributeType: S
         - AttributeName: korean
@@ -114,6 +116,12 @@ Resources:
               KeyType: HASH
             - AttributeName: level
               KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: name-index
+          KeySchema:
+            - AttributeName: name
+              KeyType: HASH
           Projection:
             ProjectionType: ALL
         - IndexName: chinese-index
