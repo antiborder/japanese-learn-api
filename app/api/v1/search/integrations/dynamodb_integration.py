@@ -94,11 +94,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='name-index',
                 KeyConditionExpression='#name = :name',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#name': 'name'
                 },
                 ExpressionAttributeValues={
-                    ':name': query
+                    ':name': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -126,11 +128,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='english-index',
                 KeyConditionExpression='#english = :english',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#english': 'english'
                 },
                 ExpressionAttributeValues={
-                    ':english': query
+                    ':english': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -158,11 +162,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='vietnamese-index',
                 KeyConditionExpression='#vietnamese = :vietnamese',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#vietnamese': 'vietnamese'
                 },
                 ExpressionAttributeValues={
-                    ':vietnamese': query
+                    ':vietnamese': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -190,11 +196,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='chinese-index',
                 KeyConditionExpression='#chinese = :chinese',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#chinese': 'chinese'
                 },
                 ExpressionAttributeValues={
-                    ':chinese': query
+                    ':chinese': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -222,11 +230,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='korean-index',
                 KeyConditionExpression='#korean = :korean',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#korean': 'korean'
                 },
                 ExpressionAttributeValues={
-                    ':korean': query
+                    ':korean': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -254,11 +264,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='indonesian-index',
                 KeyConditionExpression='#indonesian = :indonesian',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#indonesian': 'indonesian'
                 },
                 ExpressionAttributeValues={
-                    ':indonesian': query
+                    ':indonesian': query,
+                    ':pk': 'WORD'
                 }
             )
             
@@ -286,11 +298,13 @@ class SearchDynamoDBClient:
             response = self.table.query(
                 IndexName='hindi-index',
                 KeyConditionExpression='#hindi = :hindi',
+                FilterExpression='PK = :pk',
                 ExpressionAttributeNames={
                     '#hindi': 'hindi'
                 },
                 ExpressionAttributeValues={
-                    ':hindi': query
+                    ':hindi': query,
+                    ':pk': 'WORD'
                 }
             )
             
