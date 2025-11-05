@@ -75,6 +75,36 @@ class NextDynamoDB(DynamoDBBase):
         )
         return response.get('Items', [])
 
+    async def _get_user_words_by_level(self, user_id: str, level: int) -> List[Dict]:
+        """指定されたユーザーとレベルの学習履歴を取得します（user-level-index GSIを使用）"""
+        try:
+            response = self.table.query(
+                IndexName='user-level-index',
+                KeyConditionExpression='PK = :pk AND #level = :level',
+                ExpressionAttributeNames={
+                    '#level': 'level'
+                },
+                ExpressionAttributeValues={
+                    ':pk': f"USER#{user_id}",
+                    ':level': int(level)
+                }
+            )
+            user_level_words = response.get('Items', [])
+            # SKがWORD#で始まるものだけをフィルタリング（念のため）
+            filtered_words = [
+                item for item in user_level_words 
+                if item.get('SK', '').startswith('WORD#')
+            ]
+            if not filtered_words:
+                logger.info(f"No learning history found for user {user_id}, level {level}")
+                return []
+            
+            logger.info(f"Successfully retrieved {len(filtered_words)} learning history items for user {user_id}, level {level}")
+            return filtered_words
+        except Exception as e:
+            logger.error(f"Error getting user words for user {user_id}, level {level}: {str(e)}")
+            raise
+
     async def _get_all_words(self) -> List[Dict]:
         """全単語を取得します"""
         try:

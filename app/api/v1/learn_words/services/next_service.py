@@ -46,12 +46,15 @@ class NextService:
             if not level_words:
                 return None
             
-            # ③ユーザーの学習履歴の取得とレベルでのフィルタリング
+            # ③ユーザーの学習履歴の取得とレベルでのフィルタリング（user-level-index GSIを使用）
+            user_level_words = await self.next_db._get_user_words_by_level(user_id, level_int)
+            # word_selector.select_next_wordの引数としてuser_wordsが必要（後方互換性のため）
+            # 実際にはuser_level_wordsが提供されれば、select_next_word内でuser_wordsは使用されない
             user_words = await self.next_db._get_user_words(user_id)
-            user_level_words = [item for item in user_words if item.get('level') == level_int]
             
             # ④単語選定方法の決定
-            return self.word_selector.select_next_word(level_words, user_words, user_id, level_int)
+            # GSIで取得したuser_level_wordsを直接渡すことで、DynamoDB側でフィルタリング済みのデータを使用
+            return self.word_selector.select_next_word(level_words, user_words, user_id, level_int, user_level_words)
         except Exception as e:
             logger.error(f"Error getting next word for user {user_id}, level {level}: {str(e)}", exc_info=True)
             raise

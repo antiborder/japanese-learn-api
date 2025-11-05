@@ -65,10 +65,13 @@ class WordSelector:
     
     @staticmethod
     def select_next_word(level_words: List[Dict], user_words: List[Dict], 
-                        user_id: str, level: Union[int, str]) -> Optional[Dict]:
+                        user_id: str, level: Union[int, str], 
+                        user_level_words: Optional[List[Dict]] = None) -> Optional[Dict]:
         """次に学習すべき単語を選択します"""
         level_int = int(level) if isinstance(level, str) else level
-        user_level_words = [item for item in user_words if item.get('level') == level_int]
+        # user_level_wordsが提供されていない場合は、user_wordsからフィルタリング
+        if user_level_words is None:
+            user_level_words = [item for item in user_words if item.get('level') == level_int]
         
         # ④単語選定方法の決定
         ratio = len(user_level_words) / len(level_words) if level_words else 0

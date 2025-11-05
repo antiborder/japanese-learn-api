@@ -124,6 +124,14 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+        - IndexName: user-level-index
+          KeySchema:
+            - AttributeName: PK
+              KeyType: HASH
+            - AttributeName: level
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
         - IndexName: name-index
           KeySchema:
             - AttributeName: name
