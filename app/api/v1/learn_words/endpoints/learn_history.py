@@ -79,21 +79,68 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
-        # 3. 単語詳細をまとめて取得
+        # 3. 単語詳細をまとめて取得（存在しない単語をスキップ）
         word_ids = [answer_word_id] + other_word_ids
         import asyncio
-        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids])
-        answer_word = words_detail[0]
-        other_words = words_detail[1:]
+        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids], return_exceptions=True)
+        
+        # 存在しない単語をフィルタリング
+        valid_words = []
+        missing_word_ids = []
+        for i, result in enumerate(words_detail):
+            if isinstance(result, Exception):
+                error_msg = str(result)
+                if hasattr(result, 'detail'):
+                    error_msg = result.detail
+                logger.warning(f"Error getting word detail for word_id {word_ids[i]}: {error_msg}")
+                missing_word_ids.append(word_ids[i])
+            elif result is None:
+                logger.warning(f"Word {word_ids[i]} not found in DynamoDB, skipping")
+                missing_word_ids.append(word_ids[i])
+            else:
+                valid_words.append(result)
+        
+        # 正解の単語が存在しない場合、エラーを返す
+        if not valid_words or valid_words[0] is None:
+            logger.error(f"Answer word {answer_word_id} not found in DynamoDB")
+            raise HTTPException(status_code=404, detail=f"Answer word {answer_word_id} not found")
+        
+        answer_word = valid_words[0]
+        
+        # 他の単語が3つ未満の場合、追加で取得
+        other_words = valid_words[1:]
+        if len(other_words) < 3 and missing_word_ids:
+            logger.info(f"Only {len(other_words)} valid words found, fetching additional words excluding {missing_word_ids}")
+            additional_exclude_ids = [answer_word_id] + [w['id'] for w in other_words] + missing_word_ids
+            additional_word_ids = await next_service.get_other_words(request.level, answer_word_id, additional_exclude_ids)
+            
+            if additional_word_ids:
+                import asyncio
+                additional_details = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in additional_word_ids], return_exceptions=True)
+                for result in additional_details:
+                    if result is not None and not isinstance(result, Exception):
+                        other_words.append(result)
+                        if len(other_words) >= 3:
+                            break
+        
+        # 他の単語が3つ未満の場合、エラーを返す
+        if len(other_words) < 3:
+            raise HTTPException(status_code=404, detail=f"Not enough valid words found. Only {len(other_words)} valid words available.")
 
         return {
             "mode": mode,
             "answer_word": answer_word,
-            "other_words": other_words
+            "other_words": other_words[:3]  # 最大3つまで
         }
+    except HTTPException:
+        # HTTPExceptionはそのまま再発生
+        raise
     except Exception as e:
-        logger.error(f"Error in get_next_word endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_detail = str(e) if str(e) else repr(e)
+        if hasattr(e, 'detail'):
+            error_detail = e.detail
+        logger.error(f"Error in get_next_word endpoint: {error_detail}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_detail if error_detail else "Internal server error")
 
 class OtherWordsRequest(BaseModel):
     level: int = Field(..., description="取得する単語のレベル")
@@ -150,18 +197,65 @@ async def get_random_word(request: RandomWordRequest):
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
-        # 3. 単語詳細をまとめて取得
+        # 3. 単語詳細をまとめて取得（存在しない単語をスキップ）
         word_ids = [answer_word_id] + other_word_ids
         import asyncio
-        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids])
-        answer_word = words_detail[0]
-        other_words = words_detail[1:]
+        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids], return_exceptions=True)
+        
+        # 存在しない単語をフィルタリング
+        valid_words = []
+        missing_word_ids = []
+        for i, result in enumerate(words_detail):
+            if isinstance(result, Exception):
+                error_msg = str(result)
+                if hasattr(result, 'detail'):
+                    error_msg = result.detail
+                logger.warning(f"Error getting word detail for word_id {word_ids[i]}: {error_msg}")
+                missing_word_ids.append(word_ids[i])
+            elif result is None:
+                logger.warning(f"Word {word_ids[i]} not found in DynamoDB, skipping")
+                missing_word_ids.append(word_ids[i])
+            else:
+                valid_words.append(result)
+        
+        # 正解の単語が存在しない場合、エラーを返す
+        if not valid_words or valid_words[0] is None:
+            logger.error(f"Answer word {answer_word_id} not found in DynamoDB")
+            raise HTTPException(status_code=404, detail=f"Answer word {answer_word_id} not found")
+        
+        answer_word = valid_words[0]
+        
+        # 他の単語が3つ未満の場合、追加で取得
+        other_words = valid_words[1:]
+        if len(other_words) < 3 and missing_word_ids:
+            logger.info(f"Only {len(other_words)} valid words found, fetching additional words excluding {missing_word_ids}")
+            additional_exclude_ids = [answer_word_id] + [w['id'] for w in other_words] + missing_word_ids
+            additional_word_ids = await next_service.get_other_words(request.level, answer_word_id, additional_exclude_ids)
+            
+            if additional_word_ids:
+                import asyncio
+                additional_details = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in additional_word_ids], return_exceptions=True)
+                for result in additional_details:
+                    if result is not None and not isinstance(result, Exception):
+                        other_words.append(result)
+                        if len(other_words) >= 3:
+                            break
+        
+        # 他の単語が3つ未満の場合、エラーを返す
+        if len(other_words) < 3:
+            raise HTTPException(status_code=404, detail=f"Not enough valid words found. Only {len(other_words)} valid words available.")
 
         return {
             "mode": mode,
             "answer_word": answer_word,
-            "other_words": other_words
+            "other_words": other_words[:3]  # 最大3つまで
         }
+    except HTTPException:
+        # HTTPExceptionはそのまま再発生
+        raise
     except Exception as e:
-        logger.error(f"Error in get_random_word endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_detail = str(e) if str(e) else repr(e)
+        if hasattr(e, 'detail'):
+            error_detail = e.detail
+        logger.error(f"Error in get_random_word endpoint: {error_detail}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_detail if error_detail else "Internal server error")

@@ -11,33 +11,40 @@ class NextDynamoDB(DynamoDBBase):
     def __init__(self):
         super().__init__()
 
-    async def get_word_detail(self, word_id: int) -> dict:
-        """DynamoDBから単語詳細を取得"""
-        response = self.table.get_item(
-            Key={
-                'PK': "WORD",
-                'SK': str(word_id)
+    async def get_word_detail(self, word_id: int) -> Optional[dict]:
+        """DynamoDBから単語詳細を取得。単語が見つからない場合はNoneを返す"""
+        try:
+            response = self.table.get_item(
+                Key={
+                    'PK': "WORD",
+                    'SK': str(word_id)
+                }
+            )
+            item = response.get('Item')
+            if not item:
+                logger.warning(f"Word {word_id} not found in DynamoDB")
+                return None
+            
+            return {
+                "id": int(item['SK']),
+                "name": item.get("name", ""),
+                "hiragana": item.get("hiragana", ""),
+                "is_katakana": bool(int(item.get("is_katakana", 0))),
+                "level": int(item.get("level", 0)),
+                "english": item.get("english"),
+                "vietnamese": item.get("vietnamese"),
+                "chinese": item.get("chinese"),
+                "korean": item.get("korean"),
+                "indonesian": item.get("indonesian"),
+                "hindi": item.get("hindi"),
+                "lexical_category": item.get("lexical_category", ""),
+                "accent_up": int(item.get("accent_up")) if item.get("accent_up") else None,
+                "accent_down": int(item.get("accent_down")) if item.get("accent_down") else None
             }
-        )
-        item = response.get('Item')
-        if not item:
-            raise HTTPException(status_code=404, detail=f"Word {word_id} not found")
-        return {
-            "id": int(item['SK']),
-            "name": item.get("name", ""),
-            "hiragana": item.get("hiragana", ""),
-            "is_katakana": bool(int(item.get("is_katakana", 0))),
-            "level": int(item.get("level", 0)),
-            "english": item.get("english"),
-            "vietnamese": item.get("vietnamese"),
-            "chinese": item.get("chinese"),
-            "korean": item.get("korean"),
-            "indonesian": item.get("indonesian"),
-            "hindi": item.get("hindi"),
-            "lexical_category": item.get("lexical_category", ""),
-            "accent_up": int(item.get("accent_up")) if item.get("accent_up") else None,
-            "accent_down": int(item.get("accent_down")) if item.get("accent_down") else None
-        }
+        except Exception as e:
+            error_msg = f"Error getting word detail for word_id {word_id}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return None
 
     async def _get_level_words(self, level: int) -> List[Dict]:
         """指定されたレベルの単語を取得します（word-level-index GSIを使用）"""
