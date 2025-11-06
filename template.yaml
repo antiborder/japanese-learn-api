@@ -223,9 +223,15 @@ Resources:
             Path: /api/v1/words/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: WordsFunctionは読み取り専用（GetItem, Queryのみ）
         - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
           - Effect: Allow
             Action:
               - s3:PutObject
@@ -277,8 +283,16 @@ Resources:
             Path: /api/v1/auth/oauth/google
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, Query）
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   UsersFunction:
     Type: AWS::Serverless::Function
@@ -312,8 +326,18 @@ Resources:
             Path: /api/v1/users/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: UsersFunctionは完全CRUD（GetItem, PutItem, UpdateItem, DeleteItem, Query）
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   KanjisFunction:
     Type: AWS::Serverless::Function
@@ -356,17 +380,18 @@ Resources:
             Path: /api/v1/components/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
-        - S3CrudPolicy:
-            BucketName: !Ref S3BucketName
+        # 最小権限: KanjisFunctionは読み取り専用（GetItem, Queryのみ）
+        # Scan権限は削除（コスト削減とセキュリティ向上）
         - Statement:
           - Effect: Allow
             Action:
-                - dynamodb:Query
-                - dynamodb:Scan
+              - dynamodb:GetItem
+              - dynamodb:Query
             Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
 
   SearchFunction:
     Type: AWS::Serverless::Function
@@ -397,23 +422,23 @@ Resources:
             Path: /api/v1/search/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: SearchFunctionは読み取り専用（Queryのみ、Scan権限は削除）
+        # 複数のGSIを使用するため、すべてのインデックスへのQuery権限を明示的に指定
         - Statement:
           - Effect: Allow
             Action:
-                - dynamodb:Query
-                - dynamodb:Scan
+              - dynamodb:Query
             Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/name-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/english-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/vietnamese-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/chinese-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/korean-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/indonesian-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/hindi-index"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/character-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/name-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/english-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/vietnamese-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/chinese-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/korean-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/indonesian-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/hindi-index"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/character-index"
 
   SentencesFunction:
     Type: AWS::Serverless::Function
@@ -446,9 +471,15 @@ Resources:
             Path: /api/v1/sentences/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: SentencesFunctionは読み取り専用（GetItem, Queryのみ）
         - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
           - Effect: Allow
             Action:
               - s3:PutObject
@@ -487,15 +518,17 @@ Resources:
             Path: /api/v1/quizzes/{proxy+}
             Method: ANY
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTable
+        # 最小権限: SentenceCompositionFunctionは読み書き（GetItem, PutItem, Query）
+        # Scan権限は削除（コスト削減とセキュリティ向上）
         - Statement:
           - Effect: Allow
             Action:
-                - dynamodb:Query
-                - dynamodb:Scan
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:Query
             Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
   # CloudWatch Log Groups
   WordsFunctionLogGroup:
