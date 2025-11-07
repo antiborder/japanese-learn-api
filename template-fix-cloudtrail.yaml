@@ -1,0 +1,14 @@
+# 一時的な修正用テンプレート
+# CloudTrailリソースを削除するために使用
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+# 既存のtemplate.yamlからCloudTrailリソースを除いた完全なテンプレートを使用
+# このファイルは参考用です
+
+# 実際の解決方法：
+# 1. S3バケットを手動削除（上記で実行済み）
+# 2. CloudFormationコンソールからスタックを更新
+# 3. または、元のtemplate.yamlを使用してデプロイを再試行
+

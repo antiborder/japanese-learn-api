@@ -48,6 +48,81 @@ class DynamoDBKanjiClient:
             logger.error(f"Error getting all kanjis from DynamoDB: {str(e)}")
             raise
 
+    def get_kanjis(self, skip: int = 0, limit: int = 100):
+        """
+        漢字情報を取得します（skip/limit対応）
+        
+        Args:
+            skip: スキップする件数
+            limit: 取得する最大件数
+        """
+        try:
+            # すべての漢字を取得（DynamoDBのqueryはページネーションが必要な場合がある）
+            all_items = []
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "KANJI"
+                    }
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                items = response.get('Items', [])
+                all_items.extend(items)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            # 各アイテムにidフィールドを追加
+            for item in all_items:
+                kanji_id = int(item['SK'])
+                item['id'] = kanji_id
+            
+            # skip/limitを適用
+            return all_items[skip:skip + limit]
+        except Exception as e:
+            logger.error(f"Error getting kanjis from DynamoDB: {str(e)}")
+            raise
+
+    def count_kanjis(self) -> int:
+        """
+        漢字の総件数を取得します
+        """
+        try:
+            count = 0
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "KANJI"
+                    },
+                    "Select": "COUNT"
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                count += response.get('Count', 0)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            return count
+        except Exception as e:
+            logger.error(f"Error counting kanjis from DynamoDB: {str(e)}")
+            raise
+
     def get_components_by_kanji_id(self, kanji_id: str):
         try:
             response = self.table.query(

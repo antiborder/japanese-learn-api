@@ -20,3 +20,17 @@ class Component(ComponentBase):
 
     class Config:
         orm_mode = True
+
+
+class PaginationInfo(BaseModel):
+    page: int
+    limit: int
+    total: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class PaginatedComponentsResponse(BaseModel):
+    data: List[Component]
+    pagination: PaginationInfo

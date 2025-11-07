@@ -1,25 +1,51 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
-from common.schemas.sentence import Sentence, SentenceGrammarDescription
+from common.schemas.sentence import Sentence, SentenceGrammarDescription, PaginatedSentencesResponse, PaginationInfo
 from integrations.dynamodb_integration import dynamodb_sentence_client
 from services.sentence_audio_service import get_sentence_audio_url
 from services.ai_grammar_service import get_sentence_grammar_description
 import logging
+import math
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=List[Sentence])
-def read_sentences(skip: int = 0, limit: int = 1000):
+@router.get("/", response_model=PaginatedSentencesResponse)
+def read_sentences(
+    page: int = Query(1, ge=1, description="ページ番号（1から開始）"),
+    limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）")
+):
     """
-    文一覧を取得します。
+    文一覧を取得します（ページネーション対応）。
     DynamoDBから文データを取得し、指定された形式に変換して返します。
     """
     try:
+        # ページネーション計算
+        skip = (page - 1) * limit
+        
+        # 総件数を取得
+        total = dynamodb_sentence_client.count_sentences()
+        
         # DynamoDBから文データを取得
         sentences = dynamodb_sentence_client.get_sentences(skip=skip, limit=limit)
-        return sentences
+        
+        # ページネーション情報を計算
+        total_pages = math.ceil(total / limit) if total > 0 else 0
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        return PaginatedSentencesResponse(
+            data=sentences,
+            pagination=PaginationInfo(
+                page=page,
+                limit=limit,
+                total=total,
+                total_pages=total_pages,
+                has_next=has_next,
+                has_previous=has_previous
+            )
+        )
     except Exception as e:
         logger.error(f"Error reading sentences: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

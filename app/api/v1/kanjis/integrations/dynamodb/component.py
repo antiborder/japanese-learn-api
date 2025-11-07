@@ -15,17 +15,65 @@ class DynamoDBComponent:
 
     def get_components(self, skip: int = 0, limit: int = 100) -> List[dict]:
         try:
-            response = self.table.query(
-                KeyConditionExpression='PK = :pk',
-                ExpressionAttributeValues={
-                    ':pk': 'COMPONENT'
-                },
-                Limit=limit
-            )
-            items = response.get('Items', [])
-            return items[skip:skip + limit]
+            # すべてのコンポーネントを取得（DynamoDBのqueryはページネーションが必要な場合がある）
+            all_items = []
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "COMPONENT"
+                    }
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                items = response.get('Items', [])
+                all_items.extend(items)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            # skip/limitを適用
+            return all_items[skip:skip + limit]
         except ClientError as e:
             logger.error(f"Error getting all components from DynamoDB: {str(e)}")
+            raise
+
+    def count_components(self) -> int:
+        """
+        コンポーネントの総件数を取得します
+        """
+        try:
+            count = 0
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "COMPONENT"
+                    },
+                    "Select": "COUNT"
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                count += response.get('Count', 0)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            return count
+        except ClientError as e:
+            logger.error(f"Error counting components from DynamoDB: {str(e)}")
             raise
 
     def get_component(self, component_id: str) -> Optional[dict]:

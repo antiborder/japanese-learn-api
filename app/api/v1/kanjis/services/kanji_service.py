@@ -11,8 +11,12 @@ def get_kanji(kanji_id: int):
     return dynamodb_kanji_client.get_kanji_by_id(kanji_id)
 
 
-def get_kanjis():
+def get_kanjis(skip: int = 0, limit: int = 100):
     """
-    DynamoDBから全ての漢字情報を取得します。
+    DynamoDBから漢字情報を取得します。
+    
+    Args:
+        skip: スキップする件数
+        limit: 取得する最大件数
     """
-    return dynamodb_kanji_client.get_all_kanjis()
+    return dynamodb_kanji_client.get_kanjis(skip=skip, limit=limit)

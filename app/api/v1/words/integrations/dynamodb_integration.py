@@ -13,30 +13,110 @@ class DynamoDBClient:
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(self.table_name)
 
-    def get_words(self, skip: int = 0, limit: int = 100) -> List[Dict]:
+    def get_words(self, skip: int = 0, limit: int = 100, level: Optional[int] = None) -> List[Dict]:
+        """
+        単語一覧を取得します（レベルフィルタ対応）
+        
+        Args:
+            skip: スキップする件数
+            limit: 取得する最大件数
+            level: レベルフィルタ（オプション）
+        """
         try:
-            response = self.table.query(
-                KeyConditionExpression="PK = :pk",
-                ExpressionAttributeValues={
-                    ":pk": "WORD"
-                },
-                Limit=limit
-            )
-            items = response.get('Items', [])
+            # すべての単語を取得（DynamoDBのqueryはページネーションが必要な場合がある）
+            all_items = []
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "WORD"
+                    }
+                }
+                
+                # レベルフィルタを適用
+                if level is not None:
+                    query_params["FilterExpression"] = "#level = :level"
+                    query_params["ExpressionAttributeNames"] = {
+                        "#level": "level"
+                    }
+                    query_params["ExpressionAttributeValues"][":level"] = level
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                items = response.get('Items', [])
+                all_items.extend(items)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            # アイテムを変換
             words = []
-            for item in items:
+            for item in all_items:
                 try:
                     word = self._convert_dynamodb_to_model(item)
                     words.append(word)
                 except (ValueError, TypeError) as e:
                     logger.error(f"Error converting item {item['SK']}: {str(e)}")
                     continue
+            
+            # skip/limitを適用
             return words[skip:skip + limit]
         except ClientError as e:
             logger.error(f"Error getting words from DynamoDB: {str(e)}")
             raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")
+            raise
+
+    def count_words(self, level: Optional[int] = None) -> int:
+        """
+        単語の総件数を取得します（レベルフィルタ対応）
+        
+        Args:
+            level: レベルフィルタ（オプション）
+        """
+        try:
+            count = 0
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "WORD"
+                    },
+                    "Select": "COUNT"
+                }
+                
+                # レベルフィルタを適用
+                if level is not None:
+                    query_params["FilterExpression"] = "#level = :level"
+                    query_params["ExpressionAttributeNames"] = {
+                        "#level": "level"
+                    }
+                    query_params["ExpressionAttributeValues"][":level"] = level
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                count += response.get('Count', 0)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            return count
+        except ClientError as e:
+            logger.error(f"Error counting words from DynamoDB: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error counting words: {str(e)}")
             raise
 
     def get_word_by_id(self, word_id: int) -> Optional[Dict]:

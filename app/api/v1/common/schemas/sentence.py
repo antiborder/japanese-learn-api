@@ -44,3 +44,17 @@ class SentenceGrammarDescription(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class PaginationInfo(BaseModel):
+    page: int
+    limit: int
+    total: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class PaginatedSentencesResponse(BaseModel):
+    data: List[Sentence]
+    pagination: PaginationInfo

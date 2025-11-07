@@ -15,28 +15,81 @@ class DynamoDBSentenceClient:
 
     def get_sentences(self, skip: int = 0, limit: int = 100) -> List[Dict]:
         try:
-            response = self.table.query(
-                KeyConditionExpression="PK = :pk",
-                ExpressionAttributeValues={
-                    ":pk": "SENTENCE"
-                },
-                Limit=limit
-            )
-            items = response.get('Items', [])
+            # すべての文を取得（DynamoDBのqueryはページネーションが必要な場合がある）
+            all_items = []
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "SENTENCE"
+                    }
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                items = response.get('Items', [])
+                all_items.extend(items)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            # アイテムを変換
             sentences = []
-            for item in items:
+            for item in all_items:
                 try:
                     sentence = self._convert_dynamodb_to_model(item)
                     sentences.append(sentence)
                 except (ValueError, TypeError) as e:
                     logger.error(f"Error converting sentence item {item['SK']}: {str(e)}")
                     continue
+            
+            # skip/limitを適用
             return sentences[skip:skip + limit]
         except ClientError as e:
             logger.error(f"Error getting sentences from DynamoDB: {str(e)}")
             raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")
+            raise
+
+    def count_sentences(self) -> int:
+        """
+        文の総件数を取得します
+        """
+        try:
+            count = 0
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    "KeyConditionExpression": "PK = :pk",
+                    "ExpressionAttributeValues": {
+                        ":pk": "SENTENCE"
+                    },
+                    "Select": "COUNT"
+                }
+                
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                count += response.get('Count', 0)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            return count
+        except ClientError as e:
+            logger.error(f"Error counting sentences from DynamoDB: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error counting sentences: {str(e)}")
             raise
 
     def get_sentence_by_id(self, sentence_id: int) -> Optional[Dict]:

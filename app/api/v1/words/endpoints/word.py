@@ -1,26 +1,53 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
-from common.schemas.word import Word, WordKanji
+from common.schemas.word import Word, WordKanji, PaginatedWordsResponse, PaginationInfo
 from common.utils.utils import convert_hiragana_to_romaji
 from services.word_service import get_audio_url
 from services.image_service import get_word_images
 from services.ai_description_service import get_ai_description
 import logging
 from integrations.dynamodb_integration import dynamodb_client
+import math
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=List[Word])
-def read_words(skip: int = 0, limit: int = 1000):
+@router.get("/", response_model=PaginatedWordsResponse)
+def read_words(
+    page: int = Query(1, ge=1, description="ページ番号（1から開始）"),
+    limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）"),
+    level: Optional[int] = Query(None, description="レベルフィルタ")
+):
     """
-    単語一覧を取得します。
+    単語一覧を取得します（ページネーション対応）。
     DynamoDBから単語データを取得し、MySQLのモデル形式に変換して返します。
     """
     try:
+        # ページネーション計算
+        skip = (page - 1) * limit
+        
+        # 総件数を取得
+        total = dynamodb_client.count_words(level=level)
+        
         # DynamoDBから単語データを取得
-        words = dynamodb_client.get_words(skip=skip, limit=limit)
-        return words
+        words = dynamodb_client.get_words(skip=skip, limit=limit, level=level)
+        
+        # ページネーション情報を計算
+        total_pages = math.ceil(total / limit) if total > 0 else 0
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        return PaginatedWordsResponse(
+            data=words,
+            pagination=PaginationInfo(
+                page=page,
+                limit=limit,
+                total=total,
+                total_pages=total_pages,
+                has_next=has_next,
+                has_previous=has_previous
+            )
+        )
     except Exception as e:
         logger.error(f"Error reading words: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
