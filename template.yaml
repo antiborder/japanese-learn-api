@@ -489,6 +489,45 @@ Resources:
               - !Sub "arn:aws:s3:::${S3BucketName}"
               - !Sub "arn:aws:s3:::${S3BucketName}/*"
 
+  HiraganaFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/hiragana
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-HiraganaFunction"
+      CodeUri: ./app/api/v1/hiragana
+      Handler: app.lambda_handler
+      Description: "Lambda function for hiragana audio endpoints"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref S3BucketName
+          GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
+      Events:
+        HiraganaApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/hiragana
+            Method: ANY
+        HiraganaApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/hiragana/{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "arn:aws:s3:::${S3BucketName}"
+              - !Sub "arn:aws:s3:::${S3BucketName}/*"
+
   SentenceCompositionFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -573,6 +612,13 @@ Resources:
       RetentionInDays: 14
     DependsOn: SentencesFunction
 
+  HiraganaFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${HiraganaFunction}"
+      RetentionInDays: 14
+    DependsOn: HiraganaFunction
+
   SentenceCompositionFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -596,6 +642,9 @@ Outputs:
   SentencesFunctionArn:
     Description: "Sentences Function ARN"
     Value: !GetAtt SentencesFunction.Arn
+  HiraganaFunctionArn:
+    Description: "Hiragana Function ARN"
+    Value: !GetAtt HiraganaFunction.Arn
   SentenceCompositionFunctionArn:
     Description: "Sentence Composition Function ARN"
     Value: !GetAtt SentenceCompositionFunction.Arn

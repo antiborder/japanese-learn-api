@@ -1,0 +1,6 @@
+-r requirements.txt
+uvicorn==0.27.0
+pytest==8.0.0
+black==24.1.1
+flake8==7.0.0
+

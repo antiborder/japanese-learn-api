@@ -1,0 +1,6 @@
+fastapi==0.99.0
+mangum==0.11.0
+python-dotenv==1.0.0
+boto3==1.34.34
+google-cloud-texttospeech==2.14.1
+
