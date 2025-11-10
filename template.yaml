@@ -294,6 +294,47 @@ Resources:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
 
+  KanaLessonFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/kana_lesson
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-KanaLessonFunction"
+      CodeUri: ./app/api/v1/kana_lesson
+      Handler: app.lambda_handler
+      Description: "Lambda function for kana lesson endpoints"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
+          FRONTEND_URL: "https://nihongo.cloud"
+      Events:
+        KanaLessonApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/kana-lesson
+            Method: ANY
+        KanaLessonApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/kana-lesson/{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:Query
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+
   UsersFunction:
     Type: AWS::Serverless::Function
     Metadata:

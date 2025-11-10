@@ -1,0 +1,3 @@
+"""
+Kana Lesson Lambda パッケージ。
+"""

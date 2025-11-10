@@ -12,3 +12,4 @@ Transform: 'AWS::Serverless-2016-10-31'
 # 2. CloudFormationコンソールからスタックを更新
 # 3. または、元のtemplate.yamlを使用してデプロイを再試行
 
+

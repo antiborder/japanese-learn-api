@@ -362,3 +362,4 @@ aws cloudwatch get-metric-statistics \
 - [DynamoDB 料金](https://aws.amazon.com/jp/dynamodb/pricing/)
 - [AWS 料金計算ツール](https://calculator.aws/)
 
+

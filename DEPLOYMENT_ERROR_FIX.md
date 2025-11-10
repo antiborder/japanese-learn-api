@@ -190,3 +190,4 @@ aws cloudformation describe-stack-events \
 
 このエラーは、CloudTrailやIAMポリシーの変更とは**全く関係ありません**。API Gateway Deploymentリソースの管理に関する問題です。
 
+

@@ -64,7 +64,7 @@ check-db-env:
 # 依存関係チェック
 check-deps:
 	@echo "依存関係を確認しています..."
-	@for dir in app/api/v1/words app/api/v1/kanjis app/api/v1/learn_words app/api/v1/search app/api/v1/sentences app/api/v1/users app/api/v1/hiragana; do \
+	@for dir in app/api/v1/words app/api/v1/kanjis app/api/v1/learn_words app/api/v1/search app/api/v1/sentences app/api/v1/users app/api/v1/hiragana app/api/v1/kana_lesson; do \
 		if [ ! -f $$dir/requirements.txt ]; then \
 			echo "Error: $$dir/requirements.txtが見つかりません"; \
 			exit 1; \
@@ -97,7 +97,7 @@ check-structure:
 			exit 1; \
 		fi \
 	done
-	@for dir in words kanjis learn_words search sentences users hiragana; do \
+	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson; do \
 		for subdir in endpoints; do \
 			if [ ! -d "app/api/v1/$$dir/$$subdir" ]; then \
 				echo "Error: app/api/v1/$$dir/$$subdirディレクトリが見つかりません"; \
@@ -156,6 +156,8 @@ verify:
 	@aws lambda get-function --function-name japanese-learn-KanjisFunction > /dev/null
 	@echo "Users Functionのデプロイを確認中..."
 	@aws lambda get-function --function-name japanese-learn-UsersFunction > /dev/null
+	@echo "Kana Lesson Functionのデプロイを確認中..."
+	@aws lambda get-function --function-name japanese-learn-KanaLessonFunction > /dev/null
 	@echo "デプロイの確認が完了しました"
 
 # AWS認証情報の設定
@@ -183,14 +185,14 @@ help:
 
 prepare-build:
 	@echo "共通コードをコピーしています..."
-	@for dir in words kanjis learn_words search sentences users hiragana; do \
+	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson; do \
 		echo "$$dirにcommonをコピー中..."; \
 		cp -r "app/api/v1/common" "app/api/v1/$$dir/"; \
 	done
 
 clean-common:
 	@echo "共通コードをクリーンアップしています..."
-	@for dir in words kanjis learn_words search sentences users hiragana; do \
+	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson; do \
 		echo "Removing app/api/v1/$$dir/common..."; \
 		if [ -d "app/api/v1/$$dir/common" ]; then \
 			rm -rf "app/api/v1/$$dir/common" && echo "Successfully removed $$dir/common" || echo "Failed to remove $$dir/common"; \

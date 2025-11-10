@@ -160,3 +160,4 @@ aws cloudformation describe-stacks \
 - ✅ データは失われません
 - ⚠️ Cognitoユーザー情報は削除されます（再登録が必要）
 
+

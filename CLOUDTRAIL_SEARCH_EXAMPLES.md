@@ -308,3 +308,4 @@ aws cloudtrail lookup-events \
 - [AWS CloudTrail イベント履歴](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/view-cloudtrail-events.html)
 - [AWS CLI CloudTrail コマンド](https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/index.html)
 
+

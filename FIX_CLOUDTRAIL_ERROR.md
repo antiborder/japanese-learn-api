@@ -134,3 +134,4 @@ aws cloudformation describe-stacks \
 
 `UPDATE_COMPLETE`または`CREATE_COMPLETE`になっていれば成功です。
 
+
