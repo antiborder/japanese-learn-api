@@ -1,6 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
-from integrations.dynamodb import progress_db, plan_db, sentences_progress_db, sentences_plan_db, user_settings_db
+from integrations.dynamodb import (
+    progress_db,
+    plan_db,
+    sentences_progress_db,
+    sentences_plan_db,
+    kana_progress_db,
+    kana_plan_db,
+    user_settings_db,
+)
 from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
 from common.config import VALID_GROUPS
 import logging
@@ -218,6 +226,63 @@ async def get_sentences_plan_test():
         return result
     except Exception as e:
         logger.error(f"Error in get_sentences_plan_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/kana/progress")
+async def get_kana_progress(current_user_id: str = Depends(get_current_user_id)):
+    """
+    ログインユーザーのかなのレベルごとの進捗情報を返す。
+    レベルは -10 から 0 までを固定順で返却します。
+    """
+    try:
+        result = await kana_progress_db.get_progress(current_user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_kana_progress endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/test/kana/progress")
+async def get_kana_progress_test():
+    """
+    テスト用：認証なしでkana/progressエンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        result = await kana_progress_db.get_progress(TEST_USER_ID)
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_kana_progress_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/kana/plan")
+async def get_kana_plan(current_user_id: str = Depends(get_current_user_id)):
+    """
+    ログインユーザーのかなの今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
+    認証：必須（Bearerトークン）
+    データ範囲：トークンから取得したユーザーIDのデータのみ
+    """
+    try:
+        result = await kana_plan_db.get_plan(current_user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_kana_plan endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/test/kana/plan")
+async def get_kana_plan_test():
+    """
+    テスト用：認証なしでkana/planエンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        result = await kana_plan_db.get_plan(TEST_USER_ID)
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_kana_plan_test endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ユーザー設定関連のエンドポイント

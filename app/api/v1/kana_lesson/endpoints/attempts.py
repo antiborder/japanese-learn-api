@@ -1,13 +1,18 @@
 import logging
-from fastapi import APIRouter, HTTPException, Path
+from typing import Optional, Union
+
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from schemas.attempt import KanaAttemptRequest, KanaAttemptResponse
+from schemas import KanaNextResponse, NoKanaAvailableResponse
 from services.learning_service import LearningService
+from services.next_service import NextService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 learning_service = LearningService()
+next_service = NextService()
 
 
 @router.post("/users/{user_id}/attempts", response_model=KanaAttemptResponse)
@@ -88,5 +93,46 @@ async def record_kana_attempt_test(
             "[TEST] Error recording kana attempt for user %s, char %s",
             user_id,
             request.char,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
+
+
+@router.get(
+    "/next",
+    response_model=Union[KanaNextResponse, NoKanaAvailableResponse],
+    summary="次に学習すべきかなを取得する",
+)
+async def get_next_kana(
+    level: int = Query(..., description="かなのレベル"),
+    user_id: Optional[str] = Query(None, description="ユーザーID（任意）"),
+):
+    """
+    次に提示すべきかなを取得します。
+
+    level:
+        レベル整数値。省略不可。
+    user_id:
+        ユーザーID。指定されない場合はランダムに出題します。
+    """
+    try:
+        result = await next_service.get_next_char(level=level, user_id=user_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="No kana found for the specified level")
+
+        if result.get("no_char_available"):
+            return NoKanaAvailableResponse(
+                next_available_datetime=result.get("next_available_datetime"),
+            )
+
+        answer_char = result.get("answer_char")
+        if not answer_char:
+            raise HTTPException(status_code=500, detail="Invalid response from next service")
+
+        return KanaNextResponse(answer_char=answer_char)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception(
+            "Error retrieving next kana for user %s level %s", user_id, level
         )
         raise HTTPException(status_code=500, detail="Internal server error") from exc
