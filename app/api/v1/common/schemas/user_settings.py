@@ -5,6 +5,7 @@ from enum import Enum
 class ThemeEnum(str, Enum):
     SUMMER = "Summer"
     FALL = "Fall"
+    WAVE = "Wave"
 
 class LanguageEnum(str, Enum):
     EN = "en"
@@ -16,8 +17,8 @@ class LanguageEnum(str, Enum):
 
 class UserSettingsBase(BaseModel):
     """ユーザー設定のベーススキーマ"""
-    base_level: int = Field(..., ge=1, le=15, description="ベースレベル（1-15）")
-    theme: ThemeEnum = Field(..., description="テーマ（SummerまたはFall）")
+    base_level: int = Field(..., ge=-10, le=15, description="ベースレベル（-10-15）")
+    theme: ThemeEnum = Field(..., description="テーマ（Summer、Fall、またはWave）")
     language: LanguageEnum = Field(..., description="言語")
     is_onboarding_modal_closed: bool = Field(default=False, description="オンボーディングモーダルが閉じられたかのフラグ")
 
@@ -27,8 +28,8 @@ class UserSettingsCreate(UserSettingsBase):
 
 class UserSettingsUpdate(BaseModel):
     """ユーザー設定更新用スキーマ（部分更新対応）"""
-    base_level: int = Field(None, ge=1, le=15, description="ベースレベル（1-15）")
-    theme: ThemeEnum = Field(None, description="テーマ（SummerまたはFall）")
+    base_level: int = Field(None, ge=-10, le=15, description="ベースレベル（-10-15）")
+    theme: ThemeEnum = Field(None, description="テーマ（Summer、Fall、またはWave）")
     language: LanguageEnum = Field(None, description="言語")
     is_onboarding_modal_closed: bool = Field(None, description="オンボーディングモーダルが閉じられたかのフラグ")
 
