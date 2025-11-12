@@ -273,12 +273,12 @@ async def get_kana_plan(current_user_id: str = Depends(get_current_user_id)):
     ログインユーザーのかなの今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
-    base_levelが-10または0より大きい場合は空のレスポンスを返す
+    base_levelが1以上の場合は空のレスポンスを返す
     """
     try:
         # ユーザー設定を取得してbase_levelを確認
         user_settings = await user_settings_db.get_user_settings(current_user_id)
-        if user_settings and (user_settings.base_level == -10 or user_settings.base_level > 0):
+        if user_settings and user_settings.base_level >= 1:
             return []
         
         result = await kana_plan_db.get_plan(current_user_id)
