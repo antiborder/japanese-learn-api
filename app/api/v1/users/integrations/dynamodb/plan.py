@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .base import DynamoDBBase
 from services.datetime_utils import DateTimeUtils
 
@@ -11,9 +11,10 @@ class PlanDynamoDB(DynamoDBBase):
         super().__init__()
         self.datetime_utils = DateTimeUtils()
 
-    async def get_plan(self, current_user_id: str) -> List[Dict]:
+    async def get_plan(self, current_user_id: str, base_level: Optional[int] = None) -> List[Dict]:
         """
         ログインユーザーの学習計画を返す（24時間スロット別の復習予定数）
+        base_levelが指定されている場合、そのレベル以上のアイテムのみを処理する
         """
         try:
             # ユーザーの学習履歴を全て取得
@@ -26,6 +27,13 @@ class PlanDynamoDB(DynamoDBBase):
             )
             user_items = user_response.get('Items', [])
             now = datetime.now(timezone.utc)
+            
+            # base_levelが指定されている場合、そのレベル以上のアイテムのみをフィルタリング
+            if base_level is not None:
+                user_items = [
+                    item for item in user_items
+                    if item.get('level') is not None and int(item.get('level', 0)) >= base_level
+                ]
             
             # 24時間スロット別に復習予定を集計
             time_slots = {}

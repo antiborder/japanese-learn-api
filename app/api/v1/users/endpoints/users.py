@@ -64,6 +64,7 @@ async def get_words_plan(current_user_id: str = Depends(get_current_user_id)):
     ログインユーザーの単語の今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
+    base_level以上のレベルの単語のみが含まれる
     
     レスポンス形式：
     [
@@ -77,7 +78,11 @@ async def get_words_plan(current_user_id: str = Depends(get_current_user_id)):
     count: その時間スロット内の単語数
     """
     try:
-        result = await plan_db.get_plan(current_user_id)
+        # ユーザー設定を取得してbase_levelを取得
+        user_settings = await user_settings_db.get_user_settings(current_user_id)
+        base_level = user_settings.base_level if user_settings else None
+        
+        result = await plan_db.get_plan(current_user_id, base_level=base_level)
         return result
     except Exception as e:
         logger.error(f"Error in get_words_plan endpoint: {str(e)}")
@@ -168,6 +173,7 @@ async def get_sentences_plan(current_user_id: str = Depends(get_current_user_id)
     ログインユーザーの例文の今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
+    base_level以上のレベルの例文のみが含まれる
     
     レスポンス形式：
     [
@@ -181,7 +187,11 @@ async def get_sentences_plan(current_user_id: str = Depends(get_current_user_id)
     count: その時間スロット内の例文数
     """
     try:
-        result = await sentences_plan_db.get_plan(current_user_id)
+        # ユーザー設定を取得してbase_levelを取得
+        user_settings = await user_settings_db.get_user_settings(current_user_id)
+        base_level = user_settings.base_level if user_settings else None
+        
+        result = await sentences_plan_db.get_plan(current_user_id, base_level=base_level)
         return result
     except Exception as e:
         logger.error(f"Error in get_sentences_plan endpoint: {str(e)}")
@@ -263,8 +273,14 @@ async def get_kana_plan(current_user_id: str = Depends(get_current_user_id)):
     ログインユーザーのかなの今後のレビュー予定数を時間単位（24時間区切り）で集計して返す
     認証：必須（Bearerトークン）
     データ範囲：トークンから取得したユーザーIDのデータのみ
+    base_levelが-10または0より大きい場合は空のレスポンスを返す
     """
     try:
+        # ユーザー設定を取得してbase_levelを確認
+        user_settings = await user_settings_db.get_user_settings(current_user_id)
+        if user_settings and (user_settings.base_level == -10 or user_settings.base_level > 0):
+            return []
+        
         result = await kana_plan_db.get_plan(current_user_id)
         return result
     except Exception as e:
