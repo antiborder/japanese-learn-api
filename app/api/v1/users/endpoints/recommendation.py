@@ -7,6 +7,9 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# テスト用のユーザーID（本番環境では削除してください）
+TEST_USER_ID = "test-user-123"
+
 @router.get("/recommendations", response_model=RecommendationResponse)
 async def get_recommendations(current_user_id: str = Depends(get_current_user_id)):
     """
@@ -35,4 +38,26 @@ async def get_recommendations(current_user_id: str = Depends(get_current_user_id
         
     except Exception as e:
         logger.error(f"Error getting recommendations for user {current_user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recommendations: {str(e)}")
+
+@router.get("/test/recommendation", response_model=RecommendationResponse)
+async def get_recommendations_test():
+    """
+    テスト用：認証なしでrecommendationsエンドポイントをテスト
+    本番環境では削除してください
+    """
+    try:
+        recommendation_service = RecommendationService()
+        recommendations = await recommendation_service.get_recommendations(TEST_USER_ID)
+        
+        # レスポンス形式に変換
+        recommendation_items = [
+            RecommendationItem(subject=rec['subject'], level=rec['level'])
+            for rec in recommendations
+        ]
+        
+        return RecommendationResponse(recommendations=recommendation_items)
+        
+    except Exception as e:
+        logger.error(f"Error getting recommendations for test user {TEST_USER_ID}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get recommendations: {str(e)}")

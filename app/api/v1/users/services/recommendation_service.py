@@ -46,46 +46,47 @@ class RecommendationService:
             kana_progress_by_level = {item['level']: item for item in kana_progress_list}
             kana_neg10 = kana_progress_by_level.get(-10)
             kana_neg7 = kana_progress_by_level.get(-7)
-            
+
+            # base_levelが0以下の場合のみ、kanaをチェック（base_levelが1以上の場合、kanaは推奨しない）
+            if base_level <= 0:
+                # 1. kana(level = -10) reviewable >= 5
+                if kana_neg10 and kana_neg10.get('reviewable', 0) >= 5:
+                    rec = {'subject': 'kana', 'level': -10}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
+                
+                # 2. kana(level = -10) unlearned >= 5
+                if kana_neg10 and kana_neg10.get('unlearned', 0) >= 5:
+                    rec = {'subject': 'kana', 'level': -10}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
+                
+                # 3. kana(level = -7) reviewable >= 5
+                if kana_neg7 and kana_neg7.get('reviewable', 0) >= 5:
+                    rec = {'subject': 'kana', 'level': -7}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
+                
+                # 4. kana(level = -7) unlearned >= 5
+                if kana_neg7 and kana_neg7.get('unlearned', 0) >= 5:
+                    rec = {'subject': 'kana', 'level': -7}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
+
             # base_levelから順にレベル15まで見ていく
-            for level in range(base_level, min(MAX_LEVEL, 15) + 1):
+            for level in range(max(base_level,1), min(MAX_LEVEL, 15) + 1):
                 # レベルごとにwordsとsentencesのprogressを取得
                 words_progress = await progress_db.get_progress_by_level(user_id, level)
                 sentences_progress = await sentences_progress_db.get_progress_by_level(user_id, level)
                 
-                # base_levelが0以下の場合のみ、kanaをチェック（base_levelが1以上の場合、kanaは推奨しない）
-                if base_level <= 0:
-                    # 1. kana(level = -10) reviewable >= 5
-                    if kana_neg10 and kana_neg10.get('reviewable', 0) >= 5:
-                        rec = {'subject': 'kana', 'level': -10}
-                        if rec not in recommendations:
-                            recommendations.append(rec)
-                            if len(recommendations) >= 2:
-                                return recommendations
-                    
-                    # 2. kana(level = -10) unlearned >= 5
-                    if kana_neg10 and kana_neg10.get('unlearned', 0) >= 5:
-                        rec = {'subject': 'kana', 'level': -10}
-                        if rec not in recommendations:
-                            recommendations.append(rec)
-                            if len(recommendations) >= 2:
-                                return recommendations
-                    
-                    # 3. kana(level = -7) reviewable >= 5
-                    if kana_neg7 and kana_neg7.get('reviewable', 0) >= 5:
-                        rec = {'subject': 'kana', 'level': -7}
-                        if rec not in recommendations:
-                            recommendations.append(rec)
-                            if len(recommendations) >= 2:
-                                return recommendations
-                    
-                    # 4. kana(level = -7) unlearned >= 5
-                    if kana_neg7 and kana_neg7.get('unlearned', 0) >= 5:
-                        rec = {'subject': 'kana', 'level': -7}
-                        if rec not in recommendations:
-                            recommendations.append(rec)
-                            if len(recommendations) >= 2:
-                                return recommendations
                 
                 # 5. words level N reviewable >= 10
                 if words_progress and words_progress.get('reviewable', 0) >= 10:
@@ -95,17 +96,18 @@ class RecommendationService:
                         if len(recommendations) >= 2:
                             return recommendations
                 
-                # 6. sentences level N reviewable >= 3
-                if sentences_progress and sentences_progress.get('reviewable', 0) >= 3:
-                    rec = {'subject': 'sentences', 'level': level}
-                    if rec not in recommendations:
-                        recommendations.append(rec)
-                        if len(recommendations) >= 2:
-                            return recommendations
                 
                 # 7. words level N unlearned >= 10
                 if words_progress and words_progress.get('unlearned', 0) >= 10:
                     rec = {'subject': 'words', 'level': level}
+                    if rec not in recommendations:
+                        recommendations.append(rec)
+                        if len(recommendations) >= 2:
+                            return recommendations
+
+                # 6. sentences level N reviewable >= 3
+                if sentences_progress and sentences_progress.get('reviewable', 0) >= 3:
+                    rec = {'subject': 'sentences', 'level': level}
                     if rec not in recommendations:
                         recommendations.append(rec)
                         if len(recommendations) >= 2:
