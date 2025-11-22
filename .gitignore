@@ -65,3 +65,5 @@ pyrightconfig.json
 
 # Build artifacts
 your_database.db
+
+.cursor
