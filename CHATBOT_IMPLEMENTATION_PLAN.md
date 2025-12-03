@@ -407,8 +407,7 @@ assert len(response["answer"]) > 0
 2. Create `get_word_details` tool function
 3. Create `get_kanji_details` tool function
 4. Create `get_sentence_details` tool function
-5. Create `get_user_progress` tool function
-6. Register tools with LangChain
+5. Register tools with LangChain
 
 **Test Criteria**:
 - ✅ All tool functions are created
@@ -431,7 +430,60 @@ assert len(result) > 0
 
 ---
 
-### Step 5.2: Integrate Tools with Gemini Live API
+### Step 5.2: Create User Progress & Plan Tool Functions
+**Objective**: Enable chatbot to access user's learning progress and plans
+
+**Tasks**:
+1. Create `get_user_progress` tool function
+   - Get user's learning progress for words, sentences, or kana
+   - Support level filtering (N5, N4, N3, N2, N1 groups)
+   - Returns: learned, unlearned, reviewable counts per level
+2. Create `get_user_plan` tool function
+   - Get user's learning plan (review schedule by 24-hour time slots)
+   - Returns: List of time slots with review counts
+3. Create `get_user_learned_items` tool function
+   - Get list of items user has learned
+   - Support level filtering
+   - Returns: Learned items with proficiency scores
+4. Create `get_user_reviewable_items` tool function
+   - Get items ready for review (next_datetime <= now)
+   - Support limit parameter
+   - Returns: List of reviewable items with details
+5. Integrate with existing progress/plan DynamoDB clients
+6. Add user authentication/authorization checks
+7. Register tools with LangChain
+
+**Test Criteria**:
+- ✅ All user progress/plan tool functions are created
+- ✅ Tools can be called successfully with user_id
+- ✅ Tools return correct data format
+- ✅ User authentication works (only own data accessible)
+- ✅ Tools are registered with LangChain
+- ✅ LLM can invoke tools correctly
+
+**Files to Create**:
+- `app/api/v1/chat/tools/user_progress_tools.py`
+
+**Files to Modify**:
+- `app/api/v1/chat/tools/dynamodb_tools.py` (import and register new tools)
+
+**Test Command**:
+```python
+from app.api.v1.chat.tools.user_progress_tools import get_user_progress
+result = get_user_progress.invoke({
+    "user_id": "test-user-123",
+    "entity_type": "words",
+    "group": "N5"
+})
+assert "learned" in result
+assert "unlearned" in result
+```
+
+**Rollback**: Remove user progress tool functions
+
+---
+
+### Step 5.3: Integrate Tools with Gemini Live API
 **Objective**: Enable Function Calling with Gemini Live API
 
 **Tasks**:
@@ -504,33 +556,171 @@ response_audio = service.receive_audio()
 ---
 
 ### Step 6.2: Set Up WebSocket Handler for Gemini Live API
-**Objective**: Handle WebSocket connections for Gemini Live API
+**Objective**: Handle WebSocket connections via API Gateway WebSocket API
+
+**Architecture Note**: 
+- **API Gateway WebSocket API** manages the WebSocket connection lifecycle
+- **Lambda** handles individual events ($connect, $disconnect, $default)
+- **Gemini Live API** maintains its own WebSocket connection (WSS) from Lambda to Google
 
 **Tasks**:
-1. Create WebSocket handler for Gemini Live API
-2. Manage connection lifecycle
-3. Handle incoming messages (text/voice)
-4. Stream responses (text/voice)
-5. Integrate with RAG service
-6. Handle reconnection logic
+1. **Create Lambda Handler for API Gateway WebSocket Events**
+   - Handle `$connect` event (store connection in DynamoDB)
+   - Handle `$disconnect` event (clean up connection state)
+   - Handle `$default` event (process incoming messages)
+   - Extract user_id from connection query string or headers
+
+2. **Create Connection Manager**
+   - Store connection state in DynamoDB (connectionId, user_id, timestamp)
+   - Track active connections per user
+   - Handle connection cleanup on disconnect
+   - Implement TTL for stale connections
+
+3. **Create Gemini Live API Client Wrapper**
+   - Maintain WebSocket connection from Lambda to Gemini Live API
+   - Bridge between API Gateway WebSocket and Gemini Live API WebSocket
+   - Handle bidirectional message forwarding
+   - Manage Gemini Live API connection lifecycle
+
+4. **Handle Message Routing**
+   - Receive message from client via API Gateway WebSocket
+   - Forward to Gemini Live API (with RAG context)
+   - Receive response from Gemini Live API
+   - Send response back to client via API Gateway WebSocket
+
+5. **Integrate with RAG Service**
+   - Call RAG service to retrieve context
+   - Inject context into Gemini Live API session
+   - Handle tool calls from Gemini Live API
+
+6. **Handle Reconnection Logic**
+   - Detect disconnections
+   - Re-establish Gemini Live API connection if needed
+   - Restore conversation context
 
 **Test Criteria**:
-- ✅ WebSocket connection works
-- ✅ Messages are received correctly
-- ✅ Responses are streamed correctly
+- ✅ API Gateway WebSocket connection works
+- ✅ Lambda handles $connect, $disconnect, $default events
+- ✅ Messages are received correctly from client
+- ✅ Messages are forwarded to Gemini Live API
+- ✅ Responses are sent back to client correctly
 - ✅ RAG context is injected
+- ✅ Connection state is managed in DynamoDB
 - ✅ Reconnection works
 
 **Files to Create**:
-- `app/api/v1/chat/websocket/gemini_live_handler.py`
-- `app/api/v1/chat/websocket/connection_manager.py`
+- `app/api/v1/chat/app.py` (Lambda handler for API Gateway WebSocket)
+- `app/api/v1/chat/websocket/gemini_live_handler.py` (Gemini Live API client)
+- `app/api/v1/chat/websocket/connection_manager.py` (Connection state management)
+
+**Lambda Handler Structure**:
+```python
+# app/api/v1/chat/app.py
+import json
+import boto3
+from websocket.gemini_live_handler import GeminiLiveHandler
+from websocket.connection_manager import ConnectionManager
+
+dynamodb = boto3.resource('dynamodb')
+connections_table = dynamodb.Table(os.getenv('CONNECTIONS_TABLE_NAME'))
+connection_manager = ConnectionManager(connections_table)
+
+def lambda_handler(event, context):
+    """
+    Handle API Gateway WebSocket events
+    
+    Event structure:
+    {
+        "requestContext": {
+            "routeKey": "$connect" | "$disconnect" | "$default",
+            "connectionId": "abc123",
+            "domainName": "xxx.execute-api.region.amazonaws.com",
+            "stage": "prod",
+            "identity": {
+                "sourceIp": "1.2.3.4"
+            }
+        },
+        "body": "..." (for $default route, contains message from client),
+        "queryStringParameters": {...} (for $connect, may contain auth token)
+    }
+    """
+    route_key = event.get("requestContext", {}).get("routeKey")
+    connection_id = event.get("requestContext", {}).get("connectionId")
+    
+    if route_key == "$connect":
+        # Extract user_id from query string or headers
+        query_params = event.get("queryStringParameters") or {}
+        auth_token = query_params.get("token") or event.get("headers", {}).get("Authorization")
+        user_id = extract_user_id_from_token(auth_token)
+        
+        # Store connection in DynamoDB
+        connection_manager.save_connection(connection_id, user_id)
+        
+        # Initialize Gemini Live API connection
+        gemini_handler = GeminiLiveHandler(connection_id, user_id)
+        gemini_handler.connect()
+        
+        return {"statusCode": 200}
+    
+    elif route_key == "$disconnect":
+        # Clean up connection
+        connection_manager.delete_connection(connection_id)
+        
+        # Close Gemini Live API connection
+        gemini_handler = GeminiLiveHandler.get_handler(connection_id)
+        if gemini_handler:
+            gemini_handler.disconnect()
+        
+        return {"statusCode": 200}
+    
+    elif route_key == "$default":
+        # Get connection info
+        connection = connection_manager.get_connection(connection_id)
+        if not connection:
+            return {"statusCode": 403, "body": "Connection not found"}
+        
+        user_id = connection.get("user_id")
+        body = json.loads(event.get("body", "{}"))
+        
+        # Get or create Gemini Live API handler
+        gemini_handler = GeminiLiveHandler.get_or_create(connection_id, user_id)
+        
+        # Process message
+        message = body.get("message")
+        message_type = body.get("type", "text")  # "text" or "audio"
+        
+        # Forward to Gemini Live API and get response
+        response = gemini_handler.send_message(message, message_type)
+        
+        # Send response back to client via API Gateway Management API
+        send_to_client(connection_id, response)
+        
+        return {"statusCode": 200}
+    
+    return {"statusCode": 500}
+
+def send_to_client(connection_id, message):
+    """Send message to client via API Gateway Management API"""
+    api_gateway_management = boto3.client(
+        'apigatewaymanagementapi',
+        endpoint_url=f"https://{event['requestContext']['domainName']}/{event['requestContext']['stage']}"
+    )
+    api_gateway_management.post_to_connection(
+        ConnectionId=connection_id,
+        Data=json.dumps(message)
+    )
+```
 
 **Test Method**:
-1. Connect via WebSocket
-2. Send text message
-3. Verify response with RAG context
-4. Test voice input
-5. Test reconnection
+1. Deploy Lambda function and WebSocket API
+2. Connect via WebSocket (wscat or client app)
+3. Verify connection stored in DynamoDB
+4. Send text message
+5. Verify message forwarded to Gemini Live API
+6. Verify response sent back to client
+7. Test voice input (audio chunks)
+8. Disconnect and verify cleanup
+9. Test reconnection
 
 **Rollback**: Use REST API fallback
 
@@ -568,25 +758,355 @@ response_audio = service.receive_audio()
 
 ---
 
-### Step 6.4: Add to SAM Template
-**Objective**: Deploy chat function to AWS
+### Step 6.4: Inject User Context at Session Start
+**Objective**: Provide user's learning progress and plan context to chatbot
 
 **Tasks**:
-1. Add ChatFunction to template.yaml
-2. Configure WebSocket API Gateway (for Gemini Live API)
-3. Set environment variables (GCP service account key path, etc.)
-4. Configure IAM permissions
-5. Set memory and timeout
+1. Create `get_user_context` function
+   - Extract user_id from authentication token
+   - Get user's progress summary (words, sentences, kana)
+   - Get user's learning plan (review schedule)
+   - Get user settings (base_level, preferred language, etc.)
+2. Format user context as system instructions
+   - Include current level progress
+   - Include review schedule
+   - Include learning goals/preferences
+3. Inject user context at Gemini Live API session start
+4. Update user context during conversation (if progress changes)
+5. Ensure user context is included in RAG retrieval decisions
+
+**Test Criteria**:
+- ✅ User context is retrieved correctly
+- ✅ User context is formatted properly
+- ✅ User context is injected at session start
+- ✅ Chatbot uses user context in responses
+- ✅ Chatbot can answer questions about user progress
+- ✅ Privacy: Only user's own data is accessible
+
+**Files to Create**:
+- `app/api/v1/chat/services/user_context_service.py`
+
+**Files to Modify**:
+- `app/api/v1/chat/services/gemini_live_rag_service.py` (add user context injection)
+- `app/api/v1/chat/websocket/gemini_live_handler.py` (extract user_id from auth)
+
+**Test Method**:
+1. Start chat session with authenticated user
+2. Verify user context is retrieved and injected
+3. Ask "What words should I review today?"
+4. Verify chatbot uses user progress data
+5. Ask "How is my progress in N5?"
+6. Verify chatbot accesses user progress correctly
+
+**Example User Context Format**:
+```
+User Learning Context:
+- Current Level Progress:
+  * Level 1: 45/100 words learned, 12 reviewable
+  * Level 2: 30/150 words learned, 8 reviewable
+- Review Schedule:
+  * Today (slot 0): 12 words ready for review
+  * Tomorrow (slot 1): 18 words scheduled
+  * This week (slot 2-7): 45 words scheduled
+- User Settings:
+  * Base Level: 1
+  * Preferred Language: English
+- Focus: Recommend items at user's current level or items needing review
+```
+
+**Rollback**: Remove user context injection, use generic context only
+
+---
+
+### Step 6.5: Add to SAM Template
+**Objective**: Deploy chat function to AWS with WebSocket API Gateway
+
+**Tasks**:
+1. **Create WebSocket API Gateway**
+   - Define WebSocket API in template.yaml
+   - Configure routes: `$connect`, `$disconnect`, `$default`
+   - Set route selection expression
+   - Configure CORS if needed
+
+2. **Add ChatFunction Lambda**
+   - Create Lambda function for WebSocket handling
+   - Configure memory (512MB - 1GB for FAISS index)
+   - Set timeout (15 minutes max, but WebSocket messages are short-lived)
+   - Add environment variables:
+     - GCP service account key path
+     - DynamoDB table name
+     - S3 bucket name (for FAISS index)
+     - Gemini Live API configuration
+
+3. **Configure WebSocket Routes**
+   - `$connect`: Handle new WebSocket connections
+   - `$disconnect`: Clean up connection state
+   - `$default`: Handle incoming messages (text/voice)
+
+4. **Set Up Connection State Management**
+   - Store connection IDs in DynamoDB
+   - Track user_id per connection
+   - Handle connection lifecycle
+
+5. **Configure IAM Permissions**
+   - Bedrock invoke (for embeddings)
+   - DynamoDB read/write (for data and connection state)
+   - S3 read (for FAISS index)
+   - Secrets Manager read (for GCP credentials)
+
+6. **Configure Lambda Layers (if needed)**
+   - For large dependencies (LangChain, FAISS)
+   - Keep package size under 250MB
 
 **Test Criteria**:
 - ✅ Function is deployed
-- ✅ WebSocket API Gateway works
+- ✅ WebSocket API Gateway is created
+- ✅ WebSocket routes are configured correctly
 - ✅ Environment variables are set
 - ✅ Permissions are correct
 - ✅ Function can handle WebSocket connections
+- ✅ Connection state is managed correctly
 
 **Files to Modify**:
 - `template.yaml`
+
+**SAM Template Configuration Example**:
+```yaml
+# WebSocket API Gateway
+ChatWebSocketApi:
+  Type: AWS::ApiGatewayV2::Api
+  Properties:
+    Name: !Sub "${AWS::StackName}-chat-websocket"
+    ProtocolType: WEBSOCKET
+    RouteSelectionExpression: "$request.body.action"
+    Description: "WebSocket API for Gemini Live API chat"
+    CorsConfiguration:
+      AllowOrigins:
+        - "*"
+      AllowMethods:
+        - "*"
+      AllowHeaders:
+        - "*"
+
+# WebSocket Deployment
+ChatWebSocketDeployment:
+  Type: AWS::ApiGatewayV2::Deployment
+  DependsOn:
+    - ChatConnectRoute
+    - ChatDisconnectRoute
+    - ChatDefaultRoute
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+
+# WebSocket Stage
+ChatWebSocketStage:
+  Type: AWS::ApiGatewayV2::Stage
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    DeploymentId: !Ref ChatWebSocketDeployment
+    StageName: !Sub "${AWS::StackName}-chat"
+    DefaultRouteSettings:
+      ThrottlingBurstLimit: 100
+      ThrottlingRateLimit: 50
+    RouteSettings:
+      - RouteKey: "$default"
+        ThrottlingBurstLimit: 200
+        ThrottlingRateLimit: 100
+
+# Chat Lambda Function
+ChatFunction:
+  Type: AWS::Serverless::Function
+  Metadata:
+    BuildMethod: python3.11
+    BuildProperties:
+      UseContainer: true
+      ProjectPath: ./app/api/v1/chat
+      InstallDependencies: true
+  Properties:
+    FunctionName: !Sub "${AWS::StackName}-ChatFunction"
+    CodeUri: ./app/api/v1/chat
+    Handler: app.lambda_handler
+    Description: "Lambda function for AI chatbot with Gemini Live API"
+    Runtime: python3.11
+    MemorySize: 1024  # 1GB for FAISS index
+    Timeout: 300  # 5 minutes (sufficient for WebSocket messages)
+    Environment:
+      Variables:
+        DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+        S3_BUCKET_NAME: !Ref S3BucketName
+        GCP_SERVICE_ACCOUNT_KEY: !Ref GcpServiceAccountKey  # From Secrets Manager
+        GEMINI_LIVE_API_ENDPOINT: "https://generativelanguage.googleapis.com"
+        FAISS_INDEX_S3_KEY: "faiss_index"
+        LOG_LEVEL: INFO
+    Events:
+      Connect:
+        Type: WebSocket
+        Properties:
+          Api: !Ref ChatWebSocketApi
+          Route: $connect
+      Disconnect:
+        Type: WebSocket
+        Properties:
+          Api: !Ref ChatWebSocketApi
+          Route: $disconnect
+      Default:
+        Type: WebSocket
+        Properties:
+          Api: !Ref ChatWebSocketApi
+          Route: $default
+    Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+            - bedrock:InvokeModel
+          Resource:
+            - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:ListBucket
+          Resource:
+            - !Sub "arn:aws:s3:::${S3BucketName}"
+            - !Sub "arn:aws:s3:::${S3BucketName}/*"
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource:
+            - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GcpServiceAccountKey}*"
+
+# Connection State DynamoDB Table (optional, for connection management)
+ChatConnectionsTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: !Sub "${AWS::StackName}-chat-connections"
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: connectionId
+        AttributeType: S
+    KeySchema:
+      - AttributeName: connectionId
+        KeyType: HASH
+    TimeToLiveSpecification:
+      AttributeName: ttl
+      Enabled: true
+    Tags:
+      - Key: Environment
+        Value: !Sub "${AWS::StackName}"
+
+# WebSocket Routes
+ChatConnectRoute:
+  Type: AWS::ApiGatewayV2::Route
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    RouteKey: $connect
+    Target: !Sub "integrations/${ChatConnectIntegration}"
+
+ChatDisconnectRoute:
+  Type: AWS::ApiGatewayV2::Route
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    RouteKey: $disconnect
+    Target: !Sub "integrations/${ChatDisconnectIntegration}"
+
+ChatDefaultRoute:
+  Type: AWS::ApiGatewayV2::Route
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    RouteKey: $default
+    Target: !Sub "integrations/${ChatDefaultIntegration}"
+
+# WebSocket Integrations
+ChatConnectIntegration:
+  Type: AWS::ApiGatewayV2::Integration
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    IntegrationType: AWS_PROXY
+    IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
+
+ChatDisconnectIntegration:
+  Type: AWS::ApiGatewayV2::Integration
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    IntegrationType: AWS_PROXY
+    IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
+
+ChatDefaultIntegration:
+  Type: AWS::ApiGatewayV2::Integration
+  Properties:
+    ApiId: !Ref ChatWebSocketApi
+    IntegrationType: AWS_PROXY
+    IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
+
+# Lambda Permission for WebSocket API
+ChatFunctionWebSocketPermission:
+  Type: AWS::Lambda::Permission
+  Properties:
+    FunctionName: !Ref ChatFunction
+    Action: lambda:InvokeFunction
+    Principal: apigateway.amazonaws.com
+    SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatWebSocketApi}/*/*"
+```
+
+**Lambda Handler Structure**:
+```python
+# app/api/v1/chat/app.py
+from mangum import Mangum
+from fastapi import FastAPI
+import json
+
+app = FastAPI()
+
+@app.websocket("/")
+async def websocket_endpoint(websocket: WebSocket):
+    # WebSocket handling logic
+    pass
+
+# For WebSocket API Gateway, we need a Lambda handler
+def lambda_handler(event, context):
+    """
+    Handle WebSocket API Gateway events
+    Event structure:
+    {
+        "requestContext": {
+            "routeKey": "$connect" | "$disconnect" | "$default",
+            "connectionId": "abc123",
+            "domainName": "xxx.execute-api.region.amazonaws.com",
+            "stage": "prod"
+        },
+        "body": "..." (for $default route)
+    }
+    """
+    route_key = event.get("requestContext", {}).get("routeKey")
+    connection_id = event.get("requestContext", {}).get("connectionId")
+    
+    if route_key == "$connect":
+        # Store connection in DynamoDB
+        # Extract user_id from query string or headers
+        return {"statusCode": 200}
+    
+    elif route_key == "$disconnect":
+        # Clean up connection from DynamoDB
+        return {"statusCode": 200}
+    
+    elif route_key == "$default":
+        # Handle incoming message
+        # Process with Gemini Live API
+        # Return response
+        return {"statusCode": 200}
+    
+    return {"statusCode": 500}
+```
 
 **Test Command**:
 ```bash
@@ -594,7 +1114,19 @@ sam build
 sam deploy --guided
 ```
 
-**Rollback**: Remove function from template
+**WebSocket Connection Test**:
+```bash
+# Get WebSocket URL from deployment output
+WS_URL="wss://<api-id>.execute-api.<region>.amazonaws.com/<stage>"
+
+# Test connection (using wscat or similar)
+wscat -c $WS_URL
+
+# Send test message
+{"action": "chat", "message": "Hello"}
+```
+
+**Rollback**: Remove function and WebSocket API from template
 
 ---
 
@@ -868,7 +1400,368 @@ sam deploy --config-env staging
 
 ---
 
-### Step 9.3: Production Deployment
+### Step 9.3: Implement Conversation Logging and Admin Access
+**Objective**: Enable administrators to review user questions and chatbot responses with summaries
+
+**Tasks**:
+1. **Create Conversation History Storage**
+   - Create DynamoDB table for conversation logs
+   - Store: user_id, session_id, timestamp, question, response, summary, metadata
+   - Implement TTL for data retention (e.g., 90 days)
+   - Index by user_id and timestamp for efficient queries
+   - Index by session_id for session-based queries
+
+2. **Implement Conversation Logging**
+   - Log every user question and chatbot response
+   - Include metadata: timestamp, session_id, connection_id, message_type (text/voice)
+   - Store RAG context used (for debugging)
+   - Store tool calls made (for analysis)
+   - Generate summary of each conversation turn (using Gemini API)
+   - Handle PII/sensitive data appropriately
+
+3. **Create Conversation Summary Service**
+   - Generate summary for each user inquiry using Gemini API
+   - Include: question category, key topics, response type
+   - Store summary with conversation log
+   - Batch summarize multiple turns if needed
+
+4. **Create Admin Endpoints**
+   - `GET /api/v1/admin/chat/conversations` - List all conversations with summaries
+   - `GET /api/v1/admin/chat/conversations/{session_id}` - Get specific conversation
+   - `GET /api/v1/admin/chat/conversations/user/{user_id}` - Get user's conversations
+   - `GET /api/v1/admin/chat/summaries` - Get conversation summaries only
+   - `GET /api/v1/admin/chat/stats` - Get conversation statistics
+   - Add admin authentication/authorization (Cognito admin role)
+
+5. **Implement CloudWatch Logs**
+   - Log conversations to CloudWatch Logs
+   - Include structured JSON logs for easy querying
+   - Set up log retention (14-30 days)
+   - Enable log filtering by user_id, session_id, etc.
+
+6. **Add Privacy Controls**
+   - Option to disable logging per user (if required by privacy policy)
+   - Option to anonymize user_id in logs
+   - Clear data retention policy
+   - GDPR/privacy compliance considerations
+
+**Test Criteria**:
+- ✅ Conversations are logged to DynamoDB
+- ✅ Conversation summaries are generated and stored
+- ✅ Conversations are logged to CloudWatch
+- ✅ Admin endpoints return conversation history with summaries
+- ✅ Admin authentication works
+- ✅ Data retention (TTL) works correctly
+- ✅ Privacy controls work
+
+**Files to Create**:
+- `app/api/v1/chat/services/conversation_logger.py`
+- `app/api/v1/chat/services/conversation_summarizer.py`
+- `app/api/v1/admin/endpoints/chat_conversations.py`
+- `app/api/v1/admin/schemas/conversation.py`
+
+**Files to Modify**:
+- `app/api/v1/chat/app.py` (add logging calls in $default handler)
+- `template.yaml` (add ConversationLogsTable and AdminFunction)
+
+**DynamoDB Table Schema**:
+```yaml
+ConversationLogsTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: !Sub "${AWS::StackName}-chat-conversations"
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: sessionId
+        AttributeType: S
+      - AttributeName: timestamp
+        AttributeType: S
+      - AttributeName: userId
+        AttributeType: S
+    KeySchema:
+      - AttributeName: sessionId
+        KeyType: HASH
+      - AttributeName: timestamp
+        KeyType: RANGE
+    GlobalSecondaryIndexes:
+      - IndexName: userId-timestamp-index
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+    TimeToLiveSpecification:
+      AttributeName: ttl
+      Enabled: true
+    Tags:
+      - Key: Environment
+        Value: !Sub "${AWS::StackName}"
+```
+
+**Conversation Logger Implementation**:
+```python
+# app/api/v1/chat/services/conversation_logger.py
+import boto3
+import json
+import os
+from datetime import datetime, timezone, timedelta
+from typing import Dict, Optional
+import logging
+from .conversation_summarizer import ConversationSummarizer
+
+logger = logging.getLogger(__name__)
+
+class ConversationLogger:
+    def __init__(self):
+        self.dynamodb = boto3.resource('dynamodb')
+        self.table = self.dynamodb.Table(os.getenv('CONVERSATION_LOGS_TABLE_NAME'))
+        self.logs_client = boto3.client('logs')
+        self.log_group = os.getenv('CONVERSATION_LOG_GROUP', '/aws/lambda/chat-conversations')
+        self.summarizer = ConversationSummarizer()
+        
+    def log_conversation(
+        self,
+        user_id: str,
+        session_id: str,
+        question: str,
+        response: str,
+        message_type: str = "text",
+        metadata: Optional[Dict] = None
+    ):
+        """Log conversation to DynamoDB and CloudWatch with summary"""
+        timestamp = datetime.now(timezone.utc).isoformat()
+        ttl = int((datetime.now(timezone.utc) + timedelta(days=90)).timestamp())
+        
+        # Generate summary
+        summary = self.summarizer.summarize(question, response)
+        
+        item = {
+            'sessionId': session_id,
+            'timestamp': timestamp,
+            'userId': user_id,
+            'question': question,
+            'response': response,
+            'summary': summary,  # Generated summary
+            'messageType': message_type,
+            'metadata': metadata or {},
+            'ttl': ttl
+        }
+        
+        # Store in DynamoDB
+        try:
+            self.table.put_item(Item=item)
+        except Exception as e:
+            logger.error(f"Error logging conversation to DynamoDB: {str(e)}")
+        
+        # Also log to CloudWatch
+        try:
+            log_event = {
+                'timestamp': int(datetime.now(timezone.utc).timestamp() * 1000),
+                'message': json.dumps({
+                    'sessionId': session_id,
+                    'userId': user_id,
+                    'question': question,
+                    'response': response,
+                    'summary': summary,
+                    'messageType': message_type,
+                    'metadata': metadata
+                })
+            }
+            self.logs_client.put_log_events(
+                logGroupName=self.log_group,
+                logStreamName=session_id,
+                logEvents=[log_event]
+            )
+        except Exception as e:
+            logger.error(f"Error logging conversation to CloudWatch: {str(e)}")
+```
+
+**Conversation Summarizer Implementation**:
+```python
+# app/api/v1/chat/services/conversation_summarizer.py
+import google.generativeai as genai
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+class ConversationSummarizer:
+    def __init__(self):
+        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    
+    def summarize(self, question: str, response: str) -> Dict[str, str]:
+        """
+        Generate summary of conversation turn
+        
+        Returns:
+            {
+                'category': 'word_meaning' | 'grammar' | 'progress' | 'general',
+                'topics': ['word', 'meaning', 'usage'],
+                'response_type': 'explanation' | 'tool_call' | 'recommendation',
+                'key_points': 'Brief summary of what was discussed'
+            }
+        """
+        prompt = f"""Analyze this conversation turn and provide a structured summary:
+
+User Question: {question}
+Chatbot Response: {response[:500]}...
+
+Provide a JSON summary with:
+1. category: One of ['word_meaning', 'grammar', 'progress', 'kanji', 'sentence', 'general']
+2. topics: List of 2-5 key topics discussed
+3. response_type: One of ['explanation', 'tool_call', 'recommendation', 'question']
+4. key_points: Brief 1-2 sentence summary of what was discussed
+
+Return only valid JSON, no markdown.
+"""
+        
+        try:
+            result = self.model.generate_content(prompt)
+            summary_text = result.text.strip()
+            # Remove markdown code blocks if present
+            if summary_text.startswith('```'):
+                summary_text = summary_text.split('```')[1]
+                if summary_text.startswith('json'):
+                    summary_text = summary_text[4:]
+                summary_text = summary_text.strip()
+            
+            import json
+            summary = json.loads(summary_text)
+            return summary
+        except Exception as e:
+            logger.error(f"Error generating summary: {str(e)}")
+            # Fallback summary
+            return {
+                'category': 'general',
+                'topics': [],
+                'response_type': 'explanation',
+                'key_points': 'Conversation logged'
+            }
+```
+
+**Admin Endpoint Example**:
+```python
+# app/api/v1/admin/endpoints/chat_conversations.py
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import List, Optional
+from datetime import datetime
+from services.conversation_logger import ConversationLogger
+from common.auth import require_admin_role  # Admin authentication
+from schemas.conversation import ConversationResponse, ConversationSummary
+
+router = APIRouter()
+conversation_logger = ConversationLogger()
+
+@router.get("/conversations", response_model=List[ConversationSummary])
+async def list_conversations(
+    limit: int = Query(100, ge=1, le=1000),
+    start_key: Optional[str] = None,
+    admin_user = Depends(require_admin_role)
+):
+    """
+    List all conversations with summaries (admin only)
+    Returns basic info and summary of each user inquiry
+    """
+    # Query DynamoDB for conversations
+    # Return paginated results with summaries
+    pass
+
+@router.get("/conversations/user/{user_id}", response_model=List[ConversationSummary])
+async def get_user_conversations(
+    user_id: str,
+    limit: int = Query(100, ge=1, le=1000),
+    admin_user = Depends(require_admin_role)
+):
+    """
+    Get conversations for a specific user with summaries (admin only)
+    """
+    # Query by userId using GSI
+    pass
+
+@router.get("/conversations/{session_id}", response_model=ConversationResponse)
+async def get_conversation(
+    session_id: str,
+    admin_user = Depends(require_admin_role)
+):
+    """
+    Get specific conversation by session ID with full details (admin only)
+    """
+    # Query by sessionId
+    pass
+
+@router.get("/summaries", response_model=List[ConversationSummary])
+async def get_conversation_summaries(
+    limit: int = Query(100, ge=1, le=1000),
+    category: Optional[str] = None,
+    admin_user = Depends(require_admin_role)
+):
+    """
+    Get conversation summaries only (admin only)
+    Useful for quick overview of user inquiries
+    """
+    # Query conversations and return only summaries
+    pass
+```
+
+**Schema Example**:
+```python
+# app/api/v1/admin/schemas/conversation.py
+from pydantic import BaseModel
+from typing import Optional, Dict, List
+from datetime import datetime
+
+class ConversationSummary(BaseModel):
+    """Summary view for admin - basic info and summary"""
+    sessionId: str
+    timestamp: str
+    userId: str
+    question: str
+    summary: Dict[str, str]  # category, topics, response_type, key_points
+    messageType: str
+
+class ConversationResponse(BaseModel):
+    """Full conversation details"""
+    sessionId: str
+    timestamp: str
+    userId: str
+    question: str
+    response: str
+    summary: Dict[str, str]
+    messageType: str
+    metadata: Optional[Dict] = None
+```
+
+**Test Method**:
+1. Send a message via chatbot
+2. Verify conversation logged in DynamoDB with summary
+3. Verify conversation logged in CloudWatch
+4. Call admin endpoint to retrieve conversation summaries
+5. Verify summaries contain category, topics, key_points
+6. Verify admin authentication works
+7. Test filtering by category or user_id
+8. Test TTL expiration (after retention period)
+
+**Privacy Considerations**:
+- **Data Retention**: 90 days TTL (configurable)
+- **User Consent**: Consider adding user consent for logging
+- **PII Handling**: Option to redact sensitive information
+- **Access Control**: Strict admin-only access via Cognito
+- **Compliance**: Ensure GDPR/privacy law compliance
+
+**Cost Impact**:
+- DynamoDB: ~$0.25 per million writes (minimal for conversation logs)
+- CloudWatch Logs: First 5GB free, then $0.50/GB
+- Gemini API for summaries: ~$0.10 per 1K summaries
+- **Estimated**: < $0.20/month for moderate usage
+
+**Rollback**: Disable conversation logging, remove admin endpoints
+
+---
+
+### Step 9.4: Production Deployment
 **Objective**: Deploy to production
 
 **Tasks**:
@@ -918,7 +1811,8 @@ sam deploy --config-env prod
 - [ ] Build RAG chain
 
 ### Phase 5: Tools
-- [ ] Create DynamoDB tool functions
+- [ ] Create DynamoDB tool functions (words, kanjis, sentences)
+- [ ] Create user progress & plan tool functions
 - [ ] Integrate tools with Gemini Live API (Function Calling)
 - [ ] Test tool calling
 
@@ -926,6 +1820,7 @@ sam deploy --config-env prod
 - [ ] Integrate Gemini Live API with RAG
 - [ ] Set up WebSocket handler (WSS)
 - [ ] Configure RAG context injection
+- [ ] Inject user context at session start
 - [ ] Test text and voice modes
 - [ ] Add to SAM template
 
@@ -943,6 +1838,7 @@ sam deploy --config-env prod
 ### Phase 9: Deployment
 - [ ] Deploy to staging
 - [ ] Set up monitoring
+- [ ] Implement conversation logging and admin access
 - [ ] Deploy to production
 
 ---
@@ -959,9 +1855,11 @@ sam deploy --config-env prod
 | Phase 6: Gemini Live API Integration | 2-3 days | Phase 5 |
 | Phase 7: Testing | 2-3 days | Phase 6 |
 | Phase 8: Quality | 2-3 days | Phase 7 |
-| Phase 9: Deployment | 1-2 days | Phase 8 |
+| Phase 9: Deployment | 2-3 days | Phase 8 |
 
-**Total**: 16-23 days (3-4.5 weeks)
+**Total**: 17-24 days (3.5-5 weeks)
+
+**Note**: Phase 9 includes conversation logging and admin access (Step 9.3)
 
 ---
 
