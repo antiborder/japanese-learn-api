@@ -667,6 +667,53 @@ Resources:
       RetentionInDays: 14
     DependsOn: SentenceCompositionFunction
 
+  # Chat Function (Phase 1: Simple Text Chat)
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/chat
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-ChatFunction"
+      CodeUri: ./app/api/v1/chat
+      Handler: app.lambda_handler
+      Description: "Lambda function for simple AI chatbot (Phase 1)"
+      Environment:
+        Variables:
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          LOG_LEVEL: INFO
+      Events:
+        ChatApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/chat
+            Method: ANY
+        ChatApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/chat/{proxy+}
+            Method: ANY
+      Policies:
+        # DynamoDB read for user authentication (if using existing auth)
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+
+  ChatFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ChatFunction}"
+      RetentionInDays: 14
+    DependsOn: ChatFunction
+
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
@@ -689,6 +736,9 @@ Outputs:
   SentenceCompositionFunctionArn:
     Description: "Sentence Composition Function ARN"
     Value: !GetAtt SentenceCompositionFunction.Arn
+  ChatFunctionArn:
+    Description: "Chat Function ARN"
+    Value: !GetAtt ChatFunction.Arn
   ApiId:
     Description: "API Gateway ID"
     Value: !Ref ServerlessRestApi
