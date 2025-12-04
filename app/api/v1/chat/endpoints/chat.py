@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schemas.chat import ChatMessageRequest, ChatMessageResponse
 from integrations.gemini_client import GeminiClient
 from services.conversation_logger import ConversationLogger
+from tools.dynamodb_tools import TOOL_FUNCTIONS  # Import tool functions
 from typing import Optional
 import logging
 import uuid
@@ -77,8 +78,10 @@ async def chat_message(
     user_id: Optional[str] = Depends(get_optional_user_id)
 ):
     """
-    Simple text chat endpoint
-    No RAG, no DB access, just direct Gemini API call
+    Chat endpoint with tool calling support
+    - If user asks about a word/kanji, tool functions will be called
+    - Tool functions return data + detail page URLs
+    - Gemini includes links in its response
     
     Authentication: Optional
     - If Authorization header is provided and valid, user_id will be set
@@ -88,6 +91,9 @@ async def chat_message(
     try:
         client = GeminiClient()
         
+        # Register tools for function calling
+        client.register_tools(TOOL_FUNCTIONS)
+        
         # Generate session_id if not provided
         session_id = request.session_id or str(uuid.uuid4())
         
@@ -95,8 +101,23 @@ async def chat_message(
         effective_user_id = user_id if user_id else f"anonymous-{session_id}"
         logger.info(f"Chat request from user: {effective_user_id}")
         
-        # Call Gemini API
-        response_text = client.chat(request.message)
+        # Call Gemini API with tool support
+        result = client.chat_with_tools(
+            request.message,
+            tool_functions=TOOL_FUNCTIONS
+        )
+        
+        response_text = result["response"]
+        
+        # Log tool calls if any
+        if result.get("tool_calls"):
+            logger.info(f"Tool calls made: {result['tool_calls']}")
+        else:
+            logger.warning(f"No tool calls made for message: {request.message}")
+        
+        # Log tool results if any
+        if result.get("tool_results"):
+            logger.info(f"Tool results: {result['tool_results']}")
         
         # Log conversation (non-blocking, errors don't fail the request)
         try:
@@ -105,7 +126,11 @@ async def chat_message(
                 session_id=session_id,
                 question=request.message,
                 response=response_text,
-                message_type="text"
+                message_type="text",
+                metadata={
+                    "tool_calls": result.get("tool_calls", []),
+                    "tool_results": result.get("tool_results", [])
+                }
             )
         except Exception as e:
             logger.warning(f"Failed to log conversation: {e}")
@@ -116,6 +141,9 @@ async def chat_message(
             session_id=session_id
         )
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
         logger.error(f"Error in chat endpoint: {str(e)}")
+        logger.error(f"Traceback: {error_traceback}")
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 

@@ -1,3 +1,5 @@
+-r requirements.txt
+uvicorn==0.27.0
 pytest==7.4.0
 pytest-asyncio==0.21.1
 httpx==0.24.1

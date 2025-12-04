@@ -40,10 +40,28 @@ uvicorn app:app --reload --port 8000
 
 **注意**: `PYTHONPATH`の設定が必要です。これは`common`ディレクトリ内の共通モジュール（設定、スキーマ、ユーティリティなど）を参照するために必要です。`PYTHONPATH`を設定しないと、インポートエラーが発生します。
 
-各モジュール（words、kanjis、sentences、search、learn_words、sentence_composition）で同様の方法でテストできます。
+各モジュール（words、kanjis、sentences、search、learn_words、sentence_composition、chat）で同様の方法でテストできます。
+
+**chatモジュールのローカルテスト例**：
+```bash
+# chatモジュールのテスト
+cd /Users/mo/Projects/japanese-learn-api/app/api/v1/chat
+export PYTHONPATH="/Users/mo/Projects/japanese-learn-api/app/api/v1:$PYTHONPATH"
+export GEMINI_API_KEY="your-gemini-api-key"
+export DYNAMODB_TABLE_NAME="japanese-learn-table"
+export FRONTEND_BASE_URL="http://localhost:3000"  # オプション（デフォルト値あり）
+export CONVERSATION_LOGS_TABLE_NAME="chat-conversations"  # オプション（Phase 2で使用）
+uvicorn app:app --reload --port 8000
+```
 
 curl コマンドの例：
 ```bash
+# チャットボットのテスト
+curl -X POST http://localhost:8000/api/v1/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What does こんにちは mean?", "session_id": "test-session-123"}'
+
+# 他のエンドポイントのテスト例
 curl http://localhost:8000/api/v1/kanjis/101/ai-explanation
 ```
 
