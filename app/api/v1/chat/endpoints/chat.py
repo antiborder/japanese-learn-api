@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schemas.chat import ChatMessageRequest, ChatMessageResponse
 from integrations.gemini_client import GeminiClient
+from services.conversation_logger import ConversationLogger
 from typing import Optional
 import logging
 import uuid
@@ -11,6 +12,9 @@ from jose import jwt, JWTError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Initialize conversation logger
+conversation_logger = ConversationLogger()
 
 # Optional bearer scheme - doesn't auto-raise on missing token
 optional_bearer_scheme = HTTPBearer(auto_error=False)
@@ -93,6 +97,19 @@ async def chat_message(
         
         # Call Gemini API
         response_text = client.chat(request.message)
+        
+        # Log conversation (non-blocking, errors don't fail the request)
+        try:
+            conversation_logger.log_conversation(
+                user_id=effective_user_id,
+                session_id=session_id,
+                question=request.message,
+                response=response_text,
+                message_type="text"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log conversation: {e}")
+            # Continue even if logging fails
         
         return ChatMessageResponse(
             response=response_text,

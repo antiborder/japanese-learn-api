@@ -393,9 +393,9 @@ sam deploy --guided
 
 **Scope**:
 - ✅ Keep REST API text chat (from Phase 1)
-- ✅ Add conversation logging to DynamoDB
-- ✅ Generate summaries using Gemini API
-- ✅ Create admin endpoints to view conversations
+- ✅ Add conversation logging to DynamoDB (raw logs)
+- ⚠️ Generate summaries using Gemini API (OPTIONAL - can be added later)
+- ✅ Create admin endpoints to view conversations (work with raw logs)
 - ✅ Still no DB/vectorization for chat responses
 
 **Why This Phase**:
@@ -404,12 +404,26 @@ sam deploy --guided
 - Prepares for future phases
 - Can be deployed independently
 
-**Timeline**: 2-3 days
+**Implementation Strategy**:
+- **Store raw logs** (Step 2.1) - Always useful, contains full conversation text
+- **Summarization optional** (Step 2.2) - Can be added later if needed for analytics/dashboards
+- **Admin endpoints** (Step 2.3) - Work with raw logs, summaries optional
+
+**Timeline**: 2-3 days (without summarization), 3-4 days (with summarization)
+
+---
+
+**Approach**: Store raw conversation logs (always useful). Summarization is optional and can be added later if needed for analytics.
+
+**Implementation Priority**:
+1. ✅ **Step 2.1: Create Conversation Logging** - **REQUIRED** - Store raw logs
+2. ⚠️ **Step 2.2: Create Conversation Summarizer** - **OPTIONAL** - Add later if needed
+3. ✅ **Step 2.3: Create Admin Endpoints** - **REQUIRED** - Read raw logs (summaries optional)
 
 ---
 
 ### Step 2.1: Create Conversation Logging
-**Objective**: Log all user questions and chatbot responses
+**Objective**: Log all user questions and chatbot responses (raw logs)
 
 **Tasks**:
 1. Create DynamoDB table for conversation logs
@@ -592,27 +606,41 @@ Policies:
 
 ---
 
-### Step 2.2: Create Conversation Summarizer
-**Objective**: Generate summaries of each conversation turn
+### Step 2.2: Create Conversation Summarizer (OPTIONAL - Add Later If Needed)
+**Objective**: Generate summaries of each conversation turn for analytics and quick overviews
 
-**Tasks**:
+**Status**: ⚠️ **OPTIONAL** - Can be added later if needed for analytics/dashboards. Raw logs are sufficient for reading conversations.
+
+**When to Add**:
+- If you need quick overviews (100 conversations in 5 minutes)
+- If you want analytics/dashboards (category counts, topic trends)
+- If you need category-based filtering ("show all grammar questions")
+- If you want statistics and reports
+
+**When to Skip**:
+- ✅ If you're comfortable reading raw logs
+- ✅ If you have good query/filter tools
+- ✅ If you want to minimize costs (no Gemini API calls for summaries)
+- ✅ If you need full conversation context
+
+**Tasks** (if implementing):
 1. Create summarizer service using Gemini API
 2. Generate structured summary (category, topics, key_points, response_type)
-3. Store summary with conversation log
+3. Store summary with conversation log (optional field)
 4. Handle errors gracefully (fallback summary)
 5. Optimize for cost (use Gemini 2.0 Flash Exp for summaries)
 
-**Test Criteria**:
+**Test Criteria** (if implementing):
 - ✅ Summaries are generated for each conversation
 - ✅ Summaries contain category, topics, key_points, response_type
 - ✅ Error handling works (fallback summary)
 - ✅ Summary generation doesn't slow down chat response
 
-**Files to Create**:
+**Files to Create** (if implementing):
 - `app/api/v1/chat/services/conversation_summarizer.py`
 
-**Files to Modify**:
-- `app/api/v1/chat/services/conversation_logger.py` (integrate summarizer)
+**Files to Modify** (if implementing):
+- `app/api/v1/chat/services/conversation_logger.py` (add optional summarizer integration)
 
 **Conversation Summarizer Implementation**:
 ```python
@@ -746,25 +774,28 @@ class ConversationLogger:
 ---
 
 ### Step 2.3: Create Admin Endpoints
-**Objective**: Enable admins to view conversation history and summaries
+**Objective**: Enable admins to view conversation history (raw logs)
 
 **Tasks**:
 1. Create admin endpoints:
-   - `GET /api/v1/admin/chat/conversations` - List all with summaries
+   - `GET /api/v1/admin/chat/conversations` - List all conversations (raw logs)
    - `GET /api/v1/admin/chat/conversations/user/{user_id}` - User's conversations
-   - `GET /api/v1/admin/chat/conversations/{session_id}` - Specific conversation
-   - `GET /api/v1/admin/chat/summaries` - Summaries only
-   - `GET /api/v1/admin/chat/stats` - Conversation statistics
+   - `GET /api/v1/admin/chat/conversations/{session_id}` - Specific conversation/session
+   - `GET /api/v1/admin/chat/summaries` - Summaries only (if Step 2.2 implemented)
+   - `GET /api/v1/admin/chat/stats` - Conversation statistics (basic stats from raw logs)
 2. Add admin authentication (Cognito admin role)
 3. Implement pagination
-4. Add filtering by category, date, user
+4. Add filtering by date, user (category filtering requires Step 2.2)
+
+**Note**: Endpoints work with raw logs. If summaries are added later (Step 2.2), they will be included in responses as optional fields.
 
 **Test Criteria**:
-- ✅ Admin endpoints return conversation data
-- ✅ Summaries are included in responses
+- ✅ Admin endpoints return conversation data (raw logs)
+- ✅ Full question and response text are included
 - ✅ Admin authentication works
 - ✅ Pagination works
-- ✅ Filtering works
+- ✅ Filtering by date/user works
+- ✅ Can read conversations in comfortable format
 
 **Files to Create**:
 - `app/api/v1/admin/endpoints/chat_conversations.py`
@@ -778,12 +809,13 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List
 
 class ConversationSummary(BaseModel):
-    """Summary view for admin - basic info and summary"""
+    """Summary view for admin - basic info and optional summary"""
     sessionId: str
     timestamp: str
     userId: str
     question: str
-    summary: Dict[str, any]  # category, topics, response_type, key_points
+    response: str  # Full response text (always included)
+    summary: Optional[Dict[str, any]] = None  # Optional: category, topics, response_type, key_points (if Step 2.2 implemented)
     messageType: str
 
 class ConversationResponse(BaseModel):
@@ -793,16 +825,16 @@ class ConversationResponse(BaseModel):
     userId: str
     question: str
     response: str
-    summary: Dict[str, any]
+    summary: Optional[Dict[str, any]] = None  # Optional: only if Step 2.2 implemented
     messageType: str
     metadata: Optional[Dict] = None
 
 class ConversationStats(BaseModel):
     """Conversation statistics"""
     total_conversations: int
-    conversations_by_category: Dict[str, int]
-    conversations_by_date: Dict[str, int]
-    top_topics: List[Dict[str, int]]
+    conversations_by_category: Dict[str, int]  # Empty if Step 2.2 not implemented
+    conversations_by_date: Dict[str, int]  # Always available
+    top_topics: List[Dict[str, int]]  # Empty if Step 2.2 not implemented
 ```
 
 **Admin Endpoint Implementation**:
@@ -826,12 +858,12 @@ conversations_table = dynamodb.Table(os.getenv('CONVERSATION_LOGS_TABLE_NAME'))
 async def list_conversations(
     limit: int = Query(100, ge=1, le=1000),
     start_key: Optional[str] = None,
-    category: Optional[str] = None,
+    category: Optional[str] = None,  # Only works if Step 2.2 (summarization) is implemented
     admin_user = Depends(require_admin_role)
 ):
     """
-    List all conversations with summaries (admin only)
-    Returns basic info and summary of each user inquiry
+    List all conversations (admin only)
+    Returns raw conversation logs with optional summaries
     """
     try:
         # Scan table with pagination
@@ -845,7 +877,7 @@ async def list_conversations(
         response = conversations_table.scan(**scan_kwargs)
         items = response.get('Items', [])
         
-        # Filter by category if provided
+        # Filter by category if provided (requires summaries)
         if category:
             items = [item for item in items 
                     if item.get('summary', {}).get('category') == category]
@@ -858,7 +890,8 @@ async def list_conversations(
                 timestamp=item['timestamp'],
                 userId=item['userId'],
                 question=item['question'],
-                summary=item.get('summary', {}),
+                response=item['response'],  # Always include full response
+                summary=item.get('summary'),  # Optional: only if Step 2.2 implemented
                 messageType=item.get('messageType', 'text')
             ))
         
@@ -873,7 +906,7 @@ async def get_user_conversations(
     limit: int = Query(100, ge=1, le=1000),
     admin_user = Depends(require_admin_role)
 ):
-    """Get conversations for a specific user with summaries (admin only)"""
+    """Get conversations for a specific user (admin only) - returns raw logs"""
     try:
         # Query by userId using GSI
         response = conversations_table.query(
@@ -894,7 +927,8 @@ async def get_user_conversations(
                 timestamp=item['timestamp'],
                 userId=item['userId'],
                 question=item['question'],
-                summary=item.get('summary', {}),
+                response=item['response'],  # Always include full response
+                summary=item.get('summary'),  # Optional: only if Step 2.2 implemented
                 messageType=item.get('messageType', 'text')
             ))
         
@@ -903,12 +937,12 @@ async def get_user_conversations(
         logger.error(f"Error getting user conversations: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/conversations/{session_id}", response_model=ConversationResponse)
+@router.get("/conversations/{session_id}", response_model=List[ConversationResponse])
 async def get_conversation(
     session_id: str,
     admin_user = Depends(require_admin_role)
 ):
-    """Get specific conversation by session ID with full details (admin only)"""
+    """Get all turns in a specific conversation session (admin only) - returns raw logs"""
     try:
         # Query by sessionId (get all messages in session)
         response = conversations_table.query(
@@ -922,19 +956,24 @@ async def get_conversation(
         if not items:
             raise HTTPException(status_code=404, detail="Conversation not found")
         
-        # Return most recent message (or aggregate all messages)
-        item = sorted(items, key=lambda x: x['timestamp'], reverse=True)[0]
+        # Sort by timestamp (chronological order)
+        items = sorted(items, key=lambda x: x['timestamp'])
         
-        return ConversationResponse(
-            sessionId=item['sessionId'],
-            timestamp=item['timestamp'],
-            userId=item['userId'],
-            question=item['question'],
-            response=item['response'],
-            summary=item.get('summary', {}),
-            messageType=item.get('messageType', 'text'),
-            metadata=item.get('metadata')
-        )
+        # Return all turns in the session
+        conversations = []
+        for item in items:
+            conversations.append(ConversationResponse(
+                sessionId=item['sessionId'],
+                timestamp=item['timestamp'],
+                userId=item['userId'],
+                question=item['question'],
+                response=item['response'],
+                summary=item.get('summary'),  # Optional: only if Step 2.2 implemented
+                messageType=item.get('messageType', 'text'),
+                metadata=item.get('metadata')
+            ))
+        
+        return conversations
     except HTTPException:
         raise
     except Exception as e:
@@ -944,18 +983,22 @@ async def get_conversation(
 @router.get("/summaries", response_model=List[ConversationSummary])
 async def get_conversation_summaries(
     limit: int = Query(100, ge=1, le=1000),
-    category: Optional[str] = None,
+    category: Optional[str] = None,  # Only works if Step 2.2 (summarization) is implemented
     admin_user = Depends(require_admin_role)
 ):
     """
     Get conversation summaries only (admin only)
-    Useful for quick overview of user inquiries
+    ⚠️ Requires Step 2.2 (Conversation Summarizer) to be implemented
+    Returns empty list if summaries are not available
     """
     try:
-        # Similar to list_conversations but only return summaries
+        # Similar to list_conversations but only return items with summaries
         scan_kwargs = {'Limit': limit}
         response = conversations_table.scan(**scan_kwargs)
         items = response.get('Items', [])
+        
+        # Filter items that have summaries
+        items = [item for item in items if item.get('summary')]
         
         if category:
             items = [item for item in items 
@@ -968,7 +1011,8 @@ async def get_conversation_summaries(
                 timestamp=item['timestamp'],
                 userId=item['userId'],
                 question=item['question'],
-                summary=item.get('summary', {}),
+                response=item['response'],  # Always include full response
+                summary=item.get('summary'),
                 messageType=item.get('messageType', 'text')
             ))
         
@@ -981,39 +1025,44 @@ async def get_conversation_summaries(
 async def get_conversation_stats(
     admin_user = Depends(require_admin_role)
 ):
-    """Get conversation statistics (admin only)"""
+    """Get conversation statistics (admin only) - basic stats from raw logs"""
     try:
         # Scan all conversations (may be expensive, consider caching)
         response = conversations_table.scan()
         items = response.get('Items', [])
         
-        # Calculate stats
+        # Calculate basic stats
         total = len(items)
-        by_category = {}
         by_date = {}
+        
+        # Category and topics stats only available if Step 2.2 (summarization) is implemented
+        by_category = {}
         topics_count = {}
         
         for item in items:
-            summary = item.get('summary', {})
-            category = summary.get('category', 'general')
-            by_category[category] = by_category.get(category, 0) + 1
-            
+            # Date stats (always available)
             date = item['timestamp'][:10]  # YYYY-MM-DD
             by_date[date] = by_date.get(date, 0) + 1
             
-            topics = summary.get('topics', [])
-            for topic in topics:
-                topics_count[topic] = topics_count.get(topic, 0) + 1
+            # Category and topics (only if summaries exist)
+            summary = item.get('summary')
+            if summary:
+                category = summary.get('category', 'general')
+                by_category[category] = by_category.get(category, 0) + 1
+                
+                topics = summary.get('topics', [])
+                for topic in topics:
+                    topics_count[topic] = topics_count.get(topic, 0) + 1
         
         top_topics = sorted(
             [{'topic': k, 'count': v} for k, v in topics_count.items()],
             key=lambda x: x['count'],
             reverse=True
-        )[:10]
+        )[:10] if topics_count else []
         
         return ConversationStats(
             total_conversations=total,
-            conversations_by_category=by_category,
+            conversations_by_category=by_category if by_category else {},  # Empty if no summaries
             conversations_by_date=by_date,
             top_topics=top_topics
         )
