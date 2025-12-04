@@ -3,7 +3,6 @@ import logging
 import os
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 
 # Logging configuration
 logger = logging.getLogger()
@@ -20,17 +19,6 @@ app = FastAPI(
     root_path=ROOT_PATH
 )
 
-# CORS middleware (only for local development)
-# In Lambda environment, CORS headers are set in lambda_handler
-if not os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
 # Import and include endpoints
 from endpoints.chat import router as chat_router
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
@@ -41,7 +29,7 @@ handler = Mangum(app, lifespan="off")
 def lambda_handler(event, context):
     """Lambda handler for FastAPI app"""
     try:
-        # Use Mangum handler to run FastAPI app in Lambda
+        # Mangum handler to run FastAPI app in Lambda
         stage = event.get('requestContext', {}).get('stage', '')
         if stage:
             app.root_path = f"/{stage}"
