@@ -24,6 +24,7 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 		GoogleApiKey="$$GOOGLE_API_KEY" \
 		GoogleSearchEngineId="$$GOOGLE_SEARCH_ENGINE_ID" \
 		GeminiApiKey="$$GEMINI_API_KEY" \
+		FrontendBaseUrl="$$FRONTEND_BASE_URL" \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset \
 		--no-progressbar \

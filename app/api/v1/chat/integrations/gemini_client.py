@@ -143,6 +143,26 @@ class GeminiClient:
                 self.register_tools(tool_functions)
             
             # Start chat session with automatic function calling enabled
+            # Add system instruction to include links in responses when tool functions return detail_url
+            system_instruction = """When you use tool functions to search for words or kanjis, the tool function will return a result that includes a 'detail_url' field. 
+IMPORTANT: You MUST always include this detail_url in your response as a clickable markdown link.
+
+For example, if a tool function returns:
+{
+  "found": true,
+  "word": {
+    "name": "こんにちは",
+    "english": "hello",
+    "detail_url": "https://example.com/words/123"
+  }
+}
+
+You should respond like this:
+"こんにちは means 'hello' in Japanese. [View word details](https://example.com/words/123)"
+
+Always format links using markdown: [link text](url)
+If the tool function result contains a detail_url, you MUST include it in your response."""
+            
             if conversation_history:
                 chat = self.model.start_chat(history=conversation_history)
             else:
@@ -153,8 +173,10 @@ class GeminiClient:
             if self.tools:
                 logger.info(f"Sending message with {len(self.tools)} tools available")
             
-            # Send message
-            response = chat.send_message(message)
+            # Send message with system instruction prepended
+            # Combine system instruction with user message
+            full_message = f"{system_instruction}\n\nUser question: {message}"
+            response = chat.send_message(full_message)
             
             logger.info(f"Response received, checking for function calls...")
             

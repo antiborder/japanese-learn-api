@@ -119,6 +119,34 @@ async def chat_message(
         if result.get("tool_results"):
             logger.info(f"Tool results: {result['tool_results']}")
         
+        # Extract word_ids and kanji_ids from tool_results
+        word_ids = []
+        kanji_ids = []
+        
+        if result.get("tool_results"):
+            for tool_result in result["tool_results"]:
+                if "error" in tool_result:
+                    # Skip results with errors
+                    continue
+                
+                result_data = tool_result.get("result", {})
+                
+                # Extract word IDs
+                if "word" in result_data and result_data.get("word"):
+                    word = result_data["word"]
+                    if "id" in word:
+                        word_id = word["id"]
+                        if word_id not in word_ids:
+                            word_ids.append(word_id)
+                
+                # Extract kanji IDs
+                if "kanji" in result_data and result_data.get("kanji"):
+                    kanji = result_data["kanji"]
+                    if "id" in kanji:
+                        kanji_id = kanji["id"]
+                        if kanji_id not in kanji_ids:
+                            kanji_ids.append(kanji_id)
+        
         # Log conversation (non-blocking, errors don't fail the request)
         try:
             conversation_logger.log_conversation(
@@ -129,17 +157,30 @@ async def chat_message(
                 message_type="text",
                 metadata={
                     "tool_calls": result.get("tool_calls", []),
-                    "tool_results": result.get("tool_results", [])
+                    "tool_results": result.get("tool_results", []),
+                    "word_ids": word_ids,
+                    "kanji_ids": kanji_ids
                 }
             )
         except Exception as e:
             logger.warning(f"Failed to log conversation: {e}")
             # Continue even if logging fails
         
-        return ChatMessageResponse(
-            response=response_text,
-            session_id=session_id
-        )
+        # Build response with optional word_ids and kanji_ids
+        response_data = {
+            "response": response_text,
+            "session_id": session_id
+        }
+        
+        # Only include word_ids if there are any
+        if word_ids:
+            response_data["word_ids"] = word_ids
+        
+        # Only include kanji_ids if there are any
+        if kanji_ids:
+            response_data["kanji_ids"] = kanji_ids
+        
+        return ChatMessageResponse(**response_data)
     except Exception as e:
         import traceback
         error_traceback = traceback.format_exc()

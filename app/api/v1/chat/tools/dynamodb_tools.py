@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any
 logger = logging.getLogger(__name__)
 
 # Frontend base URL (configure via environment variable)
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://your-frontend-domain.com')
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://nihongo.cloud')
 
 def get_word_detail_url(word_id: int) -> str:
     """Generate frontend URL for word detail page"""
@@ -344,7 +344,7 @@ def search_kanji_by_character(kanji_character: str) -> Dict[str, Any]:
 TOOL_FUNCTIONS = {
     "search_word_by_name": {
         "function": search_word_by_name,
-        "description": "Search for a Japanese word by its name (Japanese or English). Use this when user asks 'What does XXX mean?' or 'What is XXX in Japanese?'",
+        "description": "Search for a Japanese word by its name (Japanese or English). Use this when user asks 'What does XXX mean?' or 'What is XXX in Japanese?'. The result includes a 'detail_url' field that should be included in the response as a clickable link.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -372,7 +372,7 @@ TOOL_FUNCTIONS = {
     },
     "search_kanji_by_character": {
         "function": search_kanji_by_character,
-        "description": "Search for a kanji by its character. Use this when user asks about a specific kanji character or its reading.",
+        "description": "Search for a kanji by its character. Use this when user asks about a specific kanji character or its reading. The result includes a 'detail_url' field that should be included in the response as a clickable link.",
         "parameters": {
             "type": "object",
             "properties": {

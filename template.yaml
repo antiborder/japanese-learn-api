@@ -21,6 +21,10 @@ Parameters:
     Type: String
     Description: "Google Gemini API Key for AI descriptions"
     NoEcho: true
+  FrontendBaseUrl:
+    Type: String
+    Description: "Frontend base URL for word/kanji detail page links"
+    Default: "https://nihongo.cloud"
 
 Globals:
   Function:
@@ -686,7 +690,7 @@ Resources:
           GEMINI_API_KEY: !Ref GeminiApiKey
           CONVERSATION_LOGS_TABLE_NAME: !Ref ConversationLogsTable
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
-          FRONTEND_BASE_URL: "https://your-frontend-domain.com"  # Update with your frontend URL
+          FRONTEND_BASE_URL: !Ref FrontendBaseUrl
           LOG_LEVEL: INFO
       Events:
         ChatApiRootEvent:
