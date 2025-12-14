@@ -159,8 +159,8 @@ class FAISSVectorStore:
             os.makedirs('/tmp/faiss_index', exist_ok=True)
             
             # Download from S3 with timeout
-            import botocore
-            config = botocore.config.Config(
+            from botocore.config import Config
+            config = Config(
                 read_timeout=30,  # 30秒でタイムアウト（インデックスファイルが大きい場合）
                 connect_timeout=10
             )
