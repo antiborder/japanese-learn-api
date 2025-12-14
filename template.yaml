@@ -684,13 +684,18 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-ChatFunction"
       CodeUri: ./app/api/v1/chat
       Handler: app.lambda_handler
-      Description: "Lambda function for simple AI chatbot (Phase 1)"
+      Description: "Lambda function for AI chatbot with RAG (Phase 3)"
+      MemorySize: 1024
+      Timeout: 300
       Environment:
         Variables:
           GEMINI_API_KEY: !Ref GeminiApiKey
           CONVERSATION_LOGS_TABLE_NAME: !Ref ConversationLogsTable
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           FRONTEND_BASE_URL: !Ref FrontendBaseUrl
+          S3_BUCKET_NAME: !Ref S3BucketName
+          FAISS_INDEX_S3_KEY: "faiss_index/index.faiss"
+          FAISS_INDEX_METADATA_S3_KEY: "faiss_index/metadata.pkl"
           LOG_LEVEL: INFO
       Events:
         ChatApiRootEvent:
@@ -710,6 +715,7 @@ Resources:
             Action:
               - dynamodb:GetItem
               - dynamodb:Query
+              - dynamodb:UpdateItem
             Resource:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
@@ -719,6 +725,21 @@ Resources:
               - dynamodb:PutItem
             Resource:
               - !GetAtt ConversationLogsTable.Arn
+          # Bedrock for embeddings
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource:
+              - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
+          # S3 for FAISS index
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "arn:aws:s3:::${S3BucketName}"
+              - !Sub "arn:aws:s3:::${S3BucketName}/*"
 
   ChatFunctionLogGroup:
     Type: AWS::Logs::LogGroup

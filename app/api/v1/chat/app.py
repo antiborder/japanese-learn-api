@@ -5,6 +5,10 @@ from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 
 # Logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 

@@ -53,3 +53,5 @@ uvicorn
 uvloop
 watchfiles
 websockets
+tqdm
+tqdm

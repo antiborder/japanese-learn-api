@@ -99,13 +99,20 @@ async def chat_message(
         
         # Use user_id if authenticated, otherwise use anonymous identifier
         effective_user_id = user_id if user_id else f"anonymous-{session_id}"
-        logger.info(f"Chat request from user: {effective_user_id}")
+        logger.info(f"Chat request from user: {effective_user_id}, message: {request.message}")
+        
+        import time
+        request_start = time.time()
         
         # Call Gemini API with tool support
+        logger.info("Calling Gemini API with tools...")
+        gemini_start = time.time()
         result = client.chat_with_tools(
             request.message,
             tool_functions=TOOL_FUNCTIONS
         )
+        gemini_time = time.time() - gemini_start
+        logger.info(f"Gemini API call completed in {gemini_time:.2f} seconds")
         
         response_text = result["response"]
         
@@ -118,6 +125,8 @@ async def chat_message(
         # Log tool results if any
         if result.get("tool_results"):
             logger.info(f"Tool results: {result['tool_results']}")
+        else:
+            logger.warning("No tool results returned")
         
         # Extract word_ids and kanji_ids from tool_results
         word_ids = []
