@@ -324,6 +324,95 @@ python3 scripts/import_dynamodb.py
 python3 scripts/import_sentences_to_dynamodb.py
 ```
 
+## Chat関数用のEmbedding作成とFAISSインデックスの構築
+
+Chat関数のRAG（Retrieval-Augmented Generation）機能を使用するには、以下の手順でembeddingを生成し、FAISSインデックスをS3に保存する必要があります。
+
+### 前提条件
+
+1. **環境変数の設定**
+   - `.env`ファイルに以下の環境変数が設定されていることを確認：
+     ```bash
+     DYNAMODB_TABLE_NAME=japanese-learn-table
+     FAISS_INDEX_S3_BUCKET_NAME=bucket-japanese-learn-resource
+     AWS_REGION=ap-northeast-1
+     ```
+   - AWS認証情報が設定されていること（`aws configure`で設定）
+
+2. **AWS権限の確認**
+   - Bedrock: `bedrock:InvokeModel`権限（`amazon.titan-embed-text-v1`モデル用）
+   - DynamoDB: `dynamodb:Query`, `dynamodb:UpdateItem`権限
+   - S3: `s3:PutObject`, `s3:GetObject`権限
+
+### 手順1: Embeddingの生成
+
+DynamoDBのアイテム（words, kanjis, sentences）に対してembeddingを生成し、DynamoDBに保存します。
+
+```bash
+# venv環境へ入る
+source venv/bin/activate
+
+# すべてのエンティティタイプ（words, kanjis, sentences）に対してembeddingを生成
+python3 scripts/generate_embeddings.py --entity-type all
+
+# 特定のエンティティタイプのみ処理する場合
+python3 scripts/generate_embeddings.py --entity-type word
+python3 scripts/generate_embeddings.py --entity-type kanji
+python3 scripts/generate_embeddings.py --entity-type sentence
+
+# テスト用に件数を制限する場合（例: 100件のみ処理）
+python3 scripts/generate_embeddings.py --entity-type word --limit 100
+```
+
+**注意事項**:
+- 既にembeddingが存在するアイテムはスキップされます（再実行時も安全）
+- 10,000単語のembedding生成には約$1.00 USD（約150円）のコストがかかります
+- 詳細なコスト見積もりは`EMBEDDING_COST_ESTIMATE.md`を参照してください
+
+### 手順2: FAISSインデックスの構築とS3への保存
+
+DynamoDBからembeddingを読み込み、FAISSインデックスを構築してS3に保存します。
+
+```bash
+# venv環境へ入る
+source venv/bin/activate
+
+# FAISSインデックスを構築してS3に保存
+python3 scripts/build_faiss_index.py
+```
+
+このスクリプトは以下を実行します：
+1. DynamoDBからすべてのembeddingを読み込み
+2. FAISSインデックスを構築
+3. インデックスファイル（`index.faiss`）とメタデータファイル（`metadata.pkl`）をS3に保存
+   - S3パス: `s3://{FAISS_INDEX_S3_BUCKET_NAME}/faiss_index/index.faiss`
+   - S3パス: `s3://{FAISS_INDEX_S3_BUCKET_NAME}/faiss_index/metadata.pkl`
+
+**注意事項**:
+- インデックスの構築には、DynamoDB内のすべてのembeddingを読み込むため時間がかかります
+- S3への保存には適切な権限が必要です
+- エラーが発生した場合、CloudWatchログまたはコンソール出力で確認してください
+
+### トラブルシューティング
+
+1. **Bedrock権限エラー**
+   - AWS IAMでBedrockへのアクセス権限を確認
+   - リージョンが`ap-northeast-1`であることを確認（Bedrockが利用可能なリージョン）
+
+2. **DynamoDB権限エラー**
+   - DynamoDBテーブル名が正しいか確認
+   - `dynamodb:Query`と`dynamodb:UpdateItem`権限があるか確認
+
+3. **S3権限エラー**
+   - S3バケット名が正しいか確認
+   - `s3:PutObject`権限があるか確認
+   - バケットが存在するか確認
+
+4. **Embedding生成の失敗**
+   - Bedrock APIのレート制限に達していないか確認
+   - ネットワーク接続を確認
+   - エラーログを確認して、特定のアイテムで問題が発生していないか確認
+
 
 ## 言語の追加
 1. data/dynamodb_sourceのwordsとsentencesのcsvに、対象言語のカラムを足して、import
