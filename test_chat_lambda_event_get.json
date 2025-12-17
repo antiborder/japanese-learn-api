@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "resource": "/api/v1/chat",
+  "path": "/api/v1/chat",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "*/*",
+    "Host": "omqihdsdi1.execute-api.ap-northeast-1.amazonaws.com",
+    "User-Agent": "AWS-Console-Test",
+    "X-Amzn-Trace-Id": "Root=1-12345678-abcdefghijklmnopqrstuvwx",
+    "X-Forwarded-For": "127.0.0.1",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["*/*"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "ib7lns",
+    "resourcePath": "/api/v1/chat",
+    "httpMethod": "GET",
+    "extendedRequestId": "test-extended-request-id",
+    "requestTime": "17/Dec/2025:07:10:00 +0000",
+    "path": "/Prod/api/v1/chat",
+    "accountId": "478157933567",
+    "protocol": "HTTP/1.1",
+    "stage": "Prod",
+    "domainPrefix": "omqihdsdi1",
+    "requestTimeEpoch": 1765954200000,
+    "requestId": "test-request-id-12345",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "127.0.0.1",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "AWS-Console-Test",
+      "user": null
+    },
+    "domainName": "omqihdsdi1.execute-api.ap-northeast-1.amazonaws.com",
+    "apiId": "omqihdsdi1"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}
+

@@ -43,16 +43,50 @@ uvicorn app:app --reload --port 8000
 各モジュール（words、kanjis、sentences、search、learn_words、sentence_composition、chat）で同様の方法でテストできます。
 
 **chatモジュールのローカルテスト例**：
+
+chatモジュールはLambdaコンテナとしてデプロイされているため、他のモジュールとは異なる環境変数が必要です。
+
+**方法1: 専用スクリプトを使用（推奨）**
+```bash
+# スクリプトが自動的に環境変数を読み込み、サーバーを起動します
+./scripts/run_chat_local.sh
+```
+
+このスクリプトは以下を自動的に設定します：
+- `.env`ファイルから環境変数を読み込み
+- 必要な環境変数のデフォルト値を設定
+- 仮想環境をアクティベート
+- uvicornでサーバーを起動
+
+**方法2: 手動で環境変数を設定**
 ```bash
 # chatモジュールのテスト
 cd /Users/mo/Projects/japanese-learn-api/app/api/v1/chat
 export PYTHONPATH="/Users/mo/Projects/japanese-learn-api/app/api/v1:$PYTHONPATH"
+
+# 必須環境変数
 export GEMINI_API_KEY="your-gemini-api-key"
 export DYNAMODB_TABLE_NAME="japanese-learn-table"
-export FRONTEND_BASE_URL="http://localhost:3000"  # オプション（デフォルト値あり）
-export CONVERSATION_LOGS_TABLE_NAME="chat-conversations"  # オプション（Phase 2で使用）
+export FAISS_INDEX_S3_BUCKET_NAME="japanese-learn-embeddings-index"
+export AWS_REGION="ap-northeast-1"
+
+# オプション環境変数（デフォルト値あり）
+export S3_BUCKET_NAME="bucket-japanese-learn-resource"
+export FRONTEND_BASE_URL="https://nihongo.cloud"
+export CONVERSATION_LOGS_TABLE_NAME="japanese-learn-chat-conversations"
+export LOG_LEVEL="INFO"
+
+# 仮想環境をアクティベート（存在する場合）
+source ../../../venv/bin/activate
+
+# サーバーを起動
 uvicorn app:app --reload --port 8000
 ```
+
+**注意**: chatモジュールは以下の追加機能を使用します：
+- AWS Bedrock（embedding生成）: ローカル環境ではAWS認証情報が必要
+- FAISSインデックス: S3からインデックスをダウンロード（初回は時間がかかります）
+- DynamoDB: 単語データの取得
 
 curl コマンドの例：
 ```bash

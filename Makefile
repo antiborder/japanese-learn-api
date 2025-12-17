@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: deploy clean build check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common
+.PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -11,21 +11,35 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 # デプロイ（全ステップを実行）
-deploy: check-env check-deps check-structure prepare-build build setup-aws
+deploy: check-env check-deps check-structure prepare-build build-chat-container build setup-aws
 	@echo "デプロイを実行します..."
 	@echo "SAMのバージョンを確認しています..."
 	@sam --version
 	@echo "デプロイ開始..."
+	@AWS_ACCOUNT_ID=$$(aws sts get-caller-identity --query Account --output text); \
+	AWS_REGION=$${CUSTOM_AWS_REGION:-ap-northeast-1}; \
+	API_V1_RESOURCE_ID="w4iw1z"; \
+	API_ID=$$(aws cloudformation describe-stacks --stack-name japanese-learn --query "Stacks[0].Outputs[?OutputKey=='ApiId'].OutputValue" --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
+	if [ -n "$$API_ID" ]; then \
+		RESOURCE_ID=$$(aws apigateway get-resources --rest-api-id $$API_ID --region $$AWS_REGION --query "items[?path=='/api/v1'].Id" --output text 2>/dev/null || echo ""); \
+		if [ -n "$$RESOURCE_ID" ]; then \
+			API_V1_RESOURCE_ID="$$RESOURCE_ID"; \
+		fi; \
+	fi; \
+	echo "Using ApiV1ResourceId: $$API_V1_RESOURCE_ID"; \
 	sam deploy \
 		--stack-name japanese-learn \
-		--s3-bucket aws-sam-cli-managed-default-samclisourcebucket-wifzlstdcfi8 \
+		--resolve-s3 \
+		--image-repository $$AWS_ACCOUNT_ID.dkr.ecr.$$AWS_REGION.amazonaws.com/japanese-learn-chat-function \
 		--parameter-overrides \
 		S3BucketName="$$S3_BUCKET_NAME" \
 		GoogleApiKey="$$GOOGLE_API_KEY" \
 		GoogleSearchEngineId="$$GOOGLE_SEARCH_ENGINE_ID" \
 		GeminiApiKey="$$GEMINI_API_KEY" \
 		FrontendBaseUrl="$$FRONTEND_BASE_URL" \
+		ApiV1ResourceId="$$API_V1_RESOURCE_ID" \
 		--capabilities CAPABILITY_IAM \
+		--no-confirm-changeset \
 		--no-fail-on-empty-changeset \
 		--no-progressbar \
 		|| { echo "デプロイに失敗しました。"; exit 1; }
@@ -33,6 +47,11 @@ deploy: check-env check-deps check-structure prepare-build build setup-aws
 	@make verify
 	@make clean-common
 	@make clean
+
+# Chat LambdaコンテナのDockerイメージをビルドしてECRにプッシュ
+build-chat-container:
+	@echo "Chat LambdaコンテナのDockerイメージをビルドしてECRにプッシュします..."
+	@./scripts/build_and_push_chat_function.sh
 
 # 開発用のセットアップ
 dev-setup:
@@ -160,7 +179,12 @@ verify:
 	@echo "Kana Lesson Functionのデプロイを確認中..."
 	@aws lambda get-function --function-name japanese-learn-KanaLessonFunction > /dev/null
 	@echo "Chat Functionのデプロイを確認中..."
-	@aws lambda get-function --function-name japanese-learn-ChatFunction > /dev/null
+	@CHAT_FUNCTION_NAME=$$(aws lambda list-functions --region ap-northeast-1 --query "Functions[?contains(FunctionName, 'ChatFunction') && !contains(FunctionName, 'ChatTest')].FunctionName" --output text | head -1); \
+	if [ -n "$$CHAT_FUNCTION_NAME" ]; then \
+		aws lambda get-function --function-name "$$CHAT_FUNCTION_NAME" > /dev/null && echo "Chat Function found: $$CHAT_FUNCTION_NAME"; \
+	else \
+		echo "Warning: Chat Function not found"; \
+	fi
 	@echo "Admin Functionのデプロイを確認中..."
 	@aws lambda get-function --function-name japanese-learn-AdminFunction > /dev/null
 	@echo "デプロイの確認が完了しました"
@@ -177,16 +201,17 @@ setup-aws:
 # ヘルプ
 help:
 	@echo "利用可能なコマンド:"
-	@echo "  make deploy        - デプロイを実行"
-	@echo "  make dev-setup    - 開発環境のセットアップ手順を表示"
-	@echo "  make check-env    - AWS環境とデータベース環境変数の確認"
-	@echo "  make check-deps   - 依存関係の確認"
-	@echo "  make check-structure - ファイル構造の確認"
-	@echo "  make clean        - .aws-samを削除"
-	@echo "  make build        - SAMでビルドを実行"
-	@echo "  make verify       - デプロイ後の確認を実行"
-	@echo "  make setup-aws    - AWS認証情報を設定"
-	@echo "  make help         - このヘルプを表示"
+	@echo "  make deploy              - デプロイを実行（chatコンテナ含む）"
+	@echo "  make build-chat-container - Chat LambdaコンテナのDockerイメージをビルドしてECRにプッシュ"
+	@echo "  make dev-setup           - 開発環境のセットアップ手順を表示"
+	@echo "  make check-env           - AWS環境とデータベース環境変数の確認"
+	@echo "  make check-deps          - 依存関係の確認"
+	@echo "  make check-structure     - ファイル構造の確認"
+	@echo "  make clean               - .aws-samを削除"
+	@echo "  make build               - SAMでビルドを実行"
+	@echo "  make verify              - デプロイ後の確認を実行"
+	@echo "  make setup-aws           - AWS認証情報を設定"
+	@echo "  make help                - このヘルプを表示"
 
 prepare-build:
 	@echo "共通コードをコピーしています..."

@@ -63,12 +63,35 @@ class FAISSVectorStore:
                         embeddings_list.append(embedding)
                         
                         idx = len(embeddings_list) - 1
-                        id_mapping[idx] = {
+                        # Store only essential fields to reduce memory usage
+                        # Full item data is not needed - we can fetch from DynamoDB if needed
+                        mapping_data = {
                             'pk': item['PK'],
                             'sk': item['SK'],
-                            'entity_type': pk.lower(),
-                            'item': item  # Store full item for quick access
+                            'entity_type': pk.lower()
                         }
+                        
+                        # Store only essential fields based on entity type to reduce memory
+                        if pk == 'WORD':
+                            mapping_data.update({
+                                'name': item.get('name', ''),
+                                'hiragana': item.get('hiragana', ''),
+                                'english': item.get('english', ''),
+                                'level': item.get('level', 0)
+                            })
+                        elif pk == 'KANJI':
+                            mapping_data.update({
+                                'kanji': item.get('kanji') or item.get('character', ''),
+                                'meaning': item.get('meaning', ''),
+                                'reading': item.get('reading', '')
+                            })
+                        elif pk == 'SENTENCE':
+                            mapping_data.update({
+                                'japanese': item.get('japanese', ''),
+                                'english': item.get('english', '')
+                            })
+                        
+                        id_mapping[idx] = mapping_data
                 
                 last_evaluated_key = response.get('LastEvaluatedKey')
                 if not last_evaluated_key:
@@ -259,10 +282,8 @@ class FAISSVectorStore:
                     continue
                 
                 # Filter by entity type if specified
-                if entity_type and mapping['entity_type'] != entity_type:
+                if entity_type and mapping.get('entity_type') != entity_type:
                     continue
-                
-                item = mapping['item']
                 
                 # Helper function to convert DynamoDB types to Python native types
                 def convert_dynamodb_value(value):
@@ -280,15 +301,43 @@ class FAISSVectorStore:
                     return value
                 
                 # Extract relevant fields based on entity type
+                entity_type_from_mapping = mapping.get('entity_type', '')
+                word_id = int(mapping.get('sk', 0))
+                
                 result = {
-                    'id': int(mapping['sk']),
+                    'id': word_id,
                     'score': float(distance),
-                    'entity_type': mapping['entity_type']
+                    'entity_type': entity_type_from_mapping
                 }
                 
-                if mapping['entity_type'] == 'word':
+                if entity_type_from_mapping == 'word':
+                    # Check if we have the required fields in mapping
+                    name = mapping.get('name', '')
+                    hiragana = mapping.get('hiragana', '')
+                    english = mapping.get('english', '')
+                    level = mapping.get('level', 0)
+                    
+                    # If fields are missing, fetch from DynamoDB as fallback
+                    if not name or not hiragana or not english:
+                        logger.warning(f"Missing fields in id_mapping for word_id {word_id}, fetching from DynamoDB...")
+                        try:
+                            response = self.table.get_item(
+                                Key={
+                                    'PK': 'WORD',
+                                    'SK': str(word_id)
+                                }
+                            )
+                            item = response.get('Item')
+                            if item:
+                                name = item.get('name', '')
+                                hiragana = item.get('hiragana', '')
+                                english = item.get('english', '')
+                                level = item.get('level', 0)
+                                logger.info(f"Fetched from DynamoDB: name={name}, hiragana={hiragana}, english={english}")
+                        except Exception as e:
+                            logger.error(f"Error fetching word {word_id} from DynamoDB: {e}")
+                    
                     # Convert DynamoDB values to native Python types
-                    level = item.get('level', 0)
                     if level is not None:
                         level = convert_dynamodb_value(level)
                         # Ensure level is a number
@@ -298,26 +347,27 @@ class FAISSVectorStore:
                             level = 0
                     else:
                         level = 0
+                    
                     result.update({
-                        'name': str(item.get('name', '')),
-                        'hiragana': str(item.get('hiragana', '')),
-                        'english': str(item.get('english', '')),
+                        'name': str(name),
+                        'hiragana': str(hiragana),
+                        'english': str(english),
                         'level': level
                     })
                     logger.debug(f"Found word: {result.get('name')} (score: {distance:.4f})")
                 elif mapping['entity_type'] == 'kanji':
-                    # Try both 'kanji' and 'character' field names for compatibility
-                    kanji_char = item.get('kanji') or item.get('character', '')
+                    # Use stored kanji field
+                    kanji_char = mapping.get('kanji', '')
                     result.update({
                         'kanji': str(kanji_char),
                         'character': str(kanji_char),  # Also include as 'character' for compatibility
-                        'meaning': str(item.get('meaning', '')),
-                        'reading': str(item.get('reading', ''))
+                        'meaning': str(mapping.get('meaning', '')),
+                        'reading': str(mapping.get('reading', ''))
                     })
                 elif mapping['entity_type'] == 'sentence':
                     result.update({
-                        'japanese': str(item.get('japanese', '')),
-                        'english': str(item.get('english', ''))
+                        'japanese': str(mapping.get('japanese', '')),
+                        'english': str(mapping.get('english', ''))
                     })
                 
                 results.append(result)

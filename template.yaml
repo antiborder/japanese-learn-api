@@ -29,6 +29,10 @@ Parameters:
     Type: String
     Description: "API Gateway /api/v1 resource ID (get it with: aws apigateway get-resources --rest-api-id <api-id> --query \"items[?path=='/api/v1'].Id\" --output text)"
     Default: "w4iw1z"
+  ChatFunctionRoleArn:
+    Type: String
+    Description: "Existing ChatFunction IAM Role ARN (get it with: aws lambda get-function --function-name <function-name> --query 'Configuration.Role' --output text)"
+    Default: "arn:aws:iam::478157933567:role/japanese-learn-ChatFunctionRole-nnXwCv0fU7Xu"
 
 Globals:
   Function:
@@ -248,6 +252,20 @@ Resources:
             Resource:
               - !Sub "arn:aws:s3:::${S3BucketName}"
               - !Sub "arn:aws:s3:::${S3BucketName}/*"
+          # FAISS index bucket access (for ChatFunction which uses WordsFunctionRole)
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - "arn:aws:s3:::japanese-learn-embeddings-index"
+              - "arn:aws:s3:::japanese-learn-embeddings-index/*"
+          # Bedrock access for embedding generation (for ChatFunction which uses WordsFunctionRole)
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource:
+              - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
 
   LearnWordsFunction:
     Type: AWS::Serverless::Function
@@ -676,20 +694,19 @@ Resources:
     DependsOn: SentenceCompositionFunction
 
   # Chat Function (Phase 1: Simple Text Chat)
+  # Using Lambda container image to avoid 250MB size limit
+  # Note: Docker image must be built and pushed to ECR first
+  # Run: ./scripts/build_and_push_chat_function.sh
   ChatFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: python3.11
-      BuildProperties:
-        UseContainer: true
-        ProjectPath: ./app/api/v1/chat
-        InstallDependencies: true
+    Type: AWS::Lambda::Function
     Properties:
       # FunctionName: !Sub "${AWS::StackName}-ChatFunction"  # Temporarily commented to allow replacement
-      CodeUri: ./app/api/v1/chat
-      Handler: app.lambda_handler
+      PackageType: Image
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWS::StackName}-chat-function:latest"
       Description: "Lambda function for AI chatbot with RAG (Phase 3)"
-      MemorySize: 1024
+      Role: !GetAtt WordsFunctionRole.Arn
+      MemorySize: 2048
       Timeout: 300
       Environment:
         Variables:
@@ -698,52 +715,79 @@ Resources:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           FRONTEND_BASE_URL: !Ref FrontendBaseUrl
           S3_BUCKET_NAME: !Ref S3BucketName
+          FAISS_INDEX_S3_BUCKET_NAME: "japanese-learn-embeddings-index"
           FAISS_INDEX_S3_KEY: "faiss_index/index.faiss"
           FAISS_INDEX_METADATA_S3_KEY: "faiss_index/metadata.pkl"
           LOG_LEVEL: INFO
-      Events:
-        ChatApiRootEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/chat
-            Method: ANY
-        ChatApiProxyEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/chat/{proxy+}
-            Method: ANY
-      Policies:
-        # DynamoDB read for user authentication (if using existing auth)
-        - Statement:
-          - Effect: Allow
-            Action:
-              - dynamodb:GetItem
-              - dynamodb:Query
-              - dynamodb:UpdateItem
-            Resource:
-              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
-              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
-          # DynamoDB write for conversation logs
-          - Effect: Allow
-            Action:
-              - dynamodb:PutItem
-            Resource:
-              - !GetAtt ConversationLogsTable.Arn
-          # Bedrock for embeddings
-          - Effect: Allow
-            Action:
-              - bedrock:InvokeModel
-            Resource:
-              - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
-          # S3 for FAISS index
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-              - s3:PutObject
-              - s3:ListBucket
-            Resource:
-              - !Sub "arn:aws:s3:::${S3BucketName}"
-              - !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+  # ChatFunction IAM Role
+  # Note: Using existing role ARN via parameter to avoid IAM permission issues
+  # The role already exists from previous deployment
+
+  # API Gateway Integration for ChatFunction
+  # Note: /api/v1 resource already exists, we reference it via parameter
+  ChatApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ParentId: !Ref ApiV1ResourceId
+      PathPart: chat
+    DependsOn: ServerlessRestApi
+
+  ChatApiProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ParentId: !Ref ChatApiResource
+      PathPart: "{proxy+}"
+
+  # API Gateway Methods
+  ChatApiRootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ResourceId: !Ref ChatApiResource
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
+        TimeoutInMillis: 29000
+        # Note: API Gateway maximum timeout is 29 seconds
+        # For longer operations, consider using async invocation or increasing Lambda timeout
+
+  ChatApiProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ResourceId: !Ref ChatApiProxyResource
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
+        TimeoutInMillis: 29000
+        # Note: API Gateway maximum timeout is 29 seconds
+        # For longer operations, consider using async invocation or increasing Lambda timeout
+
+  # Lambda Permissions for API Gateway
+  ChatApiRootEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ChatFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat"
+
+  ChatApiProxyEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ChatFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat/*"
 
   ChatFunctionLogGroup:
     Type: AWS::Logs::LogGroup
