@@ -12,12 +12,19 @@ class NextDynamoDB(DynamoDBBase):
         super().__init__()
 
     async def get_word_detail(self, word_id: int) -> Optional[dict]:
-        """DynamoDBから単語詳細を取得。単語が見つからない場合はNoneを返す"""
+        """DynamoDBから単語詳細を取得。単語が見つからない場合はNoneを返す
+        ProjectionExpressionを使用してembeddingフィールドを除外し、必要なフィールドのみを取得します。
+        """
         try:
             response = self.table.get_item(
                 Key={
                     'PK': "WORD",
                     'SK': str(word_id)
+                },
+                ProjectionExpression="SK, #name, hiragana, is_katakana, #level, english, vietnamese, chinese, korean, indonesian, hindi, lexical_category, accent_up, accent_down",
+                ExpressionAttributeNames={
+                    "#name": "name",
+                    "#level": "level"
                 }
             )
             item = response.get('Item')
