@@ -125,6 +125,13 @@ async def chat_message(
         # Log tool results if any
         if result.get("tool_results"):
             logger.info(f"Tool results: {result['tool_results']}")
+            # Debug: log structure of each tool result
+            for i, tr in enumerate(result["tool_results"]):
+                logger.info(f"Tool result {i}: {tr}")
+                if "result" in tr:
+                    logger.info(f"  Result keys: {tr['result'].keys() if isinstance(tr['result'], dict) else 'not a dict'}")
+                    if isinstance(tr["result"], dict) and "candidates" in tr["result"]:
+                        logger.info(f"  Candidates keys: {tr['result']['candidates'].keys() if isinstance(tr['result']['candidates'], dict) else 'not a dict'}")
         else:
             logger.warning("No tool results returned")
         
@@ -133,28 +140,80 @@ async def chat_message(
         kanji_ids = []
         
         if result.get("tool_results"):
-            for tool_result in result["tool_results"]:
+            logger.info(f"Processing {len(result['tool_results'])} tool results")
+            for i, tool_result in enumerate(result["tool_results"]):
+                logger.info(f"Tool result {i}: name={tool_result.get('name')}, keys={list(tool_result.keys()) if isinstance(tool_result, dict) else 'not a dict'}")
+                
                 if "error" in tool_result:
+                    logger.warning(f"Tool result {i} has error: {tool_result.get('error')}")
                     # Skip results with errors
                     continue
                 
                 result_data = tool_result.get("result", {})
+                logger.info(f"Processing tool result {i} data: {list(result_data.keys()) if isinstance(result_data, dict) else 'not a dict'}")
+                logger.info(f"Tool result {i} full data: {result_data}")
                 
-                # Extract word IDs
+                # Extract word IDs from direct match
                 if "word" in result_data and result_data.get("word"):
                     word = result_data["word"]
+                    logger.info(f"Found word in result {i}: {word}")
                     if "id" in word:
                         word_id = word["id"]
                         if word_id not in word_ids:
                             word_ids.append(word_id)
+                            logger.info(f"Added word_id: {word_id}")
+                    else:
+                        logger.warning(f"Word in result {i} has no 'id' field: {word.keys() if isinstance(word, dict) else 'not a dict'}")
                 
-                # Extract kanji IDs
+                # Extract kanji IDs from direct match
                 if "kanji" in result_data and result_data.get("kanji"):
                     kanji = result_data["kanji"]
+                    logger.info(f"Found kanji in result {i}: {kanji}")
                     if "id" in kanji:
                         kanji_id = kanji["id"]
                         if kanji_id not in kanji_ids:
                             kanji_ids.append(kanji_id)
+                            logger.info(f"Added kanji_id: {kanji_id}")
+                    else:
+                        logger.warning(f"Kanji in result {i} has no 'id' field: {kanji.keys() if isinstance(kanji, dict) else 'not a dict'}")
+                
+                # Extract IDs from candidates (when found=false, candidates are returned)
+                if "candidates" in result_data and result_data.get("candidates"):
+                    candidates = result_data["candidates"]
+                    logger.info(f"Found candidates: {list(candidates.keys()) if isinstance(candidates, dict) else 'not a dict'}")
+                    
+                    # Extract from combined list (preferred - contains top 3 candidates sorted by score)
+                    if "combined" in candidates and candidates.get("combined"):
+                        logger.info(f"Extracting from combined list: {len(candidates['combined'])} candidates")
+                        for candidate in candidates["combined"]:
+                            candidate_type = candidate.get("type")
+                            candidate_id = candidate.get("id")
+                            logger.info(f"  Candidate: type={candidate_type}, id={candidate_id}")
+                            if candidate_id:
+                                if candidate_type == "word" and candidate_id not in word_ids:
+                                    word_ids.append(candidate_id)
+                                    logger.info(f"  Added word_id: {candidate_id}")
+                                elif candidate_type == "kanji" and candidate_id not in kanji_ids:
+                                    kanji_ids.append(candidate_id)
+                                    logger.info(f"  Added kanji_id: {candidate_id}")
+                    else:
+                        # Fallback: extract from separate words and kanjis lists
+                        logger.info("Extracting from separate words/kanjis lists")
+                        if "words" in candidates and candidates.get("words"):
+                            for word_candidate in candidates["words"]:
+                                word_id = word_candidate.get("id")
+                                if word_id and word_id not in word_ids:
+                                    word_ids.append(word_id)
+                                    logger.info(f"  Added word_id from words list: {word_id}")
+                        
+                        if "kanjis" in candidates and candidates.get("kanjis"):
+                            for kanji_candidate in candidates["kanjis"]:
+                                kanji_id = kanji_candidate.get("id")
+                                if kanji_id and kanji_id not in kanji_ids:
+                                    kanji_ids.append(kanji_id)
+                                    logger.info(f"  Added kanji_id from kanjis list: {kanji_id}")
+        
+        logger.info(f"Extracted word_ids: {word_ids}, kanji_ids: {kanji_ids}")
         
         # Log conversation (non-blocking, errors don't fail the request)
         try:
@@ -181,13 +240,12 @@ async def chat_message(
             "session_id": session_id
         }
         
-        # Only include word_ids if there are any
-        if word_ids:
-            response_data["word_ids"] = word_ids
+        # Always include word_ids and kanji_ids (even if empty, to distinguish from null)
+        # Frontend expects these fields to be present
+        response_data["word_ids"] = word_ids if word_ids else None
+        response_data["kanji_ids"] = kanji_ids if kanji_ids else None
         
-        # Only include kanji_ids if there are any
-        if kanji_ids:
-            response_data["kanji_ids"] = kanji_ids
+        logger.info(f"Final response - word_ids: {response_data.get('word_ids')}, kanji_ids: {response_data.get('kanji_ids')}")
         
         return ChatMessageResponse(**response_data)
     except Exception as e:

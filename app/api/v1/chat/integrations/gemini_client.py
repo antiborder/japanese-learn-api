@@ -143,25 +143,26 @@ class GeminiClient:
                 self.register_tools(tool_functions)
             
             # Start chat session with automatic function calling enabled
-            # Add system instruction to include links in responses when tool functions return detail_url
-            system_instruction = """When you use tool functions to search for words or kanjis, the tool function will return a result that includes a 'detail_url' field. 
-IMPORTANT: You MUST always include this detail_url in your response as a clickable markdown link.
+            # System instruction: Do NOT include detail_url links in response - they will be handled by the frontend
+            system_instruction = """CRITICAL RULES FOR RESPONSES:
 
-For example, if a tool function returns:
-{
-  "found": true,
-  "word": {
-    "name": "こんにちは",
-    "english": "hello",
-    "detail_url": "https://example.com/words/123"
-  }
-}
+1. NEVER include markdown links like [View details](url) in your response
+2. NEVER include detail_url or any URLs in your response
+3. Just provide the information about words/kanjis found in plain text
+4. The frontend will automatically display cards based on IDs returned by tool functions
 
-You should respond like this:
-"こんにちは means 'hello' in Japanese. [View word details](https://example.com/words/123)"
+When tool functions return results:
+- If a word is found: Just say what it means, do NOT add any links
+- If kanjis are found: Just list the kanjis and their meanings, do NOT add any links
+- If candidates are found: Just mention them, do NOT add any links
 
-Always format links using markdown: [link text](url)
-If the tool function result contains a detail_url, you MUST include it in your response."""
+Example CORRECT response:
+"こんにちは means 'hello' in Japanese."
+
+Example WRONG response (DO NOT DO THIS):
+"こんにちは means 'hello' in Japanese. [View details](https://example.com/words/123)"
+
+Remember: NO links, NO URLs, NO markdown formatting for links."""
             
             if conversation_history:
                 chat = self.model.start_chat(history=conversation_history)
