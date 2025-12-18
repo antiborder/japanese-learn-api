@@ -262,6 +262,7 @@ Resources:
       CodeUri: ./app/api/v1/learn_words
       Handler: app.lambda_handler
       Description: "Lambda function for learning history endpoints"
+      MemorySize: 2048
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
@@ -291,13 +292,14 @@ Resources:
             Path: /api/v1/auth/oauth/google
             Method: ANY
       Policies:
-        # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, Query）
+        # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, Query, BatchGetItem）
         - Statement:
           - Effect: Allow
             Action:
               - dynamodb:GetItem
               - dynamodb:PutItem
               - dynamodb:Query
+              - dynamodb:BatchGetItem
             Resource:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"

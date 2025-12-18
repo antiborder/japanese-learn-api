@@ -79,24 +79,18 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
-        # 3. 単語詳細をまとめて取得（存在しない単語をスキップ）
+        # 3. 単語詳細をまとめて取得（batch_get_itemを使用）
         word_ids = [answer_word_id] + other_word_ids
-        import asyncio
-        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids], return_exceptions=True)
+        words_detail_dict = await next_service.batch_get_word_details(word_ids)
         
-        # 存在しない単語をフィルタリング
+        # 辞書からリストに変換（元の順序を保持）し、存在しない単語をフィルタリング
         valid_words = []
         missing_word_ids = []
-        for i, result in enumerate(words_detail):
-            if isinstance(result, Exception):
-                error_msg = str(result)
-                if hasattr(result, 'detail'):
-                    error_msg = result.detail
-                logger.warning(f"Error getting word detail for word_id {word_ids[i]}: {error_msg}")
-                missing_word_ids.append(word_ids[i])
-            elif result is None:
-                logger.warning(f"Word {word_ids[i]} not found in DynamoDB, skipping")
-                missing_word_ids.append(word_ids[i])
+        for word_id in word_ids:
+            result = words_detail_dict.get(word_id)
+            if result is None:
+                logger.warning(f"Word {word_id} not found in DynamoDB, skipping")
+                missing_word_ids.append(word_id)
             else:
                 valid_words.append(result)
         
@@ -115,10 +109,10 @@ async def get_next_word(request: NextWordRequest, current_user_id: str = Depends
             additional_word_ids = await next_service.get_other_words(request.level, answer_word_id, additional_exclude_ids)
             
             if additional_word_ids:
-                import asyncio
-                additional_details = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in additional_word_ids], return_exceptions=True)
-                for result in additional_details:
-                    if result is not None and not isinstance(result, Exception):
+                additional_details_dict = await next_service.batch_get_word_details(additional_word_ids)
+                for word_id in additional_word_ids:
+                    result = additional_details_dict.get(word_id)
+                    if result is not None:
                         other_words.append(result)
                         if len(other_words) >= 3:
                             break
@@ -197,24 +191,18 @@ async def get_random_word(request: RandomWordRequest):
         if not other_word_ids or len(other_word_ids) < 3:
             raise HTTPException(status_code=404, detail="Not enough words found for the specified level")
 
-        # 3. 単語詳細をまとめて取得（存在しない単語をスキップ）
+        # 3. 単語詳細をまとめて取得（batch_get_itemを使用）
         word_ids = [answer_word_id] + other_word_ids
-        import asyncio
-        words_detail = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in word_ids], return_exceptions=True)
+        words_detail_dict = await next_service.batch_get_word_details(word_ids)
         
-        # 存在しない単語をフィルタリング
+        # 辞書からリストに変換（元の順序を保持）し、存在しない単語をフィルタリング
         valid_words = []
         missing_word_ids = []
-        for i, result in enumerate(words_detail):
-            if isinstance(result, Exception):
-                error_msg = str(result)
-                if hasattr(result, 'detail'):
-                    error_msg = result.detail
-                logger.warning(f"Error getting word detail for word_id {word_ids[i]}: {error_msg}")
-                missing_word_ids.append(word_ids[i])
-            elif result is None:
-                logger.warning(f"Word {word_ids[i]} not found in DynamoDB, skipping")
-                missing_word_ids.append(word_ids[i])
+        for word_id in word_ids:
+            result = words_detail_dict.get(word_id)
+            if result is None:
+                logger.warning(f"Word {word_id} not found in DynamoDB, skipping")
+                missing_word_ids.append(word_id)
             else:
                 valid_words.append(result)
         
@@ -233,10 +221,10 @@ async def get_random_word(request: RandomWordRequest):
             additional_word_ids = await next_service.get_other_words(request.level, answer_word_id, additional_exclude_ids)
             
             if additional_word_ids:
-                import asyncio
-                additional_details = await asyncio.gather(*[next_service.get_word_detail(word_id) for word_id in additional_word_ids], return_exceptions=True)
-                for result in additional_details:
-                    if result is not None and not isinstance(result, Exception):
+                additional_details_dict = await next_service.batch_get_word_details(additional_word_ids)
+                for word_id in additional_word_ids:
+                    result = additional_details_dict.get(word_id)
+                    if result is not None:
                         other_words.append(result)
                         if len(other_words) >= 3:
                             break

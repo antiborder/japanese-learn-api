@@ -159,3 +159,7 @@ class NextService:
     async def get_word_detail(self, word_id: int) -> Optional[dict]:
         """単語詳細を取得します。単語が見つからない場合はNoneを返します"""
         return await self.next_db.get_word_detail(word_id)
+
+    async def batch_get_word_details(self, word_ids: List[int]) -> Dict[int, Optional[dict]]:
+        """複数の単語詳細を一度に取得します（batch_get_itemを使用）"""
+        return await self.next_db.batch_get_word_details(word_ids)
