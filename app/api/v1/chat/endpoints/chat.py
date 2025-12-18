@@ -105,11 +105,13 @@ async def chat_message(
         request_start = time.time()
         
         # Call Gemini API with tool support
-        logger.info("Calling Gemini API with tools...")
+        lang = request.lang or "ja"  # Ensure lang is never None
+        logger.info(f"Calling Gemini API with tools (lang={lang})...")
         gemini_start = time.time()
         result = client.chat_with_tools(
             request.message,
-            tool_functions=TOOL_FUNCTIONS
+            tool_functions=TOOL_FUNCTIONS,
+            lang=lang
         )
         gemini_time = time.time() - gemini_start
         logger.info(f"Gemini API call completed in {gemini_time:.2f} seconds")

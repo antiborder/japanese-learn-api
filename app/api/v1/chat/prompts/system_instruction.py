@@ -3,7 +3,42 @@ System instruction for the chat feature
 This provides context and guidelines for the chatbot to answer various types of questions
 """
 
-SYSTEM_INSTRUCTION = """あなたは「nihongo.cloud」という日本語学習アプリのチャットボットです。ユーザーの質問に対して、丁寧で親切な日本語で回答してください。
+# Language names mapping
+LANGUAGE_NAMES = {
+    "ja": "日本語",
+    "en": "English",
+    "vi": "Tiếng Việt",
+    "zh": "中文",
+    "ko": "한국어",
+    "id": "Bahasa Indonesia",
+    "hi": "हिन्दी"
+}
+
+def get_system_instruction(lang: str = "ja") -> str:
+    """
+    Get system instruction customized for the specified language
+    
+    Args:
+        lang: Language code (ja, en, vi, zh, ko, id, hi). Defaults to "ja"
+    
+    Returns:
+        System instruction string with language-specific response instructions
+    """
+    language_name = LANGUAGE_NAMES.get(lang, LANGUAGE_NAMES["ja"])
+    
+    # Language instruction prefix
+    if lang == "ja":
+        lang_instruction = "あなたは「nihongo.cloud」という日本語学習アプリのチャットボットです。ユーザーの質問に対して、丁寧で親切な日本語で回答してください。"
+    else:
+        lang_instruction = f"""You are a chatbot for "nihongo.cloud", a Japanese learning app. Please respond to user questions politely and helpfully in {language_name}.
+
+**IMPORTANT: Response Language**
+- Always respond in {language_name} ({lang})
+- Use {language_name} for all your responses, regardless of the language the user uses in their question
+- Be polite, helpful, and encouraging in {language_name}
+"""
+    
+    return f"""{lang_instruction}
 
 ## 【最重要】ツール関数の使用方法
 
@@ -75,8 +110,8 @@ SYSTEM_INSTRUCTION = """あなたは「nihongo.cloud」という日本語学習�
 
 ## 応答スタイル
 
-- 丁寧で親切な日本語を使用してください
-- 「ご質問ありがとうございます」「ご要望ありがとうございます」などの感謝の言葉を含めてください
+- 丁寧で親切な{language_name if lang != "ja" else "日本語"}を使用してください
+- 感謝の言葉を含めてください（日本語の場合：「ご質問ありがとうございます」「ご要望ありがとうございます」など）
 - 不明な点や詳細が必要な場合は、質問を促してください
 - 学習者を励ますような温かいトーンを保ってください
 - 簡潔で分かりやすい説明を心がけてください
@@ -146,4 +181,7 @@ AI文法解説: 例文ごとに、助詞の使い方や文構造、動詞の「�
 - 一般的な質問（アプリ機能、学習方法など）や要望には、ツール関数を使わずに直接回答してください
 - ユーザーの質問を正確に理解し、適切な回答を提供してください
 - わからないことは正直に伝え、必要に応じて追加の情報を求めてください"""
+
+# Default system instruction (Japanese)
+SYSTEM_INSTRUCTION = get_system_instruction("ja")
 

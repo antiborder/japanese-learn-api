@@ -14,19 +14,21 @@ logger = logging.getLogger(__name__)
 # Import system instruction
 try:
     # Try relative import first (from integrations/ to prompts/)
-    from ..prompts.system_instruction import SYSTEM_INSTRUCTION
+    from ..prompts.system_instruction import get_system_instruction, SYSTEM_INSTRUCTION
 except ImportError:
     try:
         # Try absolute import (if PYTHONPATH includes app/api/v1/chat)
-        from prompts.system_instruction import SYSTEM_INSTRUCTION
+        from prompts.system_instruction import get_system_instruction, SYSTEM_INSTRUCTION
     except ImportError:
         try:
             # Try from app.api.v1.chat.prompts
-            from app.api.v1.chat.prompts.system_instruction import SYSTEM_INSTRUCTION
+            from app.api.v1.chat.prompts.system_instruction import get_system_instruction, SYSTEM_INSTRUCTION
         except ImportError:
             # Ultimate fallback - use minimal instruction
-            logger.warning("Could not import SYSTEM_INSTRUCTION, using fallback")
-            SYSTEM_INSTRUCTION = """You are a chatbot for nihongo.cloud, a Japanese learning app. Answer user questions politely and helpfully in Japanese. Do not include any links or URLs in your responses."""
+            logger.warning("Could not import get_system_instruction, using fallback")
+            def get_system_instruction(lang: str = "ja") -> str:
+                return """You are a chatbot for nihongo.cloud, a Japanese learning app. Answer user questions politely and helpfully. Do not include any links or URLs in your responses."""
+            SYSTEM_INSTRUCTION = get_system_instruction("ja")
 
 class GeminiClient:
     def __init__(self):
@@ -137,7 +139,8 @@ class GeminiClient:
         self,
         message: str,
         conversation_history: Optional[List] = None,
-        tool_functions: Optional[Dict[str, Any]] = None
+        tool_functions: Optional[Dict[str, Any]] = None,
+        lang: str = "ja"
     ) -> Dict[str, Any]:
         """
         Send message to Gemini API with tool calling support
@@ -146,6 +149,7 @@ class GeminiClient:
             message: User's message
             conversation_history: Optional list of previous messages
             tool_functions: Optional tool functions to register
+            lang: Language code for response (e.g., "ja", "en", "vi", "zh", "ko", "id", "hi"). Defaults to "ja"
         
         Returns:
             {
@@ -162,7 +166,8 @@ class GeminiClient:
             # Start chat session with automatic function calling enabled
             # Use system instruction from prompts/system_instruction.py
             # This includes app information and guidelines for answering various types of questions
-            system_instruction = SYSTEM_INSTRUCTION
+            # Customize system instruction based on language
+            system_instruction = get_system_instruction(lang)
             
             if conversation_history:
                 chat = self.model.start_chat(history=conversation_history)
