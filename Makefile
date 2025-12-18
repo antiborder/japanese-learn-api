@@ -43,6 +43,19 @@ deploy: check-env check-deps check-structure prepare-build build-chat-container 
 		--no-fail-on-empty-changeset \
 		--no-progressbar \
 		|| { echo "デプロイに失敗しました。"; exit 1; }
+	@echo "ChatFunctionのLambda関数を更新しています..."
+	@LAMBDA_ARN=$$(aws cloudformation describe-stack-resources --stack-name japanese-learn --logical-resource-id ChatFunction --query 'StackResources[0].PhysicalResourceId' --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
+	if [ -n "$$LAMBDA_ARN" ]; then \
+		echo "Updating Lambda function: $$LAMBDA_ARN"; \
+		aws lambda update-function-code \
+			--function-name "$$LAMBDA_ARN" \
+			--image-uri "$$AWS_ACCOUNT_ID.dkr.ecr.$$AWS_REGION.amazonaws.com/japanese-learn-chat-function:latest" \
+			--region $$AWS_REGION \
+			--query '{FunctionName:FunctionName, LastModified:LastModified}' \
+			--output json || echo "Warning: Failed to update Lambda function (may not exist yet)"; \
+	else \
+		echo "Warning: ChatFunction not found in stack resources"; \
+	fi
 	@echo "デプロイが完了しました"
 	@make verify
 	@make clean-common

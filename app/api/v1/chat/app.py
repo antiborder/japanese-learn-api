@@ -4,18 +4,14 @@ import os
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 
-# Logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# ロギングの設定
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Get root_path from environment variable (empty for local development)
+# 環境変数からroot_pathを取得（ローカル開発時は空文字）
 ROOT_PATH = os.getenv('ROOT_PATH', '')
 
-# FastAPI application initialization
+# FastAPIアプリケーションの初期化
 app = FastAPI(
     title="Japanese Learn API - Chat",
     description="AI Chatbot API for Japanese language learning",
@@ -23,30 +19,46 @@ app = FastAPI(
     root_path=ROOT_PATH
 )
 
-# Import and include endpoints
+# エンドポイントのインポート
 from endpoints.chat import router as chat_router
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 
-# Mangum handler for Lambda
+# Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
 
 def lambda_handler(event, context):
-    """Lambda handler for FastAPI app"""
     try:
-        # Mangum handler to run FastAPI app in Lambda
+        # OPTIONSリクエストをLambda関数内で先に処理（Mangum/FastAPIに渡す前に）
+        # API GatewayのANYメソッドがOPTIONSもキャッチするため、ここで処理する必要がある
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('httpMethod', '')
+        
+        if http_method == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept',
+                    'Access-Control-Max-Age': '86400',
+                    'Content-Type': 'application/json'
+                },
+                'body': ''
+            }
+        
+        # Mangumハンドラーを使用してFastAPIアプリケーションをLambdaで実行
         stage = event.get('requestContext', {}).get('stage', '')
         if stage:
             app.root_path = f"/{stage}"
         response = handler(event, context)
         
-        # Add CORS headers to response
+        # レスポンスにCORSヘッダーを追加
         if 'headers' not in response:
             response['headers'] = {}
         
         response['headers'].update({
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'
         })
         
         return response

@@ -782,6 +782,35 @@ Resources:
       PathPart: "{proxy+}"
 
   # API Gateway Methods
+  # OPTIONS method for CORS preflight (handled by API Gateway, not Lambda)
+  ChatApiRootOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ResourceId: !Ref ChatApiResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
+              method.response.header.Access-Control-Max-Age: "'86400'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Max-Age: true
+
   ChatApiRootMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -796,6 +825,35 @@ Resources:
         TimeoutInMillis: 29000
         # Note: API Gateway maximum timeout is 29 seconds
         # For longer operations, consider using async invocation or increasing Lambda timeout
+
+  # OPTIONS method for CORS preflight (handled by API Gateway, not Lambda)
+  ChatApiProxyOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ServerlessRestApi
+      ResourceId: !Ref ChatApiProxyResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
+              method.response.header.Access-Control-Max-Age: "'86400'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Max-Age: true
 
   ChatApiProxyMethod:
     Type: AWS::ApiGateway::Method
