@@ -216,6 +216,12 @@ def search_word_by_name(word_name: str) -> Dict[str, Any]:
                                         combined_candidates.sort(key=lambda x: x.get('score', float('inf')))
                                         top_candidates = combined_candidates[:3]
                                         
+                                        # Create a deep copy of top_candidates for combined list (to preserve type field)
+                                        # This ensures that when we remove 'type' from word_candidates/kanji_candidates,
+                                        # the combined list still has the type field
+                                        import copy
+                                        combined_with_type = copy.deepcopy(top_candidates)
+                                        
                                         # Separate back into words and kanjis for backward compatibility
                                         word_candidates = [c for c in top_candidates if c.get('type') == 'word']
                                         kanji_candidates = [c for c in top_candidates if c.get('type') == 'kanji']
@@ -234,7 +240,7 @@ def search_word_by_name(word_name: str) -> Dict[str, Any]:
                                             "candidates": {
                                                 "words": word_candidates,
                                                 "kanjis": kanji_candidates,
-                                                "combined": top_candidates  # Combined list with type field for frontend
+                                                "combined": combined_with_type  # Combined list with type field preserved
                                             },
                                             "message": f"'{word_name}'に完全一致する単語は見つかりませんでしたが、以下の候補が見つかりました。"
                                         }

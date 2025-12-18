@@ -188,30 +188,34 @@ async def chat_message(
                         for candidate in candidates["combined"]:
                             candidate_type = candidate.get("type")
                             candidate_id = candidate.get("id")
-                            logger.info(f"  Candidate: type={candidate_type}, id={candidate_id}")
-                            if candidate_id:
+                            logger.info(f"  Candidate: type={repr(candidate_type)}, id={candidate_id}, full candidate: {candidate}")
+                            if candidate_id is not None:
                                 if candidate_type == "word" and candidate_id not in word_ids:
                                     word_ids.append(candidate_id)
                                     logger.info(f"  Added word_id: {candidate_id}")
                                 elif candidate_type == "kanji" and candidate_id not in kanji_ids:
                                     kanji_ids.append(candidate_id)
                                     logger.info(f"  Added kanji_id: {candidate_id}")
-                    else:
-                        # Fallback: extract from separate words and kanjis lists
-                        logger.info("Extracting from separate words/kanjis lists")
-                        if "words" in candidates and candidates.get("words"):
-                            for word_candidate in candidates["words"]:
-                                word_id = word_candidate.get("id")
-                                if word_id and word_id not in word_ids:
-                                    word_ids.append(word_id)
-                                    logger.info(f"  Added word_id from words list: {word_id}")
-                        
-                        if "kanjis" in candidates and candidates.get("kanjis"):
-                            for kanji_candidate in candidates["kanjis"]:
-                                kanji_id = kanji_candidate.get("id")
-                                if kanji_id and kanji_id not in kanji_ids:
-                                    kanji_ids.append(kanji_id)
-                                    logger.info(f"  Added kanji_id from kanjis list: {kanji_id}")
+                                else:
+                                    logger.warning(f"  Skipped candidate: type={repr(candidate_type)}, id={candidate_id}")
+                    
+                    # Also extract from separate words and kanjis lists as fallback/backup
+                    # This ensures we get IDs even if combined list doesn't have type field
+                    if "words" in candidates and candidates.get("words"):
+                        logger.info(f"Extracting from words list: {len(candidates['words'])} word candidates")
+                        for word_candidate in candidates["words"]:
+                            word_id = word_candidate.get("id")
+                            if word_id is not None and word_id not in word_ids:
+                                word_ids.append(word_id)
+                                logger.info(f"  Added word_id from words list: {word_id}")
+                    
+                    if "kanjis" in candidates and candidates.get("kanjis"):
+                        logger.info(f"Extracting from kanjis list: {len(candidates['kanjis'])} kanji candidates")
+                        for kanji_candidate in candidates["kanjis"]:
+                            kanji_id = kanji_candidate.get("id")
+                            if kanji_id is not None and kanji_id not in kanji_ids:
+                                kanji_ids.append(kanji_id)
+                                logger.info(f"  Added kanji_id from kanjis list: {kanji_id}")
         
         logger.info(f"Extracted word_ids: {word_ids}, kanji_ids: {kanji_ids}")
         
