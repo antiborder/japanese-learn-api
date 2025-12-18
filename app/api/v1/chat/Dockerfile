@@ -15,6 +15,7 @@ COPY integrations/ ${LAMBDA_TASK_ROOT}/integrations/
 COPY services/ ${LAMBDA_TASK_ROOT}/services/
 COPY schemas/ ${LAMBDA_TASK_ROOT}/schemas/
 COPY tools/ ${LAMBDA_TASK_ROOT}/tools/
+COPY prompts/ ${LAMBDA_TASK_ROOT}/prompts/
 
 # Set the CMD to your handler
 CMD [ "app.lambda_handler" ]

@@ -11,6 +11,23 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Import system instruction
+try:
+    # Try relative import first (from integrations/ to prompts/)
+    from ..prompts.system_instruction import SYSTEM_INSTRUCTION
+except ImportError:
+    try:
+        # Try absolute import (if PYTHONPATH includes app/api/v1/chat)
+        from prompts.system_instruction import SYSTEM_INSTRUCTION
+    except ImportError:
+        try:
+            # Try from app.api.v1.chat.prompts
+            from app.api.v1.chat.prompts.system_instruction import SYSTEM_INSTRUCTION
+        except ImportError:
+            # Ultimate fallback - use minimal instruction
+            logger.warning("Could not import SYSTEM_INSTRUCTION, using fallback")
+            SYSTEM_INSTRUCTION = """You are a chatbot for nihongo.cloud, a Japanese learning app. Answer user questions politely and helpfully in Japanese. Do not include any links or URLs in your responses."""
+
 class GeminiClient:
     def __init__(self):
         api_key = self._get_api_key()
@@ -143,26 +160,9 @@ class GeminiClient:
                 self.register_tools(tool_functions)
             
             # Start chat session with automatic function calling enabled
-            # System instruction: Do NOT include detail_url links in response - they will be handled by the frontend
-            system_instruction = """CRITICAL RULES FOR RESPONSES:
-
-1. NEVER include markdown links like [View details](url) in your response
-2. NEVER include detail_url or any URLs in your response
-3. Just provide the information about words/kanjis found in plain text
-4. The frontend will automatically display cards based on IDs returned by tool functions
-
-When tool functions return results:
-- If a word is found: Just say what it means, do NOT add any links
-- If kanjis are found: Just list the kanjis and their meanings, do NOT add any links
-- If candidates are found: Just mention them, do NOT add any links
-
-Example CORRECT response:
-"こんにちは means 'hello' in Japanese."
-
-Example WRONG response (DO NOT DO THIS):
-"こんにちは means 'hello' in Japanese. [View details](https://example.com/words/123)"
-
-Remember: NO links, NO URLs, NO markdown formatting for links."""
+            # Use system instruction from prompts/system_instruction.py
+            # This includes app information and guidelines for answering various types of questions
+            system_instruction = SYSTEM_INSTRUCTION
             
             if conversation_history:
                 chat = self.model.start_chat(history=conversation_history)
