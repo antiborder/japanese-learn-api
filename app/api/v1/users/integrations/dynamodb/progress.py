@@ -137,7 +137,8 @@ class ProgressDynamoDB(DynamoDBBase):
                     avg_proficiency_of_learned = gross_proficiency / (2 * learned) if learned > 0 else 0
                     
                     # 全体の進捗率を計算（学習済み単語数 / 全単語数）
-                    learned_ratio = learned / len(all_word_ids) if len(all_word_ids) > 0 else 0
+                    total_words = learned + unlearned
+                    learned_ratio = learned / total_words if total_words > 0 else 0
                     
                     # 最終的なproficiencyは、完了率と習熟度の平均を組み合わせる
                     # 完了率が高いほど、習熟度の重みが高くなる
