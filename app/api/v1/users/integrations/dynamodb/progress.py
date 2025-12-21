@@ -13,26 +13,46 @@ class ProgressDynamoDB(DynamoDBBase):
         self.datetime_utils = DateTimeUtils()
 
     def _get_level_words(self, level: int) -> List[Dict]:
-        """指定されたレベルの単語を取得します（word-level-index GSIを使用）"""
+        """指定されたレベルの単語を取得します（word-level-index GSIを使用）
+        embeddingフィールドを除外してデータサイズを削減します。
+        ページネーション対応で全件取得します。
+        """
         try:
-            response = self.table.query(
-                IndexName='word-level-index',
-                KeyConditionExpression="PK = :pk AND #level = :level",
-                ExpressionAttributeNames={
-                    "#level": "level"
-                },
-                ExpressionAttributeValues={
-                    ":pk": "WORD",
-                    ":level": int(level)
+            all_words = []
+            last_evaluated_key = None
+            
+            while True:
+                query_params = {
+                    'IndexName': 'word-level-index',
+                    'KeyConditionExpression': "PK = :pk AND #level = :level",
+                    'ExpressionAttributeNames': {
+                        "#level": "level"
+                    },
+                    'ExpressionAttributeValues': {
+                        ":pk": "WORD",
+                        ":level": int(level)
+                    },
+                    # embeddingフィールドを除外してデータサイズを削減
+                    'ProjectionExpression': "PK, SK, #level"
                 }
-            )
-            level_words = response.get('Items', [])
-            if not level_words:
+                
+                if last_evaluated_key:
+                    query_params['ExclusiveStartKey'] = last_evaluated_key
+                
+                response = self.table.query(**query_params)
+                items = response.get('Items', [])
+                all_words.extend(items)
+                
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+            
+            if not all_words:
                 logger.debug(f"No words found for level {level}")
                 return []
             
-            logger.debug(f"Successfully retrieved {len(level_words)} words for level {level}")
-            return level_words
+            logger.debug(f"Successfully retrieved {len(all_words)} words for level {level}")
+            return all_words
         except Exception as e:
             logger.error(f"Error getting words for level {level}: {str(e)}")
             # インデックスが存在しない場合のフォールバック（既存の全件取得）
