@@ -45,11 +45,12 @@ Globals:
         DATABASE_URL: !Ref DatabaseUrl
         S3_BUCKET_NAME: !Ref S3BucketName
         GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
-  Api:
-    Cors:
-      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
-      AllowOrigin: "'*'"
+  # CORS設定は各Lambda関数内で制御するため、グローバル設定を無効化
+  # Api:
+  #   Cors:
+  #     AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+  #     AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
+  #     AllowOrigin: "'*'"
 
 Resources:
   # Cognito User Pool
