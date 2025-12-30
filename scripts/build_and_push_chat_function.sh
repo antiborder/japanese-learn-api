@@ -35,8 +35,9 @@ fi
 cd "$(dirname "$0")/../app/api/v1/chat"
 
 # Dockerイメージをビルド（Lambdaはx86_64アーキテクチャをサポート）
-echo "Building Docker image for x86_64 (Lambda compatible)..."
-docker buildx build --platform linux/amd64 -t ${ECR_REPO}:${IMAGE_TAG} --load .
+# --no-cacheオプションを追加して、キャッシュを使わずに常に新しいイメージをビルド
+echo "Building Docker image for x86_64 (Lambda compatible) without cache..."
+docker buildx build --platform linux/amd64 --no-cache -t ${ECR_REPO}:${IMAGE_TAG} --load .
 
 # ECRにログイン
 echo "Logging in to ECR..."

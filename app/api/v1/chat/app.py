@@ -2,16 +2,13 @@ import json
 import logging
 import os
 from mangum import Mangum
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
-# ロギングの設定
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# 環境変数からroot_pathを取得（ローカル開発時は空文字）
 ROOT_PATH = os.getenv('ROOT_PATH', '')
 
-# FastAPIアプリケーションの初期化
 app = FastAPI(
     title="Japanese Learn API - Chat",
     description="AI Chatbot API for Japanese language learning",
@@ -19,60 +16,84 @@ app = FastAPI(
     root_path=ROOT_PATH
 )
 
-# エンドポイントのインポート
 from endpoints.chat import router as chat_router
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 
-# Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
+
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://nihongo.cloud'
+]
+
+def get_allowed_origin(event):
+    """リクエストのOriginヘッダーを確認し、許可されたオリジンの場合のみ返す"""
+    headers = event.get('headers', {}) or {}
+    origin = headers.get('Origin') or headers.get('origin')
+    
+    if origin and origin in ALLOWED_ORIGINS:
+        return origin
+    return None
+
+def get_cors_headers(allowed_origin):
+    """CORSヘッダーを生成"""
+    return {
+        'Access-Control-Allow-Origin': allowed_origin,
+        'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept',
+        'Access-Control-Allow-Credentials': 'true'
+    }
 
 def lambda_handler(event, context):
     try:
-        # OPTIONSリクエストをLambda関数内で先に処理（Mangum/FastAPIに渡す前に）
-        # API GatewayのANYメソッドがOPTIONSもキャッチするため、ここで処理する必要がある
         http_method = event.get('httpMethod') or event.get('requestContext', {}).get('httpMethod', '')
         
         if http_method == 'OPTIONS':
+            allowed_origin = get_allowed_origin(event)
+            if allowed_origin:
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        **get_cors_headers(allowed_origin),
+                        'Access-Control-Max-Age': '86400'
+                    },
+                    'body': ''
+                }
             return {
                 'statusCode': 200,
-                'headers': {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept',
-                    'Access-Control-Max-Age': '86400',
-                    'Content-Type': 'application/json'
-                },
+                'headers': {'Content-Type': 'application/json'},
                 'body': ''
             }
         
-        # Mangumハンドラーを使用してFastAPIアプリケーションをLambdaで実行
         stage = event.get('requestContext', {}).get('stage', '')
         if stage:
             app.root_path = f"/{stage}"
+        
         response = handler(event, context)
         
-        # レスポンスにCORSヘッダーを追加
         if 'headers' not in response:
             response['headers'] = {}
         
-        response['headers'].update({
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'
-        })
+        allowed_origin = get_allowed_origin(event)
+        if allowed_origin:
+            response['headers'].update(get_cors_headers(allowed_origin))
         
         return response
+        
     except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
+        logger.error(f"Unexpected error in lambda_handler: {str(e)}")
+        allowed_origin = get_allowed_origin(event)
+        error_headers = {'Content-Type': 'application/json'}
+        if allowed_origin:
+            error_headers.update(get_cors_headers(allowed_origin))
+        
         return {
             'statusCode': 500,
+            'headers': error_headers,
             'body': json.dumps({
-                'error': 'Internal server error',
+                'error': 'Internal Server Error',
                 'message': str(e)
-            }),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
+            })
         }
 

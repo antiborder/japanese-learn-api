@@ -245,6 +245,59 @@ make deploy
 3. パッケージング（`make package`）
 4. AWSへのアップロード（`make upload`）
 
+### Chat関数（コンテナベースLambda）の特別な注意事項
+
+Chat関数はコンテナイメージとしてデプロイされるため、通常のLambda関数とは異なる動作をします。
+
+#### 最新イメージをLambda関数に適用する
+
+`make deploy`を実行すると、`Makefile`の`deploy`ターゲット内で`aws lambda update-function-code`が自動的に実行されます（46-58行目）。ただし、CloudFormationスタックリソースから`ChatFunction`が見つからない場合（`ChatFunction not found in stack resources`という警告が表示される）、Lambda関数の更新がスキップされます。
+
+**通常の場合**：
+- `make deploy`を実行すると、ECRに新しいイメージがプッシュされた後、自動的にLambda関数が更新されます
+- デプロイログに「Updating Lambda function: japanese-learn-ChatFunction-PmJov4LcbytD」が表示されれば、正常に実行されています
+
+**手動で更新する必要がある場合**：
+`make deploy`の実行時に「Warning: ChatFunction not found in stack resources」という警告が表示された場合、以下のコマンドで手動更新が必要です：
+
+```bash
+# AWSアカウントIDとリージョンを取得
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+AWS_REGION="${CUSTOM_AWS_REGION:-ap-northeast-1}"
+LAMBDA_FUNCTION_NAME="japanese-learn-ChatFunction-PmJov4LcbytD"
+IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/japanese-learn-chat-function:latest"
+
+# Lambda関数を最新イメージに更新
+aws lambda update-function-code \
+  --function-name "$LAMBDA_FUNCTION_NAME" \
+  --image-uri "$IMAGE_URI" \
+  --region "$AWS_REGION"
+```
+
+または、関数名を直接指定する場合：
+
+```bash
+aws lambda update-function-code \
+  --function-name japanese-learn-ChatFunction-PmJov4LcbytD \
+  --image-uri 478157933567.dkr.ecr.ap-northeast-1.amazonaws.com/japanese-learn-chat-function:latest \
+  --region ap-northeast-1
+```
+
+#### なぜ最新イメージが自動的に適用されないのか
+
+1. **CloudFormationの動作**: `sam deploy`はCloudFormationスタックの変更がない場合、Lambda関数のコードを更新しません。`template.yaml`の`ImageUri`が`latest`タグを参照していても、CloudFormationは「変更がない」と判断します。
+
+2. **Makefileの制限**: `Makefile`の`deploy`ターゲットには`aws lambda update-function-code`が含まれていますが、CloudFormationスタックリソースから`ChatFunction`が見つからない場合（`ChatFunction not found in stack resources`という警告が表示される）、Lambda関数の更新がスキップされます。
+
+3. **イメージタグの問題**: `latest`タグを使用している場合、ECRに新しいイメージがプッシュされても、Lambda関数は既存のイメージを参照し続けます。Lambda関数はイメージをプルした時点の`latest`タグの内容を保持するため、明示的に更新する必要があります。
+
+**推奨されるワークフロー**：
+
+1. コードを変更
+2. `make deploy`を実行（ECRに新しいイメージがプッシュされる）
+3. 上記のコマンドでLambda関数を明示的に更新
+4. または、`Makefile`の`deploy`ターゲットが正常に動作することを確認（`ChatFunction not found`警告が出ない場合）
+
 ## 利用可能なMakeコマンド
 
 ```bash

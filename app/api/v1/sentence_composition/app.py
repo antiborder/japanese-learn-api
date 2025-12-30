@@ -29,36 +29,79 @@ app.include_router(router, prefix="/api/v1/quizzes", tags=["quizzes"])
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
 
+# 許可されたオリジンのリスト
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://nihongo.cloud'
+]
+
+def get_allowed_origin(event):
+    """リクエストのOriginヘッダーを確認し、許可されたオリジンの場合のみ返す"""
+    # リクエストヘッダーからOriginを取得
+    headers = event.get('headers', {}) or {}
+    # API Gatewayはヘッダー名を小文字に変換する場合があるため、両方を確認
+    origin = headers.get('Origin') or headers.get('origin')
+    
+    if origin and origin in ALLOWED_ORIGINS:
+        return origin
+    
+    # Originが無い、または許可されていない場合はNoneを返す
+    return None
+
 def lambda_handler(event, context):
     try:
         # リクエスト情報をログに記録
         logger.info(f"Received event: {json.dumps(event)}")
         
-        # OPTIONSリクエストの処理
-        if event.get('httpMethod') == 'OPTIONS':
-            return {
-                'statusCode': 200,
-                'headers': {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        # OPTIONSリクエスト（プリフライトリクエスト）の処理
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('httpMethod', '')
+        if http_method == 'OPTIONS':
+            allowed_origin = get_allowed_origin(event)
+            logger.info(f"OPTIONS request received. Origin: {event.get('headers', {}).get('origin') or event.get('headers', {}).get('Origin')}, Allowed: {allowed_origin}")
+            
+            if allowed_origin:
+                # 許可されたOriginの場合のみCORSヘッダーを返す
+                cors_headers = {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': allowed_origin,
+                    'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
                     'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept',
+                    'Access-Control-Allow-Credentials': 'true',
                     'Access-Control-Max-Age': '86400'
-                },
-                'body': ''
-            }
+                }
+                logger.info(f"Returning CORS headers with allowed origin: {allowed_origin}")
+                return {
+                    'statusCode': 200,
+                    'headers': cors_headers,
+                    'body': ''
+                }
+            else:
+                # 許可されていないOriginの場合は、CORSヘッダーを一切返さない
+                logger.warning(f"Origin not allowed. No CORS headers will be returned.")
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    },
+                    'body': ''
+                }
         
         # Mangumハンドラーでリクエストを処理
         response = handler(event, context)
         
-        # レスポンスにCORSヘッダーを追加
+        # レスポンスにCORSヘッダーを追加（許可されたオリジンのみ）
         if 'headers' not in response:
             response['headers'] = {}
         
-        response['headers'].update({
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
-        })
+        allowed_origin = get_allowed_origin(event)
+        if allowed_origin:
+            response['headers'].update({
+                'Access-Control-Allow-Origin': allowed_origin,
+                'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                'Access-Control-Allow-Credentials': 'true'
+            })
+        # 許可されていないオリジンの場合はCORSヘッダーを返さない（ブラウザがブロックする）
         
         # レスポンス情報をログに記録
         logger.info(f"Response: {json.dumps(response)}")
@@ -67,14 +110,22 @@ def lambda_handler(event, context):
         
     except Exception as e:
         logger.error(f"Unexpected error in lambda_handler: {str(e)}")
+        # エラーレスポンスにもCORSヘッダーを追加（許可されたオリジンのみ）
+        allowed_origin = get_allowed_origin(event)
+        error_headers = {
+            'Content-Type': 'application/json'
+        }
+        if allowed_origin:
+            error_headers.update({
+                'Access-Control-Allow-Origin': allowed_origin,
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Credentials': 'true'
+            })
+        
         return {
             'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-            },
+            'headers': error_headers,
             'body': json.dumps({
                 'error': 'Internal Server Error',
                 'message': str(e)

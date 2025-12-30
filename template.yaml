@@ -767,7 +767,8 @@ Resources:
 
   # API Gateway Integration for ChatFunction
   # Note: /api/v1 resource already exists, we reference it via parameter
-  ChatApiResource:
+  # Resources renamed to force recreation (previous resources were orphaned)
+  ChatApiResourceV2:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ServerlessRestApi
@@ -775,48 +776,20 @@ Resources:
       PathPart: chat
     DependsOn: ServerlessRestApi
 
-  ChatApiProxyResource:
+  ChatApiProxyResourceV2:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ParentId: !Ref ChatApiResource
+      ParentId: !Ref ChatApiResourceV2
       PathPart: "{proxy+}"
 
   # API Gateway Methods
-  # OPTIONS method for CORS preflight (handled by API Gateway, not Lambda)
-  ChatApiRootOptionsMethod:
+  # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
+  ChatApiRootMethodV2:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
-              method.response.header.Access-Control-Max-Age: "'86400'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Max-Age: true
-
-  ChatApiRootMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiResource
+      ResourceId: !Ref ChatApiResourceV2
       HttpMethod: ANY
       AuthorizationType: NONE
       Integration:
@@ -827,40 +800,12 @@ Resources:
         # Note: API Gateway maximum timeout is 29 seconds
         # For longer operations, consider using async invocation or increasing Lambda timeout
 
-  # OPTIONS method for CORS preflight (handled by API Gateway, not Lambda)
-  ChatApiProxyOptionsMethod:
+  # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
+  ChatApiProxyMethodV2:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiProxyResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept'"
-              method.response.header.Access-Control-Max-Age: "'86400'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Max-Age: true
-
-  ChatApiProxyMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiProxyResource
+      ResourceId: !Ref ChatApiProxyResourceV2
       HttpMethod: ANY
       AuthorizationType: NONE
       Integration:
@@ -872,7 +817,7 @@ Resources:
         # For longer operations, consider using async invocation or increasing Lambda timeout
 
   # Lambda Permissions for API Gateway
-  ChatApiRootEventPermission:
+  ChatApiRootEventPermissionV2:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref ChatFunction
@@ -880,7 +825,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat"
 
-  ChatApiProxyEventPermission:
+  ChatApiProxyEventPermissionV2:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref ChatFunction
