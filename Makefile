@@ -44,17 +44,52 @@ deploy: check-env check-deps check-structure prepare-build build-chat-container 
 		--no-progressbar \
 		|| { echo "デプロイに失敗しました。"; exit 1; }
 	@echo "ChatFunctionのLambda関数を更新しています..."
-	@LAMBDA_ARN=$$(aws cloudformation describe-stack-resources --stack-name japanese-learn --logical-resource-id ChatFunction --query 'StackResources[0].PhysicalResourceId' --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
-	if [ -n "$$LAMBDA_ARN" ]; then \
-		echo "Updating Lambda function: $$LAMBDA_ARN"; \
-		aws lambda update-function-code \
-			--function-name "$$LAMBDA_ARN" \
+	@CHAT_FUNCTION_NAME=$$(aws lambda list-functions --region $$AWS_REGION --query "Functions[?contains(FunctionName, 'ChatFunction') && !contains(FunctionName, 'ChatTest')].FunctionName" --output text | head -1); \
+	if [ -n "$$CHAT_FUNCTION_NAME" ]; then \
+		echo "Found ChatFunction: $$CHAT_FUNCTION_NAME"; \
+		echo "Updating Lambda function to latest ECR image..."; \
+		UPDATE_RESULT=$$(aws lambda update-function-code \
+			--function-name "$$CHAT_FUNCTION_NAME" \
 			--image-uri "$$AWS_ACCOUNT_ID.dkr.ecr.$$AWS_REGION.amazonaws.com/japanese-learn-chat-function:latest" \
 			--region $$AWS_REGION \
-			--query '{FunctionName:FunctionName, LastModified:LastModified}' \
-			--output json || echo "Warning: Failed to update Lambda function (may not exist yet)"; \
+			--query '{FunctionName:FunctionName, LastModified:LastModified, CodeSha256:CodeSha256, State:State, LastUpdateStatus:LastUpdateStatus}' \
+			--output json 2>&1); \
+		if [ $$? -eq 0 ]; then \
+			echo "✅ Lambda function update initiated:"; \
+			echo "$$UPDATE_RESULT" | python3 -m json.tool 2>/dev/null || echo "$$UPDATE_RESULT"; \
+		else \
+			echo "⚠️  Warning: Failed to update Lambda function:"; \
+			echo "$$UPDATE_RESULT"; \
+		fi; \
 	else \
-		echo "Warning: ChatFunction not found in stack resources"; \
+		echo "⚠️  Warning: ChatFunction not found in Lambda functions list"; \
+	fi
+	@echo "API Gatewayリソースを確認しています..."
+	@API_ID=$$(aws cloudformation describe-stacks --stack-name japanese-learn --query "Stacks[0].Outputs[?OutputKey=='ApiId'].OutputValue" --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
+	if [ -n "$$API_ID" ]; then \
+		echo "Checking API Gateway resources for /api/v1/chat..."; \
+		CHAT_RESOURCES=$$(aws apigateway get-resources --rest-api-id $$API_ID --region $$AWS_REGION --query "items[?contains(path, '/chat')]" --output json 2>/dev/null || echo "[]"); \
+		CHAT_COUNT=$$(echo "$$CHAT_RESOURCES" | python3 -c "import sys, json; data = json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "0"); \
+		if [ "$$CHAT_COUNT" -eq "0" ]; then \
+			echo "⚠️  Warning: /api/v1/chat resources not found in API Gateway"; \
+		else \
+			echo "✅ Found $$CHAT_COUNT chat resource(s) in API Gateway"; \
+		fi; \
+		echo "Creating/updating API Gateway deployment for Prod stage..."; \
+		DEPLOYMENT_ID=$$(aws apigateway create-deployment \
+			--rest-api-id $$API_ID \
+			--stage-name Prod \
+			--region $$AWS_REGION \
+			--description "Deploy ChatFunction resources - $$(date +%Y-%m-%d\ %H:%M:%S)" \
+			--output text \
+			--query 'id' 2>/dev/null || echo ""); \
+		if [ -n "$$DEPLOYMENT_ID" ]; then \
+			echo "✅ API Gateway deployment created/updated: $$DEPLOYMENT_ID"; \
+		else \
+			echo "⚠️  Warning: Failed to create deployment (may already exist or need manual deployment)"; \
+		fi; \
+	else \
+		echo "⚠️  Warning: API ID not found"; \
 	fi
 	@echo "デプロイが完了しました"
 	@make verify

@@ -24,10 +24,8 @@ app = FastAPI(
 
 # エンドポイントのインポート
 from endpoints.learn_history import router
-from common.auth import oauth_router
 
 app.include_router(router, prefix="/api/v1/learn_words", tags=["learn"])
-app.include_router(oauth_router, prefix="/api/v1/auth", tags=["auth"])
 
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")

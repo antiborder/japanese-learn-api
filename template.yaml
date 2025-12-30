@@ -282,16 +282,6 @@ Resources:
           Properties:
             Path: /api/v1/learn_words/{proxy+}
             Method: ANY
-        OAuthCallbackEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/oauth/callback
-            Method: ANY
-        OAuthGoogleEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/oauth/google
-            Method: ANY
       Policies:
         # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, Query, BatchGetItem）
         - Statement:
@@ -767,8 +757,8 @@ Resources:
 
   # API Gateway Integration for ChatFunction
   # Note: /api/v1 resource already exists, we reference it via parameter
-  # Resources renamed to force recreation (previous resources were orphaned)
-  ChatApiResourceV2:
+  # Resources renamed to V3 to force recreation (previous resources were orphaned)
+  ChatApiResourceV3:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ServerlessRestApi
@@ -776,20 +766,20 @@ Resources:
       PathPart: chat
     DependsOn: ServerlessRestApi
 
-  ChatApiProxyResourceV2:
+  ChatApiProxyResourceV3:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ParentId: !Ref ChatApiResourceV2
+      ParentId: !Ref ChatApiResourceV3
       PathPart: "{proxy+}"
 
   # API Gateway Methods
   # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
-  ChatApiRootMethodV2:
+  ChatApiRootMethodV3:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiResourceV2
+      ResourceId: !Ref ChatApiResourceV3
       HttpMethod: ANY
       AuthorizationType: NONE
       Integration:
@@ -801,11 +791,11 @@ Resources:
         # For longer operations, consider using async invocation or increasing Lambda timeout
 
   # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
-  ChatApiProxyMethodV2:
+  ChatApiProxyMethodV3:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiProxyResourceV2
+      ResourceId: !Ref ChatApiProxyResourceV3
       HttpMethod: ANY
       AuthorizationType: NONE
       Integration:
@@ -817,7 +807,7 @@ Resources:
         # For longer operations, consider using async invocation or increasing Lambda timeout
 
   # Lambda Permissions for API Gateway
-  ChatApiRootEventPermissionV2:
+  ChatApiRootEventPermissionV3:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref ChatFunction
@@ -825,7 +815,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat"
 
-  ChatApiProxyEventPermissionV2:
+  ChatApiProxyEventPermissionV3:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref ChatFunction
