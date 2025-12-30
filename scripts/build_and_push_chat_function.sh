@@ -57,3 +57,5 @@ echo "1. Run 'sam deploy' to update the Lambda function"
 echo "2. Or update the Lambda function manually:"
 echo "   aws lambda update-function-code --function-name <function-name> --image-uri ${ECR_URI}:${IMAGE_TAG} --region ${AWS_REGION}"
 
+
+
