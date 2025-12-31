@@ -123,24 +123,26 @@ async def chat_message(
         import time
         request_start = time.time()
         
-        # Call Gemini API with tool support
+        # Call Gemini API with tool support (using iterative method for multi-step tool chaining)
         lang = request.lang or "ja"  # Ensure lang is never None
-        logger.info(f"Calling Gemini API with tools (lang={lang})...")
+        logger.info(f"Calling Gemini API with tools (iterative, lang={lang})...")
         gemini_start = time.time()
-        result = client.chat_with_tools(
+        result = client.chat_with_tools_iterative(
             request.message,
             conversation_history=conversation_history,
             tool_functions=TOOL_FUNCTIONS,
+            max_iterations=5,
             lang=lang
         )
         gemini_time = time.time() - gemini_start
-        logger.info(f"Gemini API call completed in {gemini_time:.2f} seconds")
+        iterations = result.get("iterations", 0)
+        logger.info(f"Gemini API call completed in {gemini_time:.2f} seconds ({iterations} iterations)")
         
         response_text = result["response"]
         
         # Log tool calls if any
         if result.get("tool_calls"):
-            logger.info(f"Tool calls made: {result['tool_calls']}")
+            logger.info(f"Tool calls made ({len(result['tool_calls'])} total): {result['tool_calls']}")
         else:
             logger.warning(f"No tool calls made for message: {request.message}")
         

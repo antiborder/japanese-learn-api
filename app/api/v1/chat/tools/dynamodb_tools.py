@@ -6,6 +6,7 @@ import boto3
 import os
 import logging
 import time
+import threading
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
@@ -489,6 +490,95 @@ def search_kanji_by_character(kanji_character: str) -> Dict[str, Any]:
             "message": f"Error searching for kanji: {str(e)}"
         }
 
+# Cache for word variations (thread-safe)
+_variation_cache: Dict[str, Dict[str, Any]] = {}
+_cache_lock = threading.Lock()
+_MAX_CACHE_SIZE = 100
+
+def _cache_variations(word_name: str, variations: Dict[str, Any]):
+    """Cache word variations with size limit (FIFO)"""
+    with _cache_lock:
+        _variation_cache[word_name] = variations
+        # Limit cache size
+        if len(_variation_cache) > _MAX_CACHE_SIZE:
+            # Remove oldest entry (FIFO)
+            oldest_key = next(iter(_variation_cache))
+            del _variation_cache[oldest_key]
+            logger.debug(f"Cache limit reached, removed oldest entry: {oldest_key}")
+
+def _get_cached_variations(word_name: str) -> Optional[Dict[str, Any]]:
+    """Get cached variations if available"""
+    with _cache_lock:
+        return _variation_cache.get(word_name)
+
+def generate_word_variations_with_llm(word_name: str) -> Dict[str, Any]:
+    """
+    Generate word variations (conjugations, writing forms, politeness levels) using LLM
+    
+    This function uses Gemini LLM to generate various forms of a Japanese word including:
+    - Conjugation forms (ます形, 過去形, て形, 否定形)
+    - Part-of-speech variations (verb → noun, etc.)
+    - Writing variations (kanji ↔ hiragana)
+    - Politeness levels (casual ↔ polite)
+    
+    Args:
+        word_name: The word name to generate variations for (e.g., '戦う')
+    
+    Returns:
+        {
+            "variations": List[str],  # List of word variations
+            "reasoning": str,  # Brief explanation of why these variations were generated
+            "confidence": float  # Confidence score (0.0-1.0)
+        }
+    """
+    # Check cache first
+    cached = _get_cached_variations(word_name)
+    if cached:
+        logger.info(f"Using cached variations for '{word_name}'")
+        return cached
+    
+    try:
+        # Import here to avoid circular dependency
+        try:
+            from integrations.gemini_client import GeminiClient
+        except ImportError:
+            from app.api.v1.chat.integrations.gemini_client import GeminiClient
+        
+        client = GeminiClient()
+        
+        # Generate variations with timeout
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                client.generate_word_variations,
+                word_name,
+                lang="ja",
+                max_variations=10
+            )
+            try:
+                result = future.result(timeout=5.0)  # 5 second timeout
+                
+                # Cache the result
+                _cache_variations(word_name, result)
+                
+                logger.info(f"Generated {len(result.get('variations', []))} variations for '{word_name}'")
+                return result
+            
+            except FutureTimeoutError:
+                logger.warning(f"Variation generation timed out for '{word_name}'")
+                return {
+                    "variations": [],
+                    "reasoning": "Generation timed out",
+                    "confidence": 0.0
+                }
+    
+    except Exception as e:
+        logger.error(f"Error generating variations for '{word_name}': {str(e)}")
+        return {
+            "variations": [],
+            "reasoning": f"Error: {str(e)}",
+            "confidence": 0.0
+        }
+
 # Tool function registry for Gemini
 TOOL_FUNCTIONS = {
     "search_word_by_name": {
@@ -531,6 +621,20 @@ TOOL_FUNCTIONS = {
                 }
             },
             "required": ["kanji_character"]
+        }
+    },
+    "generate_word_variations_with_llm": {
+        "function": generate_word_variations_with_llm,
+        "description": "Generate word variations (conjugations, writing forms, politeness levels) for a Japanese word using AI. Use this when search_word_by_name returns found=False. This will generate variations like: ます形, 過去形, kanji/hiragana variations, etc. Then use search_word_by_name again with the generated variations to find the word.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "word_name": {
+                    "type": "string",
+                    "description": "The word name to generate variations for (e.g., '戦う')"
+                }
+            },
+            "required": ["word_name"]
         }
     }
 }

@@ -1,6 +1,8 @@
 import google.generativeai as genai
 import os
 import logging
+import re
+import json
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from google.protobuf.json_format import MessageToDict
@@ -367,6 +369,380 @@ class GeminiClient:
         except Exception as e:
             logger.error(f"Error calling Gemini API: {str(e)}")
             raise
+    
+    def _extract_function_args(self, func_call) -> Dict[str, Any]:
+        """
+        Extract function arguments from a function call object
+        
+        Args:
+            func_call: Function call object from Gemini API
+            
+        Returns:
+            Dictionary of function arguments
+        """
+        args = {}
+        if hasattr(func_call, 'args'):
+            func_args = func_call.args
+            
+            # Try different ways to extract args
+            if isinstance(func_args, dict):
+                args = func_args
+            elif hasattr(func_args, 'fields'):
+                # Protobuf Struct type - convert fields to dict
+                try:
+                    # Method 1: Use MessageToDict (most reliable)
+                    args = MessageToDict(func_args)
+                except Exception as e1:
+                    logger.warning(f"MessageToDict failed: {e1}")
+                    try:
+                        # Method 2: Direct access to fields (protobuf Struct)
+                        if hasattr(func_args.fields, 'items'):
+                            for key, value in func_args.fields.items():
+                                # Convert protobuf Value to Python type
+                                if hasattr(value, 'string_value'):
+                                    args[key] = value.string_value
+                                elif hasattr(value, 'number_value'):
+                                    args[key] = value.number_value
+                                elif hasattr(value, 'bool_value'):
+                                    args[key] = value.bool_value
+                                else:
+                                    args[key] = str(value)
+                    except Exception as e2:
+                        logger.warning(f"Direct fields access failed: {e2}")
+                        # Method 3: Try MessageToDict on the whole function_call
+                        try:
+                            full_dict = MessageToDict(func_call)
+                            args = full_dict.get('args', {})
+                        except Exception as e3:
+                            logger.error(f"All conversion methods failed: {e3}")
+            elif hasattr(func_args, 'items'):
+                args = dict(func_args.items())
+            elif hasattr(func_args, 'DESCRIPTOR'):
+                # Protobuf message - convert to dict
+                try:
+                    args = MessageToDict(func_args)
+                except Exception as e:
+                    logger.warning(f"Failed to convert args using MessageToDict: {e}")
+                    # Fallback: manual extraction
+                    for field in func_args.DESCRIPTOR.fields:
+                        field_value = getattr(func_args, field.name, None)
+                        if field_value is not None:
+                            args[field.name] = field_value
+        return args
+    
+    def _extract_text_from_response(self, response) -> str:
+        """
+        Extract text from a Gemini response, handling function_call parts
+        
+        Args:
+            response: Response object from Gemini API
+            
+        Returns:
+            Response text as string
+        """
+        try:
+            return response.text
+        except ValueError as e:
+            # If response contains function_call parts, try to get text from parts
+            if "function_call" in str(e):
+                logger.warning("Response contains function_call parts, extracting text from parts")
+                text_parts = []
+                if hasattr(response, 'candidates') and response.candidates:
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'content') and candidate.content:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                text_parts.append(part.text)
+                            elif hasattr(part, 'function_call'):
+                                # Function call part - skip or log
+                                logger.debug(f"Skipping function_call part: {part.function_call.name if hasattr(part.function_call, 'name') else 'unknown'}")
+                
+                if text_parts:
+                    return " ".join(text_parts)
+                else:
+                    # If no text parts found, use a default message
+                    logger.warning("No text parts found in response with function calls")
+                    return "I processed your request, but I need more information to provide a complete answer."
+            else:
+                # Re-raise if it's a different error
+                raise
+    
+    def chat_with_tools_iterative(
+        self,
+        message: str,
+        conversation_history: Optional[List] = None,
+        tool_functions: Optional[Dict[str, Any]] = None,
+        max_iterations: int = 5,
+        lang: str = "ja"
+    ) -> Dict[str, Any]:
+        """
+        Chat with iterative tool calling - enables Multi-Step Planning & Tool Chaining
+        
+        Gemini can automatically chain multiple tools in sequence. This method handles
+        multiple rounds of tool calls until Gemini is satisfied or max_iterations is reached.
+        
+        Args:
+            message: User's message
+            conversation_history: Optional list of previous messages
+            tool_functions: Optional tool functions to register
+            max_iterations: Maximum number of tool call iterations (default: 5)
+            lang: Language code for response (e.g., "ja", "en", "vi", "zh", "ko", "id", "hi"). Defaults to "ja"
+        
+        Returns:
+            {
+                "response": str,  # Chatbot response text
+                "tool_calls": List[Dict],  # All tool calls made (if any)
+                "tool_results": List[Dict],  # All tool call results (if any)
+                "iterations": int  # Number of iterations performed
+            }
+        """
+        try:
+            # Register tools if provided
+            if tool_functions:
+                self.register_tools(tool_functions)
+            
+            # Start chat session
+            system_instruction = get_system_instruction(lang)
+            
+            if conversation_history:
+                logger.info(f"Starting iterative chat with conversation history: {len(conversation_history)} messages")
+                chat = self.model.start_chat(history=conversation_history)
+            else:
+                logger.info("Starting iterative chat without conversation history")
+                chat = self.model.start_chat()
+            
+            if self.tools:
+                logger.info(f"Sending message with {len(self.tools)} tools available (max_iterations={max_iterations})")
+            
+            # Send initial message with system instruction
+            full_message = f"{system_instruction}\n\nUser question: {message}"
+            response = chat.send_message(full_message)
+            
+            iteration = 0
+            all_tool_calls = []
+            all_tool_results = []
+            
+            # Iterative tool calling loop
+            while iteration < max_iterations:
+                # Check if response requires function calls
+                function_calls_found = False
+                
+                if hasattr(response, 'candidates') and response.candidates:
+                    candidate = response.candidates[0]
+                    
+                    if hasattr(candidate, 'content') and candidate.content:
+                        parts = candidate.content.parts
+                        
+                        for part in parts:
+                            if hasattr(part, 'function_call') and part.function_call:
+                                function_calls_found = True
+                                func_call = part.function_call
+                                func_name = func_call.name if hasattr(func_call, 'name') else None
+                                
+                                if not func_name or func_name not in self.tools:
+                                    logger.warning(f"Unknown function call: {func_name}")
+                                    continue
+                                
+                                # Extract arguments
+                                args = self._extract_function_args(func_call)
+                                
+                                logger.info(f"Iteration {iteration + 1}: Calling {func_name} with args: {args}")
+                                
+                                # Execute tool
+                                tool_func = self.tools[func_name]["function"]
+                                
+                                try:
+                                    if not args:
+                                        error_msg = f"Function {func_name} requires arguments but none were provided"
+                                        logger.error(error_msg)
+                                        raise ValueError(error_msg)
+                                    
+                                    result = tool_func(**args)
+                                    all_tool_calls.append({
+                                        "name": func_name,
+                                        "args": args
+                                    })
+                                    all_tool_results.append({
+                                        "name": func_name,
+                                        "result": result
+                                    })
+                                    
+                                    logger.info(f"Iteration {iteration + 1}: {func_name} completed successfully")
+                                    
+                                    # Send result back to Gemini for next iteration
+                                    function_response_part = genai.protos.Part(
+                                        function_response=genai.protos.FunctionResponse(
+                                            name=func_name,
+                                            response=result
+                                        )
+                                    )
+                                    response = chat.send_message([function_response_part])
+                                    iteration += 1
+                                    
+                                    # Break to process one function call per iteration
+                                    break
+                                
+                                except Exception as e:
+                                    error_msg = f"Error executing tool {func_name}: {str(e)}"
+                                    logger.error(error_msg)
+                                    all_tool_results.append({
+                                        "name": func_name,
+                                        "error": error_msg
+                                    })
+                                    # Continue to next iteration even on error
+                                    break
+                
+                if not function_calls_found:
+                    # No more tool calls needed
+                    logger.info(f"No more tool calls needed after {iteration} iterations")
+                    break
+            
+            # Extract final response text
+            response_text = self._extract_text_from_response(response)
+            
+            return {
+                "response": response_text,
+                "tool_calls": all_tool_calls,
+                "tool_results": all_tool_results,
+                "iterations": iteration
+            }
+        
+        except Exception as e:
+            logger.error(f"Error in iterative tool calling: {str(e)}")
+            raise
+    
+    def generate_word_variations(
+        self,
+        word_name: str,
+        lang: str = "ja",
+        max_variations: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Generate word variations (conjugations, writing forms, politeness levels) using LLM
+        
+        Args:
+            word_name: Target word to generate variations for
+            lang: Language code (default: "ja")
+            max_variations: Maximum number of variations to generate (default: 10)
+        
+        Returns:
+            {
+                "variations": List[str],  # List of word variations
+                "reasoning": str,  # Brief explanation of variations
+                "confidence": float  # Confidence score (0.0-1.0)
+            }
+        """
+        try:
+            prompt = f"""You are a Japanese language expert. Generate word variations for: {word_name}
+
+Generate variations including:
+1. Conjugation forms (ます形, 過去形, て形, 否定形)
+2. Part-of-speech variations (verb → noun, etc.)
+3. Writing variations (kanji ↔ hiragana)
+4. Politeness levels (casual ↔ polite)
+
+Return ONLY a JSON object:
+{{
+    "variations": ["variation1", "variation2", ...],
+    "reasoning": "Brief explanation",
+    "confidence": 0.0-1.0
+}}
+
+Maximum {max_variations} variations. Prioritize common forms (ます形, dictionary form).
+Include both kanji and hiragana versions if applicable.
+Focus on forms that might exist in a Japanese learning database.
+"""
+
+            response = self.model.generate_content(prompt)
+            response_text = response.text
+            
+            # Parse JSON from response
+            result = self._parse_variation_response(response_text)
+            
+            # Limit variations to max_variations
+            if len(result.get("variations", [])) > max_variations:
+                result["variations"] = result["variations"][:max_variations]
+            
+            logger.info(f"Generated {len(result.get('variations', []))} variations for '{word_name}'")
+            return result
+        
+        except Exception as e:
+            logger.error(f"Error generating word variations for '{word_name}': {str(e)}")
+            return {
+                "variations": [],
+                "reasoning": f"Error: {str(e)}",
+                "confidence": 0.0
+            }
+    
+    def _parse_variation_response(self, response_text: str) -> Dict[str, Any]:
+        """
+        Parse LLM response to extract JSON with word variations
+        
+        Args:
+            response_text: LLM response text (may contain JSON)
+        
+        Returns:
+            Dictionary with variations, reasoning, and confidence
+        """
+        import json
+        import re
+        
+        # Try to extract JSON from response
+        # Look for JSON object with "variations" key
+        json_match = re.search(r'\{[^{}]*"variations"[^{}]*\}', response_text, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+        else:
+            # Try to find any JSON object in the response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+            else:
+                # No JSON found, use entire response
+                json_str = response_text.strip()
+        
+        try:
+            result = json.loads(json_str)
+            
+            # Validate and set defaults
+            if "variations" not in result:
+                result["variations"] = []
+            if "reasoning" not in result:
+                result["reasoning"] = "Generated variations"
+            if "confidence" not in result:
+                result["confidence"] = 0.5
+            
+            # Ensure variations is a list
+            if not isinstance(result["variations"], list):
+                result["variations"] = []
+            
+            # Ensure confidence is a float between 0 and 1
+            try:
+                confidence = float(result["confidence"])
+                result["confidence"] = max(0.0, min(1.0, confidence))
+            except (ValueError, TypeError):
+                result["confidence"] = 0.5
+            
+            return result
+        
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse JSON: {e}, response: {response_text[:200]}")
+            # Fallback: extract Japanese words from text
+            # Match hiragana, katakana, and kanji sequences
+            words = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+', response_text)
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_words = []
+            for word in words:
+                if word not in seen and len(word) > 0:
+                    seen.add(word)
+                    unique_words.append(word)
+            
+            return {
+                "variations": unique_words[:10],
+                "reasoning": "Extracted from text (JSON parse failed)",
+                "confidence": 0.3
+            }
     
     def chat(self, message: str, conversation_history: Optional[list] = None) -> str:
         """
