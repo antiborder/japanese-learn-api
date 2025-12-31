@@ -44,7 +44,9 @@ deploy: check-env check-deps check-structure prepare-build build-chat-container 
 		--no-progressbar \
 		|| { echo "デプロイに失敗しました。"; exit 1; }
 	@echo "ChatFunctionのLambda関数を更新しています..."
-	@CHAT_FUNCTION_NAME=$$(aws lambda list-functions --region $$AWS_REGION --query "Functions[?contains(FunctionName, 'ChatFunction') && !contains(FunctionName, 'ChatTest')].FunctionName" --output text | head -1); \
+	@AWS_ACCOUNT_ID=$$(aws sts get-caller-identity --query Account --output text); \
+	AWS_REGION=$${CUSTOM_AWS_REGION:-ap-northeast-1}; \
+	CHAT_FUNCTION_NAME=$$(aws lambda list-functions --region $$AWS_REGION --query "Functions[?contains(FunctionName, 'ChatFunction') && !contains(FunctionName, 'ChatTest')].FunctionName" --output text | head -1); \
 	if [ -n "$$CHAT_FUNCTION_NAME" ]; then \
 		echo "Found ChatFunction: $$CHAT_FUNCTION_NAME"; \
 		echo "Updating Lambda function to latest ECR image..."; \

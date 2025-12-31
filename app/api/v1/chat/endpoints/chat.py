@@ -101,6 +101,25 @@ async def chat_message(
         effective_user_id = user_id if user_id else f"anonymous-{session_id}"
         logger.info(f"Chat request from user: {effective_user_id}, message: {request.message}")
         
+        # Retrieve conversation history for this session
+        conversation_history = None
+        if session_id:
+            try:
+                logger.info(f"Attempting to retrieve conversation history for session {session_id}")
+                history = conversation_logger.get_conversation_history(session_id, limit=10)
+                if history:
+                    conversation_history = history
+                    logger.info(f"Retrieved {len(history)} messages from conversation history for session {session_id}")
+                    # Log first and last message for debugging
+                    if len(history) > 0:
+                        logger.info(f"First history message (role={history[0].get('role')}): {str(history[0].get('parts', [{}])[0].get('text', ''))[:100]}...")
+                        logger.info(f"Last history message (role={history[-1].get('role')}): {str(history[-1].get('parts', [{}])[0].get('text', ''))[:100]}...")
+                else:
+                    logger.info(f"No conversation history found for session {session_id} (this is expected for first message)")
+            except Exception as e:
+                logger.warning(f"Failed to retrieve conversation history: {e}", exc_info=True)
+                # Continue without history - don't fail the request
+        
         import time
         request_start = time.time()
         
@@ -110,6 +129,7 @@ async def chat_message(
         gemini_start = time.time()
         result = client.chat_with_tools(
             request.message,
+            conversation_history=conversation_history,
             tool_functions=TOOL_FUNCTIONS,
             lang=lang
         )

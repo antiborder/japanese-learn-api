@@ -170,8 +170,11 @@ class GeminiClient:
             system_instruction = get_system_instruction(lang)
             
             if conversation_history:
+                logger.info(f"Starting chat with conversation history: {len(conversation_history)} messages")
+                logger.debug(f"History format sample (first 2 messages): {conversation_history[:2] if len(conversation_history) >= 2 else conversation_history}")
                 chat = self.model.start_chat(history=conversation_history)
             else:
+                logger.info("Starting chat without conversation history")
                 chat = self.model.start_chat()
             
             # Enable automatic function calling if tools are registered
@@ -182,6 +185,7 @@ class GeminiClient:
             # Send message with system instruction prepended
             # Combine system instruction with user message
             full_message = f"{system_instruction}\n\nUser question: {message}"
+            logger.debug(f"Sending message to Gemini (length: {len(full_message)} chars)")
             response = chat.send_message(full_message)
             
             logger.info(f"Response received, checking for function calls...")
