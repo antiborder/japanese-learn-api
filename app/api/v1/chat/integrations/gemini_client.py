@@ -636,7 +636,7 @@ class GeminiClient:
             prompt = f"""You are a Japanese language expert. Generate word variations for: {word_name}
 
 Generate variations including:
-1. Conjugation forms (ます形, 過去形, て形, 否定形)
+1. Conjugation forms (ます形, 過去形, て形, 否定形)（in variations of verb, always include ます形）
 2. Part-of-speech variations (verb → noun, etc.)
 3. Writing variations (kanji ↔ hiragana)
 4. Politeness levels (casual ↔ polite)
