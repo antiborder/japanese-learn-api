@@ -10,6 +10,7 @@ import threading
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +67,114 @@ def get_kanji_detail_url(kanji_id: int) -> str:
     """Generate frontend URL for kanji detail page"""
     return f"{FRONTEND_BASE_URL}/kanjis/{kanji_id}"
 
+_JP_TOKEN_RE = re.compile(r"[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF\u3005\u30FC]+")
+
+def _extract_target_term(text: str) -> str:
+    """
+    Extract the most likely target Japanese term from a full user sentence.
+    We prefer content inside Japanese quotes first, otherwise the longest Japanese token.
+    """
+    if not text:
+        return ""
+    s = str(text).strip()
+    # Prefer quoted segments (「...」, 『...』, "..." , '...')
+    quote_patterns = [
+        r"「([^」]+)」",
+        r"『([^』]+)』",
+        r"\"([^\"]+)\"",
+        r"'([^']+)'",
+    ]
+    for pat in quote_patterns:
+        m = re.search(pat, s)
+        if m:
+            candidate = m.group(1).strip()
+            jp_tokens = _JP_TOKEN_RE.findall(candidate)
+            if jp_tokens:
+                # If quoted content includes Japanese, use the longest Japanese token within it.
+                return max(jp_tokens, key=len)
+            return candidate
+
+    jp_tokens = _JP_TOKEN_RE.findall(s)
+    if not jp_tokens:
+        return s
+    return max(jp_tokens, key=len)
+
+def _dynamodb_table():
+    """Get DynamoDB table handle."""
+    table_name = os.getenv('DYNAMODB_TABLE_NAME', 'japanese-learn-table')
+    dynamodb = boto3.resource('dynamodb')
+    return dynamodb.Table(table_name)
+
+def _exact_match_word_by_name(name: str) -> Optional[Dict[str, Any]]:
+    """
+    Exact match lookup for WORD items by 'name' using the 'name-index' GSI.
+    Returns a normalized word dict or None.
+    """
+    if not name:
+        return None
+    table = _dynamodb_table()
+    response = table.query(
+        IndexName='name-index',
+        KeyConditionExpression='#name = :name',
+        FilterExpression='PK = :pk',
+        ExpressionAttributeNames={'#name': 'name'},
+        ExpressionAttributeValues={':name': name, ':pk': 'WORD'}
+    )
+    items = response.get('Items', [])
+    if not items:
+        return None
+    item = items[0]
+    word_id = int(convert_dynamodb_value(item.get('SK', 0)) or 0)
+    level = item.get('level', 0)
+    level = convert_dynamodb_value(level) if level is not None else 0
+    level = int(level) if isinstance(level, (int, float)) else 0
+    return {
+        "id": word_id,
+        "name": str(item.get('name', '')),
+        "hiragana": str(item.get('hiragana', '')),
+        "english": str(item.get('english', '')),
+        "level": level,
+    }
+
+def _exact_match_kanji_by_character(character: str) -> Optional[Dict[str, Any]]:
+    """
+    Exact match lookup for KANJI items by 'character' using the 'character-index' GSI.
+    Returns a normalized kanji dict or None.
+    """
+    if not character or len(character) != 1:
+        return None
+    table = _dynamodb_table()
+    response = table.query(
+        IndexName='character-index',
+        KeyConditionExpression='#character = :character',
+        FilterExpression='PK = :pk',
+        ExpressionAttributeNames={'#character': 'character'},
+        ExpressionAttributeValues={':character': character, ':pk': 'KANJI'}
+    )
+    items = response.get('Items', [])
+    if not items:
+        return None
+    item = items[0]
+    kanji_id = int(convert_dynamodb_value(item.get('SK', 0)) or 0)
+    return {
+        "id": kanji_id,
+        "kanji": str(item.get('character', '')),
+        "character": str(item.get('character', '')),
+        "meaning": str(item.get('english', '')),
+        "reading": str(item.get('reading', item.get('onyomi', ''))),
+    }
+
 def search_word_by_name(word_name: str) -> Dict[str, Any]:
     """
-    Search for a word by name (Japanese or English) using vector search
+    Search for a word by name with deterministic-first strategy:
+    1) Extract target term from the user sentence
+    2) Exact match (WORD.name)
+    3) Generate variations (words only) and exact match each variation
+    4) Semantic (vector) fallback across words+kanjis, returning up to 3 combined candidates
     
     This function is called by Gemini when user asks about a word.
-    Uses vector similarity search with 20 second timeout.
-    If the best match and 2nd place are close (within 30 points), returns up to 3 candidates
-    (words and/or kanjis combined, sorted by score).
+    IMPORTANT: Semantic search results are returned as candidates (found=False) to avoid
+    "nearest neighbor" mistakes being treated as exact matches.
     
     Args:
         word_name: Word name to search (can be Japanese or English)
@@ -100,194 +201,196 @@ def search_word_by_name(word_name: str) -> Dict[str, Any]:
         
     Note: Maximum 3 candidates are returned (combined from words and kanjis, sorted by similarity score).
     """
-    # Score threshold: FAISS returns L2 distance (not normalized), so scores are typically in 100-400 range
-    # Use relative threshold: if the difference between 1st and 2nd place is small, return multiple candidates
-    # This helps when multiple words have similar scores (e.g., "戦う" variants: 戦います, 戦争, etc.)
-    # Based on actual logs, scores are typically 100-400, so we use a relative difference threshold
-    SCORE_DIFF_THRESHOLD = 30.0  # If 2nd place is within 30 points of 1st place, return candidates
+    # Candidate selection threshold:
+    # If scores are close (lower is better), return multiple candidates (up to 3).
+    SCORE_DIFF_THRESHOLD = 30.0
     
     try:
-        # First, try vector search with timeout
-        logger.info(f"Attempting vector search for word: '{word_name}'")
+        target = _extract_target_term(word_name)
+        logger.info(f"Word search input='{word_name}' extracted_target='{target}'")
+
+        # (1) Exact match (WORD.name)
+        try:
+            exact = _exact_match_word_by_name(target)
+            if exact:
+                logger.info(f"Exact word match found for '{target}': {exact.get('name')} (id={exact.get('id')})")
+                return {
+                    "found": True,
+                    "word": {
+                        "id": int(exact["id"]),
+                        "name": exact["name"],
+                        "hiragana": exact.get("hiragana", ""),
+                        "english": exact.get("english", ""),
+                        "level": int(exact.get("level", 0) or 0),
+                        "detail_url": get_word_detail_url(int(exact["id"]))
+                    },
+                    "candidates": None,
+                    "message": f"Found exact match: {exact.get('name')}"
+                }
+        except Exception as e:
+            logger.warning(f"Exact word match failed for '{target}': {e}")
+
+        # (2) Variations (words only) + exact match each
+        try:
+            variations_result = generate_word_variations_with_llm(target)
+            variations = variations_result.get("variations", []) if isinstance(variations_result, dict) else []
+            # Ensure deterministic order and include the original target first
+            ordered = []
+            for v in [target] + [str(x).strip() for x in variations if str(x).strip()]:
+                if v and v not in ordered:
+                    ordered.append(v)
+            
+            # Log the full variation list for debugging
+            logger.info(f"Testing {len(ordered[:10])} variations for '{target}': {ordered[:10]}")
+
+            for v in ordered[:10]:
+                exact_v = _exact_match_word_by_name(v)
+                if exact_v:
+                    logger.info(f"Word match found via variation. target='{target}' matched='{v}' result='{exact_v.get('name')}'")
+                    return {
+                        "found": True,
+                        "word": {
+                            "id": int(exact_v["id"]),
+                            "name": exact_v["name"],
+                            "hiragana": exact_v.get("hiragana", ""),
+                            "english": exact_v.get("english", ""),
+                            "level": int(exact_v.get("level", 0) or 0),
+                            "detail_url": get_word_detail_url(int(exact_v["id"]))
+                        },
+                        "candidates": None,
+                        "message": f"Found exact match via variation '{v}': {exact_v.get('name')}"
+                    }
+                else:
+                    logger.debug(f"No exact match for variation '{v}'")
+        except Exception as e:
+            logger.warning(f"Variation generation / exact-match loop failed for '{target}': {e}")
+
+        # (3) Semantic fallback (vector search) across words + kanjis
+        logger.info(f"No exact match found for '{target}', attempting semantic fallback")
         search_start = time.time()
         rag_service = get_rag_service()
         
         if rag_service:
             try:
-                # Execute vector search with 20 second timeout
-                # Temporarily use k=10 to check top 10 scores for debugging
-                def _vector_search():
-                    return rag_service.search_words(word_name, k=10)
+                # Use search_all so we can return combined words+kanjis candidates.
+                def _search_all():
+                    return rag_service.search_all(target, k=10)
                 
                 with ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(_vector_search)
+                    future = executor.submit(_search_all)
                     try:
-                        vector_results = future.result(timeout=20.0)
+                        all_results = future.result(timeout=20.0)
                         search_time = time.time() - search_start
-                        logger.info(f"Vector search completed in {search_time:.2f} seconds, found {len(vector_results) if vector_results else 0} results")
+                        word_results = (all_results or {}).get('words', []) or []
+                        kanji_results = (all_results or {}).get('kanjis', []) or []
+                        logger.info(
+                            f"Semantic search completed in {search_time:.2f}s for '{target}'. "
+                            f"words={len(word_results)} kanjis={len(kanji_results)}"
+                        )
                         
-                        # Log top 10 results with scores for debugging
-                        if vector_results:
-                            logger.info(f"Top 10 vector search results for '{word_name}':")
-                            for i, result in enumerate(vector_results[:10], 1):
-                                word_name_result = result.get('name', 'N/A')
-                                score = result.get('score', float('inf'))
-                                logger.info(f"  {i}. {word_name_result} (score: {score:.4f})")
-                        
-                        if vector_results:
-                            best_match = vector_results[0]
-                            best_score = best_match.get('score', float('inf'))
-                            word_id = best_match.get('id')
-                            
-                            # Check if we should return multiple candidates
-                            # Use relative threshold: if 2nd place is close to 1st place, return candidates
-                            should_return_candidates = False
-                            if len(vector_results) >= 2:
-                                second_score = vector_results[1].get('score', float('inf'))
-                                score_diff = second_score - best_score
-                                if score_diff <= SCORE_DIFF_THRESHOLD:
-                                    should_return_candidates = True
-                                    logger.info(f"Best match score ({best_score:.2f}) and 2nd place ({second_score:.2f}) are close (diff: {score_diff:.2f}), searching for candidates")
-                            
-                            if should_return_candidates:
-                                
-                                # Search for word and kanji candidates
-                                # Temporarily use k=10 to check top 10 scores for debugging
-                                def _search_all():
-                                    return rag_service.search_all(word_name, k=10)
-                                
-                                with ThreadPoolExecutor(max_workers=1) as executor2:
-                                    future2 = executor2.submit(_search_all)
-                                    try:
-                                        all_results = future2.result(timeout=15.0)  # 15秒のタイムアウト
-                                        
-                                        # Log top 10 word and kanji results for debugging
-                                        word_results = all_results.get('words', [])[:10]
-                                        kanji_results = all_results.get('kanjis', [])[:10]
-                                        logger.info(f"Top 10 word candidates for '{word_name}':")
-                                        for i, word_result in enumerate(word_results, 1):
-                                            word_name_result = word_result.get('name', 'N/A')
-                                            score = word_result.get('score', float('inf'))
-                                            logger.info(f"  {i}. {word_name_result} (score: {score:.4f})")
-                                        logger.info(f"Top 10 kanji candidates for '{word_name}':")
-                                        for i, kanji_result in enumerate(kanji_results, 1):
-                                            kanji_char_result = kanji_result.get('kanji') or kanji_result.get('character', 'N/A')
-                                            score = kanji_result.get('score', float('inf'))
-                                            logger.info(f"  {i}. {kanji_char_result} (score: {score:.4f})")
-                                        
-                                        # Combine words and kanjis, sort by score (lower is better), and take top 3
-                                        combined_candidates = []
-                                        
-                                        # Format word candidates
-                                        for word_result in all_results.get('words', []):
-                                            word_id_candidate = word_result.get('id')
-                                            if word_id_candidate is not None:
-                                                level = word_result.get('level', 0)
-                                                level = convert_dynamodb_value(level) if level is not None else 0
-                                                level = int(level) if isinstance(level, (int, float)) else 0
-                                                
-                                                combined_candidates.append({
-                                                    "type": "word",
-                                                    "id": int(word_id_candidate),
-                                                    "name": str(word_result.get('name', '')),
-                                                    "hiragana": str(word_result.get('hiragana', '')),
-                                                    "english": str(word_result.get('english', '')),
-                                                    "level": level,
-                                                    "score": float(word_result.get('score', 0)),
-                                                    "detail_url": get_word_detail_url(int(word_id_candidate))
-                                                })
-                                        
-                                        # Format kanji candidates
-                                        for kanji_result in all_results.get('kanjis', []):
-                                            kanji_id_candidate = kanji_result.get('id')
-                                            if kanji_id_candidate is not None:
-                                                kanji_char = kanji_result.get('kanji') or kanji_result.get('character', '')
-                                                combined_candidates.append({
-                                                    "type": "kanji",
-                                                    "id": int(kanji_id_candidate),
-                                                    "kanji": str(kanji_char),
-                                                    "character": str(kanji_char),
-                                                    "meaning": str(kanji_result.get('meaning', '')),
-                                                    "reading": str(kanji_result.get('reading', '')),
-                                                    "score": float(kanji_result.get('score', 0)),
-                                                    "detail_url": get_kanji_detail_url(int(kanji_id_candidate))
-                                                })
-                                        
-                                        # Sort by score (lower is better) and take top 3
-                                        combined_candidates.sort(key=lambda x: x.get('score', float('inf')))
-                                        top_candidates = combined_candidates[:3]
-                                        
-                                        # Create a deep copy of top_candidates for combined list (to preserve type field)
-                                        # This ensures that when we remove 'type' from word_candidates/kanji_candidates,
-                                        # the combined list still has the type field
-                                        import copy
-                                        combined_with_type = copy.deepcopy(top_candidates)
-                                        
-                                        # Separate back into words and kanjis for backward compatibility
-                                        word_candidates = [c for c in top_candidates if c.get('type') == 'word']
-                                        kanji_candidates = [c for c in top_candidates if c.get('type') == 'kanji']
-                                        
-                                        # Remove 'type' field from individual candidates (keep it in combined list for frontend)
-                                        for candidate in word_candidates:
-                                            candidate.pop('type', None)
-                                        for candidate in kanji_candidates:
-                                            candidate.pop('type', None)
-                                        
-                                        logger.info(f"Found {len(word_candidates)} word candidates and {len(kanji_candidates)} kanji candidates (top 3 combined)")
-                                        
-                                        return {
-                                            "found": False,
-                                            "word": None,
-                                            "candidates": {
-                                                "words": word_candidates,
-                                                "kanjis": kanji_candidates,
-                                                "combined": combined_with_type  # Combined list with type field preserved
-                                            },
-                                            "message": f"'{word_name}'に完全一致する単語は見つかりませんでしたが、以下の候補が見つかりました。"
-                                        }
-                                    except FutureTimeoutError:
-                                        logger.warning("Candidate search timed out")
-                                        # Fall through to return not found
-                            
-                            # High confidence match (score <= threshold)
-                            if word_id is not None:
-                                level = best_match.get('level', 0)
-                                level = convert_dynamodb_value(level) if level is not None else 0
-                                level = int(level) if isinstance(level, (int, float)) else 0
-                                
-                                logger.info(f"Found word via vector search: {best_match.get('name')} (score: {best_score})")
-                                return {
-                                    "found": True,
-                                    "word": {
-                                        "id": int(word_id),
-                                        "name": str(best_match.get('name', '')),
-                                        "hiragana": str(best_match.get('hiragana', '')),
-                                        "english": str(best_match.get('english', '')),
-                                        "level": level,
-                                        "detail_url": get_word_detail_url(int(word_id))
-                                    },
-                                    "candidates": None,
-                                    "message": f"Found word via semantic search: {best_match.get('name')}"
-                                }
+                        # Combine results into candidates
+                        combined_candidates: List[Dict[str, Any]] = []
+
+                        for wr in word_results[:10]:
+                            word_id_candidate = wr.get('id')
+                            if word_id_candidate is None:
+                                continue
+                            level = wr.get('level', 0)
+                            level = convert_dynamodb_value(level) if level is not None else 0
+                            level = int(level) if isinstance(level, (int, float)) else 0
+                            combined_candidates.append({
+                                "type": "word",
+                                "id": int(word_id_candidate),
+                                "name": str(wr.get('name', '')),
+                                "hiragana": str(wr.get('hiragana', '')),
+                                "english": str(wr.get('english', '')),
+                                "level": level,
+                                "score": float(wr.get('score', float('inf'))),
+                                "detail_url": get_word_detail_url(int(word_id_candidate))
+                            })
+
+                        for kr in kanji_results[:10]:
+                            kanji_id_candidate = kr.get('id')
+                            if kanji_id_candidate is None:
+                                continue
+                            kanji_char = kr.get('kanji') or kr.get('character', '')
+                            combined_candidates.append({
+                                "type": "kanji",
+                                "id": int(kanji_id_candidate),
+                                "kanji": str(kanji_char),
+                                "character": str(kanji_char),
+                                "meaning": str(kr.get('meaning', kr.get('english', ''))),
+                                "reading": str(kr.get('reading', '')),
+                                "score": float(kr.get('score', float('inf'))),
+                                "detail_url": get_kanji_detail_url(int(kanji_id_candidate))
+                            })
+
+                        combined_candidates.sort(key=lambda x: x.get('score', float('inf')))
+                        if not combined_candidates:
+                            return {
+                                "found": False,
+                                "word": None,
+                                "candidates": None,
+                                "message": "No results found."
+                            }
+
+                        best_score = float(combined_candidates[0].get('score', float('inf')))
+                        # Select up to 3 candidates only if scores are close to the best
+                        top_candidates: List[Dict[str, Any]] = []
+                        for c in combined_candidates:
+                            if len(top_candidates) >= 3:
+                                break
+                            score = float(c.get('score', float('inf')))
+                            if score - best_score <= SCORE_DIFF_THRESHOLD:
+                                top_candidates.append(c)
+                            else:
+                                # Once scores diverge, stop adding more candidates
+                                if top_candidates:
+                                    break
+
+                        # Ensure at least 1 candidate
+                        if not top_candidates:
+                            top_candidates = [combined_candidates[0]]
+
+                        import copy
+                        combined_with_type = copy.deepcopy(top_candidates)
+
+                        word_candidates = [c for c in top_candidates if c.get('type') == 'word']
+                        kanji_candidates = [c for c in top_candidates if c.get('type') == 'kanji']
+                        for candidate in word_candidates:
+                            candidate.pop('type', None)
+                        for candidate in kanji_candidates:
+                            candidate.pop('type', None)
+
+                        return {
+                            "found": False,
+                            "word": None,
+                            "candidates": {
+                                "words": word_candidates,
+                                "kanjis": kanji_candidates,
+                                "combined": combined_with_type
+                            },
+                            "message": f"No exact match for '{target}'. Here are the closest candidates."
+                        }
                     except FutureTimeoutError:
                         search_time = time.time() - search_start
-                        logger.warning(f"Vector search timed out after {search_time:.2f} seconds for '{word_name}'")
+                        logger.warning(f"Semantic search timed out after {search_time:.2f} seconds for '{target}'")
                         return {
                             "found": False,
                             "word": None,
                             "candidates": None,
-                            "message": "その言葉について特定するためにもう少し詳しく教えてください。例えば、漢字表記や英語での意味、文脈などを含めて質問していただけると、より正確にお答えできます。"
+                            "message": "I couldn't complete semantic search in time. Please provide more context (kanji spelling, meaning, or example sentence)."
                         }
             except Exception as e:
-                logger.warning(f"Vector search failed: {e}")
+                logger.warning(f"Semantic search failed: {e}")
         
-        # If vector search didn't find anything or failed, return not found
-        logger.warning(f"Word '{word_name}' not found via vector search")
+        # No semantic results or RAG init failed
+        logger.warning(f"No results found for '{target}' (exact + variations + semantic)")
         return {
             "found": False,
             "word": None,
             "candidates": None,
-            "message": "その言葉について特定するためにもう少し詳しく教えてください。例えば、漢字表記や英語での意味、文脈などを含めて質問していただけると、より正確にお答えできます。"
+            "message": "I couldn't find an exact match. Please provide more context (kanji spelling, meaning, or example sentence)."
         }
     
     except Exception as e:
@@ -296,7 +399,7 @@ def search_word_by_name(word_name: str) -> Dict[str, Any]:
             "found": False,
             "word": None,
             "candidates": None,
-            "message": "その言葉について特定するためにもう少し詳しく教えてください。例えば、漢字表記や英語での意味、文脈などを含めて質問していただけると、より正確にお答えできます。"
+            "message": "I couldn't complete the search due to an internal error."
         }
 
 def get_word_by_id(word_id: int) -> Dict[str, Any]:
@@ -376,7 +479,10 @@ def get_word_by_id(word_id: int) -> Dict[str, Any]:
 
 def search_kanji_by_character(kanji_character: str) -> Dict[str, Any]:
     """
-    Search for a kanji by character using vector search
+    Search for a kanji with deterministic-first strategy:
+    1) Extract target term
+    2) Exact match only when len(term) == 1 (KANJI.character)
+    3) Semantic fallback (kanji-only) if exact match fails
     
     Args:
         kanji_character: Kanji character to search (can be character, meaning, or reading)
@@ -395,87 +501,65 @@ def search_kanji_by_character(kanji_character: str) -> Dict[str, Any]:
         }
     """
     try:
-        kanji_char = kanji_character.strip()
-        
-        # First, try vector search
+        target = _extract_target_term(kanji_character)
+        kanji_char = target.strip()
+        logger.info(f"Kanji search input='{kanji_character}' extracted_target='{kanji_char}'")
+
+        # (1) Exact match only for single character
+        if len(kanji_char) == 1:
+            try:
+                exact = _exact_match_kanji_by_character(kanji_char)
+                if exact:
+                    return {
+                        "found": True,
+                        "kanji": {
+                            "id": int(exact["id"]),
+                            "kanji": exact["kanji"],
+                            "character": exact["character"],
+                            "meaning": exact.get("meaning", ""),
+                            "reading": exact.get("reading", ""),
+                            "detail_url": get_kanji_detail_url(int(exact["id"]))
+                        },
+                        "message": f"Found exact match: {kanji_char}"
+                    }
+            except Exception as e:
+                logger.warning(f"Exact kanji match failed for '{kanji_char}': {e}")
+        else:
+            return {
+                "found": False,
+                "kanji": None,
+                "message": "Exact kanji lookup only supports a single character. This looks like a word/phrase; try word search."
+            }
+
+        # (2) Semantic fallback (kanji-only)
         rag_service = get_rag_service()
         if rag_service:
             try:
                 vector_results = rag_service.search_kanjis(kanji_char, k=3)
                 if vector_results:
-                    # Use the best match (lowest score = most similar)
                     best_match = vector_results[0]
                     kanji_id = best_match.get('id')
                     if kanji_id is not None:
-                        # Try both 'kanji' and 'character' field names for compatibility
-                        kanji_char = best_match.get('kanji') or best_match.get('character', '')
-                        logger.info(f"Found kanji via vector search: {kanji_char} (score: {best_match.get('score')})")
+                        best_char = best_match.get('kanji') or best_match.get('character', kanji_char)
                         return {
-                            "found": True,
-                            "kanji": {
-                                "id": int(kanji_id),
-                                "kanji": str(kanji_char),
-                                "character": str(kanji_char),  # Also include as 'character' for compatibility
-                                "meaning": str(best_match.get('meaning', '')),
-                                "reading": str(best_match.get('reading', '')),
-                                "detail_url": get_kanji_detail_url(int(kanji_id))
-                            },
-                            "message": f"Found kanji via semantic search: {kanji_char}"
+                            "found": False,
+                            "kanji": None,
+                            "candidates": [
+                                {
+                                    "id": int(kanji_id),
+                                    "kanji": str(best_char),
+                                    "character": str(best_char),
+                                    "meaning": str(best_match.get('meaning', best_match.get('english', ''))),
+                                    "reading": str(best_match.get('reading', '')),
+                                    "score": float(best_match.get('score', float('inf'))),
+                                    "detail_url": get_kanji_detail_url(int(kanji_id))
+                                }
+                            ],
+                            "message": f"No exact match for '{kanji_char}'. Here is the closest candidate."
                         }
             except Exception as e:
-                logger.warning(f"Vector search failed: {e}. Falling back to exact match.")
-        
-        # Fallback to exact match search
-        import boto3
-        table_name = os.getenv('DYNAMODB_TABLE_NAME', 'japanese-learn-table')
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(table_name)
-        
-        # Query all kanjis
-        all_items = []
-        last_evaluated_key = None
-        
-        while True:
-            query_params = {
-                "KeyConditionExpression": "PK = :pk",
-                "ExpressionAttributeValues": {
-                    ":pk": "KANJI"
-                }
-            }
-            if last_evaluated_key:
-                query_params["ExclusiveStartKey"] = last_evaluated_key
-            
-            response = table.query(**query_params)
-            items = response.get('Items', [])
-            all_items.extend(items)
-            
-            last_evaluated_key = response.get('LastEvaluatedKey')
-            if not last_evaluated_key:
-                break
-            
-            # Limit to 1000 items for performance
-            if len(all_items) >= 1000:
-                break
-        
-        # Search for matching kanji
-        for item in all_items[:1000]:  # Limit to 1000
-            kanji_id = int(item.get('SK', '0'))
-            # Try both 'kanji' and 'character' field names for compatibility
-            kanji_text = item.get('kanji') or item.get('character', '')
-            
-            if kanji_text == kanji_char:
-                return {
-                    "found": True,
-                    "kanji": {
-                        "id": kanji_id,
-                        "kanji": kanji_text,
-                        "meaning": item.get('meaning', ''),
-                        "reading": item.get('reading', ''),
-                        "detail_url": get_kanji_detail_url(kanji_id)
-                    },
-                    "message": f"Found kanji: {kanji_char}"
-                }
-        
+                logger.warning(f"Semantic kanji search failed: {e}")
+
         return {
             "found": False,
             "kanji": None,
