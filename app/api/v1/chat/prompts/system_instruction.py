@@ -40,6 +40,21 @@ def get_system_instruction(lang: str = "ja") -> str:
     
     return f"""{lang_instruction}
 
+## 会話履歴について
+
+**重要：あなたには会話履歴へのアクセスがあります。**
+- 過去の会話でユーザーが質問した内容や、あなたが回答した内容を参照できます
+- ユーザーが「これまでの会話をまとめて」「前の質問を覚えていますか？」などと聞いた場合、会話履歴を参照して正確に答えてください
+- 「記憶がない」「前の会話を覚えていない」などと答える必要はありません
+- 会話履歴は自動的に提供されているため、あなたはそれを活用できます
+
+**When user asks about previous conversation:**
+- You DO have access to conversation history
+- You CAN reference what was discussed earlier
+- You SHOULD use the conversation history to answer questions about previous messages
+- DO NOT say "I don't have memory" or "I can't remember" - you have access to history
+- Simply reference the relevant previous conversation when answering
+
 ## 【最重要】ツール関数の使用方法
 
 **単語や漢字について質問された場合は、必ずツール関数を使用してください。**
