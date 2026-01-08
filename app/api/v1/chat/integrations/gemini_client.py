@@ -504,41 +504,18 @@ class GeminiClient:
             # Start chat session
             system_instruction = get_system_instruction(lang)
             
-            # Detailed logging for conversation history
-            logger.info(f"[GEMINI] conversation_history parameter: {conversation_history is not None}")
-            if conversation_history is not None:
-                logger.info(f"[GEMINI] conversation_history type: {type(conversation_history)}, len: {len(conversation_history) if hasattr(conversation_history, '__len__') else 'N/A'}")
-                if conversation_history and len(conversation_history) > 0:
-                    logger.info(f"[GEMINI] First message in history: {conversation_history[0]}")
-                else:
-                    logger.warning(f"[GEMINI] conversation_history is not None but empty or has len=0")
-            
             if conversation_history:
-                logger.info(f"[GEMINI] Starting iterative chat WITH conversation history: {len(conversation_history)} messages")
-                try:
-                    chat = self.model.start_chat(history=conversation_history)
-                    logger.info(f"[GEMINI] Chat started successfully with history")
-                except Exception as e:
-                    logger.error(f"[GEMINI] Failed to start chat with history: {e}")
-                    logger.info(f"[GEMINI] Falling back to chat without history")
-                    chat = self.model.start_chat()
+                logger.info(f"Starting iterative chat with conversation history: {len(conversation_history)} messages")
+                chat = self.model.start_chat(history=conversation_history)
             else:
-                logger.info("[GEMINI] Starting iterative chat WITHOUT conversation history")
+                logger.info("Starting iterative chat without conversation history")
                 chat = self.model.start_chat()
             
             if self.tools:
                 logger.info(f"Sending message with {len(self.tools)} tools available (max_iterations={max_iterations})")
             
-            # Send initial message
-            # Only prepend system instruction if there's no conversation history
-            # (if history exists, the model already knows the instructions from previous turns)
-            if conversation_history:
-                logger.info("[GEMINI] Sending user message without system instruction (history exists)")
-                full_message = message
-            else:
-                logger.info("[GEMINI] Sending user message WITH system instruction (no history)")
-                full_message = f"{system_instruction}\n\nUser question: {message}"
-            
+            # Send initial message with system instruction
+            full_message = f"{system_instruction}\n\nUser question: {message}"
             response = chat.send_message(full_message)
             
             iteration = 0

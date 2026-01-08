@@ -107,25 +107,14 @@ async def chat_message(
             try:
                 logger.info(f"Attempting to retrieve conversation history for session {session_id}")
                 history = conversation_logger.get_conversation_history(session_id, limit=10)
-                logger.info(f"get_conversation_history returned: type={type(history)}, value={'None' if history is None else f'list with {len(history)} items'}")
                 if history:
                     conversation_history = history
                     logger.info(f"Retrieved {len(history)} messages from conversation history for session {session_id}")
-                    # Log first and last message for debugging
-                    if len(history) > 0:
-                        logger.info(f"First history message (role={history[0].get('role')}): {str(history[0].get('parts', [{}])[0].get('text', ''))[:100]}...")
-                        logger.info(f"Last history message (role={history[-1].get('role')}): {str(history[-1].get('parts', [{}])[0].get('text', ''))[:100]}...")
-                    else:
-                        logger.warning(f"History exists but len(history)=0, actual value: {history}")
                 else:
                     logger.info(f"No conversation history found for session {session_id} (this is expected for first message)")
             except Exception as e:
                 logger.warning(f"Failed to retrieve conversation history: {e}", exc_info=True)
                 # Continue without history - don't fail the request
-        
-        logger.info(f"[ENDPOINT] conversation_history passed to Gemini: {conversation_history is not None} (type: {type(conversation_history) if conversation_history is not None else 'None'})")
-        if conversation_history:
-            logger.info(f"[ENDPOINT] conversation_history length: {len(conversation_history)}, sample: {conversation_history[0] if len(conversation_history) > 0 else 'empty list'}")
         
         import time
         request_start = time.time()

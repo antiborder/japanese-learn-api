@@ -10,14 +10,12 @@ class ConversationLogger:
     def __init__(self):
         self.dynamodb = boto3.resource('dynamodb')
         table_name = os.getenv('CONVERSATION_LOGS_TABLE_NAME')
-        logger.info(f"[CONV_LOGGER_INIT] CONVERSATION_LOGS_TABLE_NAME env var: '{table_name}'")
+        table_name = os.getenv('CONVERSATION_LOGS_TABLE_NAME')
         if not table_name:
-            logger.warning("[CONV_LOGGER_INIT] CONVERSATION_LOGS_TABLE_NAME not set, logging will be disabled")
+            logger.warning("CONVERSATION_LOGS_TABLE_NAME not set, logging will be disabled")
             self.table = None
         else:
-            logger.info(f"[CONV_LOGGER_INIT] Initializing table: {table_name}")
             self.table = self.dynamodb.Table(table_name)
-            logger.info(f"[CONV_LOGGER_INIT] Table initialized: {self.table is not None}")
     
     def log_conversation(
         self,
@@ -90,10 +88,8 @@ class ConversationLogger:
         ]
         """
         if not self.table:
-            logger.warning(f"[CONV_LOGGER] Conversation logging disabled (table not configured), cannot retrieve history. self.table={self.table}")
+            logger.debug("Conversation logging disabled (table not configured), cannot retrieve history")
             return None
-        
-        logger.info(f"[CONV_LOGGER] Table is configured, querying for session {session_id}")
         
         try:
             # Query DynamoDB for all messages in this session
@@ -145,14 +141,7 @@ class ConversationLogger:
                 history = history[-(limit * 2):]
                 logger.info(f"Limited history to last {limit} turns ({len(history)} messages)")
             
-            logger.info(f"[CONV_LOGGER] Retrieved {len(history)} messages from conversation history for session {session_id}")
-            # Log the structure of the first message to verify format
-            if history and len(history) > 0:
-                logger.info(f"[CONV_LOGGER] History format check - first message keys: {list(history[0].keys())}, has 'role': {'role' in history[0]}, has 'parts': {'parts' in history[0]}")
-                logger.info(f"[CONV_LOGGER] First message sample: {history[0]}")
-                logger.info(f"[CONV_LOGGER] Returning history list with {len(history)} items")
-            else:
-                logger.warning(f"[CONV_LOGGER] History list is empty even though items were processed")
+            logger.info(f"Retrieved {len(history)} messages from conversation history for session {session_id}")
             
             return history if history else None
             
