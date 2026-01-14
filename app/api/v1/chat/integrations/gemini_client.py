@@ -636,10 +636,42 @@ class GeminiClient:
             prompt = f"""You are a Japanese language expert. Generate word variations for: {word_name}
 
 Generate variations including:
-1. Conjugation forms (ます形, 過去形, て形, 否定形)（in variations of verb, always include ます形）
-2. Part-of-speech variations (verb → noun, etc.)
-3. Writing variations (kanji ↔ hiragana)
-4. Politeness levels (casual ↔ polite)
+1. **Writing variations (kanji ↔ hiragana ↔ katakana)**
+   - Example: 「いぬ」→「犬」, 「嬉しい」→「うれしい」
+   - If natural, convert hiragana to kanji, or kanji to hiragana
+
+2. **Verb conjugation forms (ます形, 過去形, て形, 否定形)**
+   - **CRITICAL: For verbs, ALWAYS include ます形 (masu form)**
+   - Example: 「戦う」→「戦います」 (must include ます形)
+   - This app stores verbs in ます形 format
+
+3. **Adjectival noun (形容動詞) conjugation forms**
+   - **CRITICAL: For 形容動詞, ALWAYS include 連体形 (attributive form ending with "な")**
+   - Example: 「静かだ」→「静かな」 (must include 連体形)
+   - This app stores 形容動詞 in 連体形 format
+
+4. **Adjective (形容詞) conjugation forms**
+   - **CRITICAL: For 形容詞, ALWAYS include 終止形 (predicative form ending with "い")**
+   - Example: 「楽し」→「楽しい」 (must include 終止形)
+   - This app stores 形容詞 in 終止形 format
+
+5. **Part-of-speech variations**
+   - Example: 「素早く」(adverb) → 「素早い」(noun), 「扱い」(noun) → 「扱います」(verb)
+
+6. **Politeness/honorific variations**
+   - Example: 「菓子」→「お菓子」, 「お見積もり」→「見積もり」
+
+**CRITICAL: Return ONLY clean Japanese words (kanji, hiragana, or katakana)**
+- Do NOT include romanization (romaji) like (kariru) or (karimasu)
+- Do NOT include annotations, descriptions, or grammatical labels like [Dictionary form] or [ます形]
+- Do NOT include explanations, parentheses, or brackets
+- Return ONLY the pure Japanese text: 借りる, 借ります, 借りた, etc.
+
+Examples:
+- CORRECT: "借ります"
+- WRONG: "借ります (karimasu)"
+- WRONG: "借ります [ます形]"
+- WRONG: "借ります (karimasu) - ます形"
 
 Return ONLY a JSON object:
 {{
@@ -648,9 +680,11 @@ Return ONLY a JSON object:
     "confidence": 0.0-1.0
 }}
 
-Maximum {max_variations} variations. Prioritize common forms (ます形, dictionary form).
+Generate {max_variations} variations (7-10 variations).
+Prioritize common forms (ます形 for verbs, dictionary form, 連体形 for 形容動詞, 終止形 for 形容詞).
 Include both kanji and hiragana versions if applicable.
 Focus on forms that might exist in a Japanese learning database.
+Each variation must be a clean Japanese word only, no annotations.
 """
 
             response = self.model.generate_content(prompt)
