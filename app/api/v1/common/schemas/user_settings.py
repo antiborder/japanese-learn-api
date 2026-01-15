@@ -6,7 +6,9 @@ class ThemeEnum(str, Enum):
     SUMMER = "Summer"
     FALL = "Fall"
     WAVE = "Wave"
-
+    BLACK = "Black"
+    WINTER = "Winter"
+    
 class LanguageEnum(str, Enum):
     EN = "en"
     VI = "vi"
