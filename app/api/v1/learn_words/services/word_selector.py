@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 from datetime import datetime, timezone
 from .datetime_utils import DateTimeUtils
 
@@ -30,8 +30,16 @@ class WordSelector:
         }
     
     @staticmethod
-    def select_review_word(user_level_words: List[Dict]) -> Optional[Dict]:
-        """復習単語を選択します"""
+    def select_review_word(
+        user_level_words: List[Dict],
+        existing_word_ids: Optional[Set[int]] = None,
+    ) -> Optional[Dict]:
+        """復習単語を選択します
+
+        If existing_word_ids is provided, only words whose catalog record still exists
+        (word_id in existing_word_ids) are considered; others are skipped so the next
+        earliest next_datetime is used when the top choice was deleted from the words table.
+        """
         if not user_level_words:
             return None
         
@@ -40,6 +48,18 @@ class WordSelector:
         for word in user_level_words:
             if DateTimeUtils.is_reviewable(word):
                 reviewable_words.append(word)
+
+        if existing_word_ids is not None:
+            before = len(reviewable_words)
+            reviewable_words = [
+                w for w in reviewable_words
+                if int(w['word_id']) in existing_word_ids
+            ]
+            if before and len(reviewable_words) < before:
+                logger.warning(
+                    "Skipped %d review candidate(s) with no matching word record in catalog",
+                    before - len(reviewable_words),
+                )
         
         if not reviewable_words:
             return None
@@ -82,8 +102,11 @@ class WordSelector:
                 logger.info(f"Successfully retrieved new word for user {user_id}, level {level_int}: {new_word_result}")
                 return new_word_result
         
-        # review_selection: 復習単語を選択
-        review_word_result = WordSelector.select_review_word(user_level_words)
+        # review_selection: 復習単語を選択（カタログに存在する単語のみ）
+        level_word_ids = {int(w['SK']) for w in level_words}
+        review_word_result = WordSelector.select_review_word(
+            user_level_words, existing_word_ids=level_word_ids
+        )
         if review_word_result:
             logger.info(f"Successfully retrieved review word for user {user_id}, level {level_int}: {review_word_result}")
             return review_word_result
