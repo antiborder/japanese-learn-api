@@ -1,6 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Set
-from datetime import datetime, timezone
+from typing import Dict, List, Optional
 from .datetime_utils import DateTimeUtils
 
 logger = logging.getLogger(__name__)
@@ -16,32 +15,14 @@ class ReviewLogic:
         return reviewable_words
     
     @staticmethod
-    def get_review_all_word(
-        user_words: List[Dict],
-        existing_word_ids: Optional[Set[int]] = None,
-    ) -> Optional[Dict]:
-        """全レベルから復習可能な単語を取得します（next_datetimeが最も古いものを選択）
-
-        If existing_word_ids is set, only words still present in the catalog are considered.
-        """
+    def get_review_all_word(user_words: List[Dict]) -> Optional[Dict]:
+        """全レベルから復習可能な単語を取得します（next_datetimeが最も古いものを選択）"""
         if not user_words:
             logger.info("No learning history found")
             return None
         
         # 復習可能な単語をフィルタリング
         reviewable_words = ReviewLogic.get_reviewable_words(user_words)
-
-        if existing_word_ids is not None:
-            before = len(reviewable_words)
-            reviewable_words = [
-                w for w in reviewable_words
-                if int(w['word_id']) in existing_word_ids
-            ]
-            if before and len(reviewable_words) < before:
-                logger.warning(
-                    "REVIEW_ALL: skipped %d review candidate(s) with no matching word record",
-                    before - len(reviewable_words),
-                )
         
         if reviewable_words:
             # 復習可能な単語がある場合は、next_datetimeが最も古いものを選択

@@ -68,9 +68,7 @@ class NextService:
                 logger.info(f"No learning history found for user {user_id}")
                 return None
 
-            all_catalog_words = await self.next_db._get_all_words()
-            existing_word_ids = {int(w['SK']) for w in all_catalog_words}
-            return self.review_logic.get_review_all_word(user_words, existing_word_ids)
+            return self.review_logic.get_review_all_word(user_words)
         except Exception as e:
             logger.error(f"Error getting all-review word for user {user_id}: {str(e)}", exc_info=True)
             raise
