@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 from enum import Enum
 
 class ThemeEnum(str, Enum):
@@ -40,6 +40,7 @@ class UserSettingsResponse(UserSettingsBase):
     user_id: str = Field(..., description="ユーザーID")
     created_at: str = Field(..., description="作成日時")
     updated_at: str = Field(..., description="更新日時")
+    last_login_at: Optional[str] = Field(None, description="最終アクティブ日時")
 
     class Config:
         from_attributes = True

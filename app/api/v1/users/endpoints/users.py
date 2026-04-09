@@ -404,6 +404,21 @@ async def create_user_settings_test(settings: UserSettingsCreate):
         logger.error(f"Error in create_user_settings_test endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/activity")
+async def update_activity(current_user_id: str = Depends(get_current_user_id)):
+    """
+    最終アクティブ日時を更新する
+    認証：必須（Bearerトークン）
+    ページ読み込み時およびトークンリフレッシュ時にフロントエンドから呼び出す
+    """
+    try:
+        await user_settings_db.update_last_login_at(current_user_id)
+        return {"message": "Activity updated"}
+    except Exception as e:
+        logger.error(f"Error in update_activity endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.put("/test/settings")
 async def update_user_settings_test(settings: UserSettingsUpdate):
     """

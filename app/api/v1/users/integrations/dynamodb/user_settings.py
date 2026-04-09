@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
+from botocore.exceptions import ClientError
 from .base import DynamoDBBase
 from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
 
@@ -33,7 +34,8 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 language=item['language'],
                 is_onboarding_modal_closed=item.get('is_onboarding_modal_closed', False),
                 created_at=item['created_at'],
-                updated_at=item['updated_at']
+                updated_at=item['updated_at'],
+                last_login_at=item.get('last_login_at'),
             )
         except Exception as e:
             logger.error(f"Error getting user settings for user {user_id}: {str(e)}")
@@ -148,4 +150,30 @@ class UserSettingsDynamoDB(DynamoDBBase):
             return True
         except Exception as e:
             logger.error(f"Error deleting user settings for user {user_id}: {str(e)}")
+            raise
+
+    async def update_last_login_at(self, user_id: str) -> None:
+        """
+        最終アクティブ日時を更新する。
+        SETTINGSアイテムが存在しない場合（オンボーディング未完了）はスキップする。
+        """
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            self.table.update_item(
+                Key={
+                    'PK': f"USER#{user_id}",
+                    'SK': 'SETTINGS'
+                },
+                UpdateExpression='SET last_login_at = :now',
+                ConditionExpression='attribute_exists(PK)',
+                ExpressionAttributeValues={':now': now}
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                logger.info(f"SETTINGS not found for user {user_id}, skipping last_login_at update")
+            else:
+                logger.error(f"Error updating last_login_at for user {user_id}: {str(e)}")
+                raise
+        except Exception as e:
+            logger.error(f"Error updating last_login_at for user {user_id}: {str(e)}")
             raise

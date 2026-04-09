@@ -889,6 +889,7 @@ Resources:
           COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
           # ADMIN_EMAILS: Comma-separated list of admin emails (optional)
           ADMIN_EMAILS: "bafjkfgbka@gmail.com"
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
       Events:
         AdminApiRootEvent:
           Type: Api
@@ -909,6 +910,18 @@ Resources:
             Resource:
               - !GetAtt ConversationLogsTable.Arn
               - !Sub "${ConversationLogsTable.Arn}/index/*"
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
+          - Effect: Allow
+            Action:
+              - cognito-idp:ListUsers
+            Resource:
+              - !GetAtt UserPool.Arn
 
   AdminFunctionLogGroup:
     Type: AWS::Logs::LogGroup

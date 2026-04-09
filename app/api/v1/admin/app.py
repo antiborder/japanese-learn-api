@@ -21,7 +21,9 @@ app = FastAPI(
 
 # Import and include endpoints
 from endpoints.chat_conversations import router as conversations_router
+from endpoints.users import router as users_router
 app.include_router(conversations_router, prefix="/api/v1/admin/chat", tags=["admin", "chat"])
+app.include_router(users_router, prefix="/api/v1/admin", tags=["admin", "users"])
 
 # Note: common module will be copied during build process (prepare-build step)
 
