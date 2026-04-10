@@ -1,10 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Header, Security
+from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schemas.chat import ChatMessageRequest, ChatMessageResponse
 from integrations.gemini_client import GeminiClient
 from services.conversation_logger import ConversationLogger
 from tools.dynamodb_tools import TOOL_FUNCTIONS  # Import tool functions
-from typing import Optional
 import logging
 import uuid
 import os
@@ -17,88 +16,72 @@ router = APIRouter()
 # Initialize conversation logger
 conversation_logger = ConversationLogger()
 
-# Optional bearer scheme - doesn't auto-raise on missing token
-optional_bearer_scheme = HTTPBearer(auto_error=False)
+bearer_scheme = HTTPBearer()
 
-def get_optional_user_id(
-    credentials: Optional[HTTPAuthorizationCredentials] = Security(optional_bearer_scheme)
-) -> Optional[str]:
-    """
-    Optional authentication - returns user_id if token is valid, None otherwise
-    Allows anonymous users to use the chatbot
-    """
-    if not credentials:
-        logger.info("No authorization header - allowing anonymous access")
-        return None
-    
-    # Try to validate the token
-    try:
-        token = credentials.credentials
-        
-        # Get Cognito configuration
-        cognito_region = os.environ.get("AWS_REGION", "ap-northeast-1")
-        cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "ap-northeast-1_WGOHW5Nx9")
-        cognito_app_client_id = os.environ.get("COGNITO_APP_CLIENT_ID", "6kkiqk3qqjnisn96rgc3kne63p")
-        cognito_issuer = f"https://cognito-idp.{cognito_region}.amazonaws.com/{cognito_user_pool_id}"
-        cognito_jwks_url = f"{cognito_issuer}/.well-known/jwks.json"
-        
-        # Get JWKS
-        resp = requests.get(cognito_jwks_url)
+COGNITO_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "ap-northeast-1_WGOHW5Nx9")
+COGNITO_APP_CLIENT_ID = os.environ.get("COGNITO_APP_CLIENT_ID", "6kkiqk3qqjnisn96rgc3kne63p")
+COGNITO_ISSUER = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}"
+COGNITO_JWKS_URL = f"{COGNITO_ISSUER}/.well-known/jwks.json"
+_jwks = None
+
+def get_jwks():
+    global _jwks
+    if _jwks is None:
+        resp = requests.get(COGNITO_JWKS_URL)
         resp.raise_for_status()
-        jwks = resp.json()
-        
-        # Decode and validate token
+        _jwks = resp.json()
+    return _jwks
+
+def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+) -> str:
+    token = credentials.credentials
+    try:
+        jwks = get_jwks()
         payload = jwt.decode(
             token,
             jwks,
             algorithms=["RS256"],
-            audience=cognito_app_client_id,
-            issuer=cognito_issuer,
+            audience=COGNITO_APP_CLIENT_ID,
+            issuer=COGNITO_ISSUER,
             options={"verify_at_hash": False}
         )
-        
         user_id = payload.get("email")
-        if user_id:
-            logger.info(f"Authenticated user: {user_id}")
-            return user_id
-        else:
-            logger.warning("No email found in token payload - allowing anonymous access")
-            return None
-            
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: missing user ID")
+        return user_id
     except JWTError as e:
-        logger.info(f"JWT validation failed: {e} - allowing anonymous access")
-        return None
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.warning(f"Error validating token: {e} - allowing anonymous access")
-        return None
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
 
 @router.post("/message", response_model=ChatMessageResponse)
 async def chat_message(
     request: ChatMessageRequest,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: str = Depends(get_current_user_id)
 ):
     """
     Chat endpoint with tool calling support
     - If user asks about a word/kanji, tool functions will be called
     - Tool functions return data + detail page URLs
     - Gemini includes links in its response
-    
-    Authentication: Optional
-    - If Authorization header is provided and valid, user_id will be set
-    - If no header or invalid token, user_id will be None (anonymous access)
-    - Anonymous users can still use the chatbot
+
+    Authentication: Required
+    - A valid Cognito JWT must be provided in the Authorization header
     """
     try:
         client = GeminiClient()
-        
+
         # Register tools for function calling
         client.register_tools(TOOL_FUNCTIONS)
-        
+
         # Generate session_id if not provided
         session_id = request.session_id or str(uuid.uuid4())
-        
-        # Use user_id if authenticated, otherwise use anonymous identifier
-        effective_user_id = user_id if user_id else f"anonymous-{session_id}"
+
+        effective_user_id = user_id
         logger.info(f"Chat request from user: {effective_user_id}, message: {request.message}")
         
         # Retrieve conversation history for this session
