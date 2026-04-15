@@ -21,26 +21,46 @@ class DynamoDBSentenceCompositionClient:
         指定されたレベルからランダムに1つの文を取得します
         """
         try:
-            # 指定されたレベルの文を全て取得
-            response = self.table.query(
-                KeyConditionExpression="PK = :pk",
-                FilterExpression="#level = :level",
-                ExpressionAttributeNames={
-                    "#level": "level"
-                },
-                ExpressionAttributeValues={
-                    ":pk": "SENTENCE",
-                    ":level": level
+            # IDのみ取得してからランダム選択→詳細取得（embeddingを読み込まないため）
+            all_items = []
+            last_evaluated_key = None
+
+            while True:
+                query_params = {
+                    'IndexName': 'word-level-index',
+                    'KeyConditionExpression': "PK = :pk AND #level = :level",
+                    'ExpressionAttributeNames': {"#level": "level"},
+                    'ExpressionAttributeValues': {
+                        ":pk": "SENTENCE",
+                        ":level": int(level)
+                    },
+                    'ProjectionExpression': "PK, SK"
                 }
-            )
-            
-            items = response.get('Items', [])
-            if not items:
+                if last_evaluated_key:
+                    query_params['ExclusiveStartKey'] = last_evaluated_key
+
+                response = self.table.query(**query_params)
+                all_items.extend(response.get('Items', []))
+
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+
+            if not all_items:
                 raise HTTPException(status_code=404, detail=f"No sentences found for level {level}")
-            
-            # ランダムに1つ選択
-            random_item = random.choice(items)
-            return self._convert_dynamodb_to_model(random_item)
+
+            # ランダムに1つ選択し、詳細を取得
+            random_item = random.choice(all_items)
+            sentence_id = int(random_item['SK'])
+            response = self.table.get_item(
+                Key={'PK': "SENTENCE", 'SK': str(sentence_id)},
+                ProjectionExpression="SK, japanese, #level, hurigana, english, vietnamese, chinese, korean, indonesian, hindi, grammar_ids, words, dummy_words",
+                ExpressionAttributeNames={"#level": "level"}
+            )
+            item = response.get('Item')
+            if not item:
+                raise HTTPException(status_code=404, detail=f"Sentence {sentence_id} not found")
+            return self._convert_dynamodb_to_model(item)
             
         except ClientError as e:
             logger.error(f"Error getting random sentence for level {level} from DynamoDB: {str(e)}")
@@ -187,32 +207,47 @@ class DynamoDBSentenceCompositionClient:
             return []
 
     async def get_level_sentences(self, level: int) -> List[Dict]:
-        """指定されたレベルの文を取得します"""
+        """指定されたレベルの文のIDリストを取得します（word-level-index GSI、ページネーション対応、embeddingを除外）"""
         try:
-            response = self.table.query(
-                KeyConditionExpression="PK = :pk",
-                FilterExpression="#level = :level",
-                ExpressionAttributeNames={
-                    "#level": "level"
-                },
-                ExpressionAttributeValues={
-                    ":pk": "SENTENCE",
-                    ":level": level
+            all_sentences = []
+            last_evaluated_key = None
+
+            while True:
+                query_params = {
+                    'IndexName': 'word-level-index',
+                    'KeyConditionExpression': "PK = :pk AND #level = :level",
+                    'ExpressionAttributeNames': {"#level": "level"},
+                    'ExpressionAttributeValues': {
+                        ":pk": "SENTENCE",
+                        ":level": int(level)
+                    },
+                    'ProjectionExpression': "PK, SK"
                 }
-            )
-            return response.get('Items', [])
+                if last_evaluated_key:
+                    query_params['ExclusiveStartKey'] = last_evaluated_key
+
+                response = self.table.query(**query_params)
+                all_sentences.extend(response.get('Items', []))
+
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+
+            return all_sentences
         except ClientError as e:
             logger.error(f"Error getting level sentences from DynamoDB: {str(e)}")
             return []
 
     async def get_sentence_detail(self, sentence_id: int) -> Optional[Dict]:
-        """文の詳細情報を取得します"""
+        """文の詳細情報を取得します（embeddingを除外）"""
         try:
             response = self.table.get_item(
                 Key={
                     'PK': "SENTENCE",
                     'SK': str(sentence_id)
-                }
+                },
+                ProjectionExpression="SK, japanese, #level, hurigana, english, vietnamese, chinese, korean, indonesian, hindi, grammar_ids, words, dummy_words",
+                ExpressionAttributeNames={"#level": "level"}
             )
             
             item = response.get('Item')
