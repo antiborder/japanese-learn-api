@@ -11,7 +11,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 # デプロイ（全ステップを実行）
-deploy: check-env check-deps check-structure prepare-build build-chat-container build setup-aws
+deploy: check-env check-deps check-structure setup-aws prepare-build build-chat-container build
 	@echo "デプロイを実行します..."
 	@echo "SAMのバージョンを確認しています..."
 	@sam --version

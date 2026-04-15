@@ -56,6 +56,9 @@ dependencies/
 *.db
 *.sqlite3
 
+# DynamoDB source data
+data/dynamodb_source/old
+
 # Configuration and credentials
 google-tts-key.json
 env.json

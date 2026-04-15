@@ -19,14 +19,23 @@ echo "Image Tag: ${IMAGE_TAG}"
 
 # ECRリポジトリが存在するか確認
 echo "Checking if ECR repository exists..."
-if ! aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} > /dev/null 2>&1; then
-    echo "⚠️  ECR repository does not exist. Please create it manually via AWS Console:"
-    echo "1. Go to ECR in AWS Console"
-    echo "2. Click 'Create repository'"
-    echo "3. Repository name: ${ECR_REPO}"
-    echo "4. Enable 'Scan on push'"
-    echo "5. Click 'Create repository'"
-    exit 1
+ECR_CHECK_OUTPUT=$(aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} 2>&1)
+ECR_CHECK_STATUS=$?
+if [ $ECR_CHECK_STATUS -ne 0 ]; then
+    if echo "$ECR_CHECK_OUTPUT" | grep -q "RepositoryNotFoundException"; then
+        echo "⚠️  ECR repository does not exist. Creating it..."
+        aws ecr create-repository \
+            --repository-name ${ECR_REPO} \
+            --region ${AWS_REGION} \
+            --image-scanning-configuration scanOnPush=true
+        echo "✅ ECR repository created: ${ECR_REPO}"
+    else
+        echo "❌ Failed to check ECR repository. Error:"
+        echo "$ECR_CHECK_OUTPUT"
+        echo ""
+        echo "Hint: Check AWS credentials and permissions (ecr:DescribeRepositories required)"
+        exit 1
+    fi
 else
     echo "✅ ECR repository exists: ${ECR_REPO}"
 fi

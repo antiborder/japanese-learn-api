@@ -135,24 +135,37 @@ class NextDynamoDB(DynamoDBBase):
     async def _get_level_words(self, level: int) -> List[Dict]:
         """指定されたレベルの単語を取得します（word-level-index GSIを使用）"""
         try:
-            response = self.table.query(
-                IndexName='word-level-index',
-                KeyConditionExpression="PK = :pk AND #level = :level",
-                ExpressionAttributeNames={
-                    "#level": "level"
-                },
-                ExpressionAttributeValues={
-                    ":pk": "WORD",
-                    ":level": int(level)
+            all_words = []
+            last_evaluated_key = None
+
+            while True:
+                query_params = {
+                    'IndexName': 'word-level-index',
+                    'KeyConditionExpression': "PK = :pk AND #level = :level",
+                    'ExpressionAttributeNames': {"#level": "level"},
+                    'ExpressionAttributeValues': {
+                        ":pk": "WORD",
+                        ":level": int(level)
+                    },
+                    # embeddingフィールドを除外してデータサイズを削減
+                    'ProjectionExpression': "PK, SK",
                 }
-            )
-            level_words = response.get('Items', [])
-            if not level_words:
+                if last_evaluated_key:
+                    query_params['ExclusiveStartKey'] = last_evaluated_key
+
+                response = self.table.query(**query_params)
+                all_words.extend(response.get('Items', []))
+
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+
+            if not all_words:
                 logger.info(f"No words found for level {level}")
                 return []
-            
-            logger.info(f"Successfully retrieved {len(level_words)} words for level {level}")
-            return level_words
+
+            logger.info(f"Successfully retrieved {len(all_words)} words for level {level}")
+            return all_words
         except Exception as e:
             logger.error(f"Error getting words for level {level}: {str(e)}")
             raise
@@ -201,13 +214,26 @@ class NextDynamoDB(DynamoDBBase):
     async def _get_all_words(self) -> List[Dict]:
         """全単語を取得します"""
         try:
-            response = self.table.query(
-                KeyConditionExpression="PK = :pk",
-                ExpressionAttributeValues={
-                    ":pk": "WORD"
+            all_words = []
+            last_evaluated_key = None
+
+            while True:
+                query_params = {
+                    'KeyConditionExpression': "PK = :pk",
+                    'ExpressionAttributeValues': {":pk": "WORD"},
+                    'ProjectionExpression': "PK, SK",
                 }
-            )
-            return response.get('Items', [])
+                if last_evaluated_key:
+                    query_params['ExclusiveStartKey'] = last_evaluated_key
+
+                response = self.table.query(**query_params)
+                all_words.extend(response.get('Items', []))
+
+                last_evaluated_key = response.get('LastEvaluatedKey')
+                if not last_evaluated_key:
+                    break
+
+            return all_words
         except Exception as e:
             logger.error(f"Error getting all words: {str(e)}")
             raise 
