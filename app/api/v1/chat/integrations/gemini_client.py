@@ -27,7 +27,7 @@ except ImportError:
                 return "You are a chatbot for nihongo.cloud, a Japanese learning app. Answer user questions politely and helpfully. Do not include any links or URLs in your responses."
             SYSTEM_INSTRUCTION = get_system_instruction("ja")
 
-MODEL_NAME = 'gemini-3.1-flash-lite-preview'
+MODEL_NAME = 'gemini-3.1-flash-lite'
 
 # JSON schema type -> google.genai types.Type mapping
 _TYPE_MAP = {
