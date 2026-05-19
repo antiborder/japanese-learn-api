@@ -6,6 +6,19 @@ Parameters:
     Type: String
     Description: "Database connection URL"
     NoEcho: true
+  AdminEmail:
+    Type: String
+    Description: "Admin email address for contact form notifications"
+    Default: "support@nihongo.cloud"
+  SesFromEmail:
+    Type: String
+    Description: "SES verified sender email address"
+    Default: "noreply@nihongo.cloud"
+  RecaptchaSecretKey:
+    Type: String
+    Description: "Google reCAPTCHA v3 secret key"
+    NoEcho: true
+    Default: ""
   S3BucketName:
     Type: String
     Description: "S3 bucket name for resources"
@@ -922,6 +935,59 @@ Resources:
               - cognito-idp:ListUsers
             Resource:
               - !GetAtt UserPool.Arn
+
+  ContactFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.11
+      BuildProperties:
+        UseContainer: true
+        ProjectPath: ./app/api/v1/contact
+        InstallDependencies: true
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-ContactFunction"
+      CodeUri: ./app/api/v1/contact
+      Handler: app.lambda_handler
+      Description: "お問い合わせフォーム API"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_APP_CLIENT_ID: !Ref UserPoolClient
+          ADMIN_EMAIL: !Ref AdminEmail
+          SES_FROM_EMAIL: !Ref SesFromEmail
+          RECAPTCHA_SECRET_KEY: !Ref RecaptchaSecretKey
+      Events:
+        ContactApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/contact
+            Method: ANY
+        ContactApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/contact/{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
+          - Effect: Allow
+            Action:
+              - ses:SendEmail
+            Resource: "*"
+
+  ContactFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ContactFunction}"
+      RetentionInDays: 14
+    DependsOn: ContactFunction
 
   AdminFunctionLogGroup:
     Type: AWS::Logs::LogGroup
