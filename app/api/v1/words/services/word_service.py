@@ -1,11 +1,10 @@
 from fastapi import HTTPException
 from integrations.aws_integration import check_word_audio_exists, save_word_audio_to_s3, generate_presigned_url
 from integrations.google_integration import synthesize_speech
-import boto3
-import os
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def get_audio_url(word_id: int, word_name: str, hiragana: str) -> str:
     try:
@@ -19,7 +18,7 @@ def get_audio_url(word_id: int, word_name: str, hiragana: str) -> str:
                 logger.info(f"Audio file not found in S3 for word_id: {word_id}, generating new audio")
                 if not hiragana:
                     raise HTTPException(status_code=404, detail=f"Word not found with id: {word_id}")
-                
+
                 try:
                     # 漢字と読み方を分けて音声合成
                     audio_content = synthesize_speech(word_name, hiragana)

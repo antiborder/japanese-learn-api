@@ -69,5 +69,3 @@ def generate_hiragana_presigned_url(romaji: str) -> str:
     except Exception as exc:
         logger.error("Error generating presigned URL for hiragana audio: %s", exc)
         raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {exc}") from exc
-
-

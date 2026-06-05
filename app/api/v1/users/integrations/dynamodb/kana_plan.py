@@ -78,5 +78,3 @@ class KanaPlanDynamoDB(DynamoDBBase):
         except Exception as exc:
             logger.error("Error in get_kana_plan: %s", exc)
             raise
-
-

@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common
+.PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common lint
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -248,6 +248,11 @@ setup-aws:
 	@aws configure set region "$$CUSTOM_AWS_REGION"
 	@echo "AWS認証情報の設定を確認しています..."
 	@aws sts get-caller-identity >/dev/null 2>&1 || { echo "Error: AWS認証情報の設定に失敗しました"; exit 1; }
+
+# Linting
+lint:
+	ruff check app/ test/
+	ruff format --check app/ test/
 
 # ヘルプ
 help:

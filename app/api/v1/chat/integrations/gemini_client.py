@@ -23,11 +23,13 @@ except ImportError:
             from app.api.v1.chat.prompts.system_instruction import get_system_instruction, SYSTEM_INSTRUCTION
         except ImportError:
             logger.warning("Could not import get_system_instruction, using fallback")
+
             def get_system_instruction(lang: str = "ja") -> str:
                 return "You are a chatbot for nihongo.cloud, a Japanese learning app. Answer user questions politely and helpfully. Do not include any links or URLs in your responses."
+
             SYSTEM_INSTRUCTION = get_system_instruction("ja")
 
-MODEL_NAME = 'gemini-3.1-flash-lite'
+MODEL_NAME = "gemini-3.1-flash-lite"
 
 # JSON schema type -> google.genai types.Type mapping
 _TYPE_MAP = {
@@ -43,23 +45,24 @@ class GeminiClient:
         api_key = self._get_api_key()
         self.client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(api_version='v1alpha'),
+            http_options=types.HttpOptions(api_version="v1alpha"),
         )
         self.tools: Dict[str, Any] = {}
         self._gemini_tools: Optional[List[types.Tool]] = None
 
     def _get_api_key(self) -> str:
-        api_key = os.getenv('GEMINI_API_KEY')
+        api_key = os.getenv("GEMINI_API_KEY")
         if api_key:
             logger.info("Using GEMINI_API_KEY from environment variable")
             return api_key
         try:
             import boto3
-            secrets_client = boto3.client('secretsmanager')
-            secret_name = os.getenv('GEMINI_API_KEY_SECRET_NAME', 'gemini-api-key')
+
+            secrets_client = boto3.client("secretsmanager")
+            secret_name = os.getenv("GEMINI_API_KEY_SECRET_NAME", "gemini-api-key")
             secret = secrets_client.get_secret_value(SecretId=secret_name)
             logger.info("Using GEMINI_API_KEY from Secrets Manager")
-            return secret['SecretString']
+            return secret["SecretString"]
         except Exception as e:
             logger.warning(f"Could not get API key from Secrets Manager: {e}")
             raise ValueError("GEMINI_API_KEY not found in environment or Secrets Manager")
@@ -73,8 +76,7 @@ class GeminiClient:
             for prop_name, prop_info in tool_def["parameters"].get("properties", {}).items():
                 prop_type = prop_info.get("type", "string")
                 properties[prop_name] = types.Schema(
-                    type=_TYPE_MAP.get(prop_type, types.Type.STRING),
-                    description=prop_info.get("description", "")
+                    type=_TYPE_MAP.get(prop_type, types.Type.STRING), description=prop_info.get("description", "")
                 )
 
             required_fields = tool_def["parameters"].get("required", [])
@@ -82,10 +84,8 @@ class GeminiClient:
                 name=tool_name,
                 description=tool_def["description"],
                 parameters=types.Schema(
-                    type=types.Type.OBJECT,
-                    properties=properties,
-                    required=required_fields if required_fields else None
-                )
+                    type=types.Type.OBJECT, properties=properties, required=required_fields if required_fields else None
+                ),
             )
             function_declarations.append(func_decl)
             logger.debug(f"Registered tool {tool_name} with {len(properties)} properties")
@@ -121,7 +121,7 @@ class GeminiClient:
             text_parts = []
             if response.candidates:
                 for part in response.candidates[0].content.parts:
-                    if hasattr(part, 'text') and part.text:
+                    if hasattr(part, "text") and part.text:
                         text_parts.append(part.text)
             if text_parts:
                 return " ".join(text_parts)
@@ -134,7 +134,7 @@ class GeminiClient:
         conversation_history: Optional[List] = None,
         tool_functions: Optional[Dict[str, Any]] = None,
         max_iterations: int = 5,
-        lang: str = "ja"
+        lang: str = "ja",
     ) -> Dict[str, Any]:
         """
         Chat with iterative tool calling (multi-step tool chaining).
@@ -153,7 +153,9 @@ class GeminiClient:
                 history=history,
             )
 
-            logger.info(f"Starting iterative chat (history={len(history)}, tools={len(self.tools)}, max_iterations={max_iterations})")
+            logger.info(
+                f"Starting iterative chat (history={len(history)}, tools={len(self.tools)}, max_iterations={max_iterations})"
+            )
             response = chat.send_message(message)
 
             iteration = 0
@@ -193,8 +195,7 @@ class GeminiClient:
                         response = chat.send_message(
                             types.Part(
                                 function_response=types.FunctionResponse(
-                                    name=func_name,
-                                    response=result if isinstance(result, dict) else {"result": result}
+                                    name=func_name, response=result if isinstance(result, dict) else {"result": result}
                                 )
                             )
                         )
@@ -227,7 +228,7 @@ class GeminiClient:
         message: str,
         conversation_history: Optional[List] = None,
         tool_functions: Optional[Dict[str, Any]] = None,
-        lang: str = "ja"
+        lang: str = "ja",
     ) -> Dict[str, Any]:
         """Single-step tool calling (delegates to iterative with max_iterations=1)."""
         return self.chat_with_tools_iterative(
@@ -238,12 +239,7 @@ class GeminiClient:
             lang=lang,
         )
 
-    def generate_word_variations(
-        self,
-        word_name: str,
-        lang: str = "ja",
-        max_variations: int = 10
-    ) -> Dict[str, Any]:
+    def generate_word_variations(self, word_name: str, lang: str = "ja", max_variations: int = 10) -> Dict[str, Any]:
         """Generate word variations (conjugations, writing forms, politeness levels)."""
         try:
             prompt = f"""You are a Japanese language expert. Generate word variations for: {word_name}
@@ -320,7 +316,7 @@ Each variation must be a clean Japanese word only, no annotations.
         if json_match:
             json_str = json_match.group(0)
         else:
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
             json_str = json_match.group(0) if json_match else response_text.strip()
 
         try:
@@ -341,7 +337,7 @@ Each variation must be a clean Japanese word only, no annotations.
 
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse JSON: {e}, response: {response_text[:200]}")
-            words = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+', response_text)
+            words = re.findall(r"[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+", response_text)
             seen: set = set()
             unique_words = []
             for word in words:

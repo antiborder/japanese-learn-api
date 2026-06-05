@@ -3,11 +3,13 @@ from decimal import Decimal
 from typing import Optional, List
 from datetime import datetime
 
+
 class SentenceAttemptRequest(BaseModel):
     sentence_id: int
     level: int
     confidence: int = Field(description="Easiness level (0-3)")
     time: Decimal = Field(description="Time taken to answer in seconds")
+
 
 class SentenceAttemptResponse(BaseModel):
     user_id: str
@@ -20,9 +22,11 @@ class SentenceAttemptResponse(BaseModel):
     class Config:
         orm_mode = True
 
+
 class WordInSentence(BaseModel):
     word_name: str
     word_id: Optional[int] = None
+
 
 class SentenceResponse(BaseModel):
     sentence_id: int
@@ -38,6 +42,7 @@ class SentenceResponse(BaseModel):
     grammar_ids: List[int]
     words: List[WordInSentence]
     dummy_words: List[str]
+
 
 class NoSentenceAvailableResponse(BaseModel):
     message: str = "現在学習可能な文がありません"

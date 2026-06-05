@@ -31,9 +31,7 @@ async def record_kana_attempt(
         KanaAttemptResponse: 記録結果
     """
     try:
-        logger.info(
-            "Recording kana attempt for user %s, char %s", user_id, request.char
-        )
+        logger.info("Recording kana attempt for user %s, char %s", user_id, request.char)
         result = await learning_service.record_learning(
             user_id=user_id,
             char=request.char,
@@ -50,9 +48,7 @@ async def record_kana_attempt(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception(
-            "Error recording kana attempt for user %s, char %s", user_id, request.char
-        )
+        logger.exception("Error recording kana attempt for user %s, char %s", user_id, request.char)
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
@@ -70,9 +66,7 @@ async def record_kana_attempt_test(
     本番環境では使用しないでください。
     """
     try:
-        logger.info(
-            "[TEST] Recording kana attempt for user %s, char %s", user_id, request.char
-        )
+        logger.info("[TEST] Recording kana attempt for user %s, char %s", user_id, request.char)
         result = await learning_service.record_learning(
             user_id=user_id,
             char=request.char,
@@ -132,7 +126,5 @@ async def get_next_kana(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception(
-            "Error retrieving next kana for user %s level %s", user_id, level
-        )
+        logger.exception("Error retrieving next kana for user %s level %s", user_id, level)
         raise HTTPException(status_code=500, detail="Internal server error") from exc

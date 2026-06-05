@@ -45,28 +45,16 @@ class KanaProgressDynamoDB(DynamoDBBase):
                     if (item.get("char") or item.get("character")) is not None
                 }
 
-                learned = sum(
-                    1
-                    for item in level_items
-                    if (item.get("char") or item.get("character")) in master_chars
-                )
+                learned = sum(1 for item in level_items if (item.get("char") or item.get("character")) in master_chars)
                 total = len(master_chars)
                 unlearned = max(total - learned, 0)
 
-                total_proficiency = sum(
-                    float(item.get("proficiency", 0)) for item in level_items
-                )
-                avg_proficiency = (
-                    total_proficiency / learned if learned > 0 else 0
-                )
+                total_proficiency = sum(float(item.get("proficiency", 0)) for item in level_items)
+                avg_proficiency = total_proficiency / learned if learned > 0 else 0
                 learned_ratio = learned / total if total > 0 else 0
                 progress = int(round(learned_ratio * avg_proficiency * 100))
 
-                reviewable = sum(
-                    1
-                    for item in level_items
-                    if self.datetime_utils.is_reviewable(item)
-                )
+                reviewable = sum(1 for item in level_items if self.datetime_utils.is_reviewable(item))
 
                 result.append(
                     {
@@ -116,4 +104,3 @@ class KanaProgressDynamoDB(DynamoDBBase):
         except Exception as exc:
             logger.error("Error fetching kana master data: %s", exc)
             return result
-

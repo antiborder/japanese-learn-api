@@ -17,4 +17,3 @@ class NoKanaAvailableResponse(BaseModel):
     message: str = "現在学習可能なかなはありません"
     no_char_available: bool = True
     next_available_datetime: Optional[datetime] = None
-

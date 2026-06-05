@@ -22,5 +22,3 @@ async def fetch_hiragana_audio(hiragana: str):
     except Exception as exc:
         logger.error("Error fetching hiragana audio URL for '%s': %s", hiragana, exc)
         raise HTTPException(status_code=500, detail="Internal Server Error") from exc
-
-

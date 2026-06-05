@@ -4,6 +4,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
 class DateTimeUtils:
     @staticmethod
     def parse_datetime_safe(dt_str: str) -> Optional[datetime]:
@@ -16,30 +17,30 @@ class DateTimeUtils:
         except (ValueError, TypeError) as e:
             logger.warning(f"Invalid datetime format: {dt_str}, error: {e}")
             return None
-    
+
     @staticmethod
     def is_reviewable(sentence: dict) -> bool:
         """文が復習可能かどうかをチェックします"""
-        if 'next_datetime' not in sentence:
+        if "next_datetime" not in sentence:
             return False
-        
-        next_dt = DateTimeUtils.parse_datetime_safe(sentence['next_datetime'])
+
+        next_dt = DateTimeUtils.parse_datetime_safe(sentence["next_datetime"])
         if next_dt is None:
             return False
-        
+
         now = datetime.now(timezone.utc)
         return next_dt <= now
-    
+
     @staticmethod
     def get_next_available_time(user_sentences: list) -> Optional[datetime]:
         """次に利用可能になる時刻を取得します"""
         if not user_sentences:
             return None
-        
+
         try:
             # next_datetimeが最も古い文を取得
-            next_available_sentence = min(user_sentences, key=lambda x: x['next_datetime'])
-            return DateTimeUtils.parse_datetime_safe(next_available_sentence['next_datetime'])
+            next_available_sentence = min(user_sentences, key=lambda x: x["next_datetime"])
+            return DateTimeUtils.parse_datetime_safe(next_available_sentence["next_datetime"])
         except (KeyError, ValueError) as e:
             logger.warning(f"Error getting next available time: {e}")
             return None

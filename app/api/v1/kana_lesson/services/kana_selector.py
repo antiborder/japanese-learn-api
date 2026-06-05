@@ -17,9 +17,7 @@ class KanaSelector:
     def select_new_char(level_chars: List[Dict], user_chars: List[Dict]) -> Optional[Dict]:
         """未学習のかなを選択します。"""
         learned = {KanaSelector._extract_char(item) for item in user_chars}
-        candidates = [
-            char for char in level_chars if KanaSelector._extract_char(char) not in learned
-        ]
+        candidates = [char for char in level_chars if KanaSelector._extract_char(char) not in learned]
         if not candidates:
             return None
         selected = random.choice(candidates)
@@ -29,15 +27,15 @@ class KanaSelector:
     @staticmethod
     def select_review_char(user_level_chars: List[Dict]) -> Optional[Dict]:
         """復習対象のかなを選択します。"""
-        reviewable = [
-            char for char in user_level_chars if DateTimeUtils.is_reviewable(char)
-        ]
+        reviewable = [char for char in user_level_chars if DateTimeUtils.is_reviewable(char)]
         if not reviewable:
             return None
         answer = min(
             reviewable,
-            key=lambda item: DateTimeUtils.parse_datetime_safe(item.get("next_datetime"))
-            or datetime.min.replace(tzinfo=timezone.utc),
+            key=lambda item: (
+                DateTimeUtils.parse_datetime_safe(item.get("next_datetime"))
+                or datetime.min.replace(tzinfo=timezone.utc)
+            ),
         )
         logger.debug("Selected review kana: %s", answer)
         return {"answer_char": KanaSelector._summarize_char(answer)}
@@ -50,18 +48,12 @@ class KanaSelector:
         level: int,
     ) -> Optional[Dict]:
         """次に提示するかなを選択します。"""
-        user_level_chars = [
-            item for item in user_chars if item.get("level") == level
-        ]
+        user_level_chars = [item for item in user_chars if item.get("level") == level]
 
         if not level_chars:
             return None
 
-        ratio = (
-            len(user_level_chars) / len(level_chars)
-            if level_chars
-            else 0
-        )
+        ratio = len(user_level_chars) / len(level_chars) if level_chars else 0
 
         if random.random() > ratio:
             new_char = KanaSelector.select_new_char(level_chars, user_level_chars)
@@ -127,4 +119,3 @@ class KanaSelector:
             "char": item.get("char"),
             "level": item.get("level"),
         }
-

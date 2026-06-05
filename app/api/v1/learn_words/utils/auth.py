@@ -13,6 +13,7 @@ COGNITO_JWKS_URL = f"{COGNITO_ISSUER}/.well-known/jwks.json"
 bearer_scheme = HTTPBearer()
 _jwks = None
 
+
 def get_jwks():
     global _jwks
     if _jwks is None:
@@ -20,6 +21,7 @@ def get_jwks():
         resp.raise_for_status()
         _jwks = resp.json()
     return _jwks
+
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
     """
@@ -29,22 +31,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(bear
     token = credentials.credentials
     jwks = get_jwks()
     try:
-        payload = jwt.decode(
-            token,
-            jwks,
-            algorithms=["RS256"],
-            audience=COGNITO_APP_CLIENT_ID,
-            issuer=COGNITO_ISSUER
-        )
+        payload = jwt.decode(token, jwks, algorithms=["RS256"], audience=COGNITO_APP_CLIENT_ID, issuer=COGNITO_ISSUER)
         user_id = payload.get("email")
         if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing user ID"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: missing user ID")
         return user_id
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        ) 
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")

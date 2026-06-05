@@ -37,5 +37,3 @@ def synthesize_speech(text: str, reading: str | None = None) -> bytes:
         audio_config=audio_config,
     )
     return response.audio_content
-
-

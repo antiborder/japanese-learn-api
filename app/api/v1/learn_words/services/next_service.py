@@ -1,13 +1,12 @@
 import logging
 import random
-from datetime import datetime, timezone
 from typing import Dict, Optional, List, Union
-from fastapi import HTTPException
 from integrations.dynamodb.next import NextDynamoDB
 from services.word_selector import WordSelector
 from services.review_logic import ReviewLogic
 
 logger = logging.getLogger(__name__)
+
 
 class NextService:
     def __init__(self):
@@ -37,21 +36,21 @@ class NextService:
             # REVIEW_ALLの場合の特別処理
             if level == "REVIEW_ALL":
                 return await self._get_next_word_review_all(user_id)
-            
+
             # 通常のレベル指定の場合
             level_int = int(level)
-            
+
             # ①単語リストの取得とレベルでのフィルタリング
             level_words = await self.next_db._get_level_words(level_int)
             if not level_words:
                 return None
-            
+
             # ③ユーザーの学習履歴の取得とレベルでのフィルタリング（user-level-index GSIを使用）
             user_level_words = await self.next_db._get_user_words_by_level(user_id, level_int)
             # word_selector.select_next_wordの引数としてuser_wordsが必要（後方互換性のため）
             # 実際にはuser_level_wordsが提供されれば、select_next_word内でuser_wordsは使用されない
             user_words = await self.next_db._get_user_words(user_id)
-            
+
             # ④単語選定方法の決定
             # GSIで取得したuser_level_wordsを直接渡すことで、DynamoDB側でフィルタリング済みのデータを使用
             return self.word_selector.select_next_word(level_words, user_words, user_id, level_int, user_level_words)
@@ -73,14 +72,16 @@ class NextService:
             logger.error(f"Error getting all-review word for user {user_id}: {str(e)}", exc_info=True)
             raise
 
-    async def get_other_words(self, level: Union[int, str], exclude_id: int, exclude_ids: Optional[List[int]] = None) -> List[int]:
+    async def get_other_words(
+        self, level: Union[int, str], exclude_id: int, exclude_ids: Optional[List[int]] = None
+    ) -> List[int]:
         """指定されたレベルで、除外ID以外の単語を3つ取得します
-        
+
         Args:
             level: レベル
             exclude_id: 除外する単語ID（主な除外ID）
             exclude_ids: 追加で除外する単語IDのリスト（Noneの場合はexclude_idのみ除外）
-        
+
         Returns:
             単語IDのリスト（最大3つ）
         """
@@ -88,38 +89,37 @@ class NextService:
             # ALL_REVIEWの場合の特別処理
             if level == "REVIEW_ALL":
                 return await self._get_other_words_review_all(exclude_id, exclude_ids)
-            
+
             # 通常のレベル指定の場合
             level_int = int(level)
-            
+
             level_words = await self.next_db._get_level_words(level_int)
             if not level_words:
-                logger.info(f"No words found in the database")
+                logger.info("No words found in the database")
                 return []
-            
+
             # 除外IDのリストを作成
             if exclude_ids is None:
                 exclude_ids = []
             if exclude_id not in exclude_ids:
                 exclude_ids = [exclude_id] + exclude_ids
-            
+
             # レベルでフィルタリングし、除外IDを除く
-            filtered_items = [
-                item for item in level_words 
-                if int(item['SK']) not in exclude_ids
-            ]
+            filtered_items = [item for item in level_words if int(item["SK"]) not in exclude_ids]
             if len(filtered_items) < 3:
                 logger.info(f"Not enough words found for level {level_int} excluding words {exclude_ids}")
                 return []
-            
+
             # ランダムに3つ選択
             selected_items = random.sample(filtered_items, 3)
             # word_idのリストを返す
-            word_ids = [int(item['SK']) for item in selected_items]
+            word_ids = [int(item["SK"]) for item in selected_items]
             logger.info(f"Successfully retrieved 3 other words for level {level_int}, excluding words {exclude_ids}")
             return word_ids
         except Exception as e:
-            logger.error(f"Error getting other words for level {level}, excluding word {exclude_id}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error getting other words for level {level}, excluding word {exclude_id}: {str(e)}", exc_info=True
+            )
             raise
 
     async def _get_other_words_review_all(self, exclude_id: int, exclude_ids: Optional[List[int]] = None) -> List[int]:
@@ -128,32 +128,31 @@ class NextService:
             # 全単語を取得
             items = await self.next_db._get_all_words()
             if not items:
-                logger.info(f"No words found in the database")
+                logger.info("No words found in the database")
                 return []
-            
+
             # 除外IDのリストを作成
             if exclude_ids is None:
                 exclude_ids = []
             if exclude_id not in exclude_ids:
                 exclude_ids = [exclude_id] + exclude_ids
-            
+
             # 除外IDを除く
-            filtered_items = [
-                item for item in items 
-                if int(item['SK']) not in exclude_ids
-            ]
+            filtered_items = [item for item in items if int(item["SK"]) not in exclude_ids]
             if len(filtered_items) < 3:
                 logger.info(f"Not enough words found excluding words {exclude_ids}")
                 return []
-            
+
             # ランダムに3つ選択
             selected_items = random.sample(filtered_items, 3)
             # word_idのリストを返す
-            word_ids = [int(item['SK']) for item in selected_items]
+            word_ids = [int(item["SK"]) for item in selected_items]
             logger.info(f"Successfully retrieved 3 other words from all levels, excluding words {exclude_ids}")
             return word_ids
         except Exception as e:
-            logger.error(f"Error getting other words from all levels, excluding word {exclude_id}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error getting other words from all levels, excluding word {exclude_id}: {str(e)}", exc_info=True
+            )
             raise
 
     async def get_word_detail(self, word_id: int) -> Optional[dict]:

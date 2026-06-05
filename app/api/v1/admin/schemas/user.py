@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 
 class AdminUserDetail(BaseModel):
@@ -17,3 +17,11 @@ class AdminUserDetail(BaseModel):
     settingsCreatedAt: Optional[str] = None
     settingsUpdatedAt: Optional[str] = None
     lastLoginAt: Optional[str] = None
+
+
+class AdminUsersPage(BaseModel):
+    users: List[AdminUserDetail]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

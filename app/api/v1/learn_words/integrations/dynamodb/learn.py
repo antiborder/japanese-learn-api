@@ -1,15 +1,15 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Dict, Optional
 from botocore.exceptions import ClientError
 from decimal import Decimal
-from fastapi import HTTPException
 from .base import DynamoDBBase
 from services.proficiency_service import ProficiencyService
 from services.mode_service import ModeService
 from services.datetime_service import DateTimeService
 
 logger = logging.getLogger(__name__)
+
 
 class LearnDynamoDB(DynamoDBBase):
     def __init__(self):
@@ -29,54 +29,51 @@ class LearnDynamoDB(DynamoDBBase):
     def get_current_learning_data(self, user_id: str, word_id: int) -> Optional[Dict]:
         """現在の学習データを取得します"""
         try:
-            response = self.table.get_item(
-                Key={
-                    'PK': f"USER#{user_id}",
-                    'SK': f"WORD#{word_id}"
-                }
-            )
-            return response.get('Item')
+            response = self.table.get_item(Key={"PK": f"USER#{user_id}", "SK": f"WORD#{word_id}"})
+            return response.get("Item")
         except ClientError as e:
             logger.error(f"Error getting learning data: {str(e)}")
             return None
 
-    async def save_learning_data(self, 
-                                user_id: str, 
-                                word_id: int, 
-                                level: int,
-                                proficiency_MJ: Decimal,
-                                proficiency_JM: Decimal,
-                                next_mode: str,
-                                next_datetime: datetime) -> Dict:
+    async def save_learning_data(
+        self,
+        user_id: str,
+        word_id: int,
+        level: int,
+        proficiency_MJ: Decimal,
+        proficiency_JM: Decimal,
+        next_mode: str,
+        next_datetime: datetime,
+    ) -> Dict:
         """学習データをDynamoDBに保存します（DB操作のみ）"""
         try:
             # DynamoDBに保存するアイテムを作成
             item = {
-                'PK': f"USER#{user_id}",
-                'SK': f"WORD#{word_id}",
-                'user_id': user_id,
-                'word_id': word_id,
-                'level': level,
-                'proficiency_MJ': proficiency_MJ,
-                'proficiency_JM': proficiency_JM,
-                'next_mode': next_mode,
-                'next_datetime': next_datetime.isoformat(),
-                'updated_at': datetime.now(timezone.utc).isoformat()
+                "PK": f"USER#{user_id}",
+                "SK": f"WORD#{word_id}",
+                "user_id": user_id,
+                "word_id": word_id,
+                "level": level,
+                "proficiency_MJ": proficiency_MJ,
+                "proficiency_JM": proficiency_JM,
+                "next_mode": next_mode,
+                "next_datetime": next_datetime.isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
-            
+
             # DynamoDBに保存
             self.table.put_item(Item=item)
-            
+
             return {
-                'user_id': user_id,
-                'word_id': word_id,
-                'level': level,
-                'proficiency_MJ': proficiency_MJ,
-                'proficiency_JM': proficiency_JM,
-                'next_mode': next_mode,
-                'next_datetime': next_datetime
+                "user_id": user_id,
+                "word_id": word_id,
+                "level": level,
+                "proficiency_MJ": proficiency_MJ,
+                "proficiency_JM": proficiency_JM,
+                "next_mode": next_mode,
+                "next_datetime": next_datetime,
             }
-            
+
         except Exception as e:
             logger.error(f"Error saving learning data: {str(e)}")
-            raise 
+            raise

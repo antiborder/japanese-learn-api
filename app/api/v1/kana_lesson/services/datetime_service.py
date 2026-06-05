@@ -10,9 +10,7 @@ logger = logging.getLogger(__name__)
 class DateTimeService:
     BASE_HOURS = 6
 
-    def calculate_next_datetime(
-        self, confidence: int, proficiency: Decimal, reviewable_count: int = 0
-    ) -> datetime:
+    def calculate_next_datetime(self, confidence: int, proficiency: Decimal, reviewable_count: int = 0) -> datetime:
         if confidence == 0:
             return datetime.now(timezone.utc) + timedelta(minutes=5)
 
@@ -47,7 +45,5 @@ class DateTimeService:
         current_datetime = datetime.now(timezone.utc)
         previous_interval = (current_datetime - previous_datetime).total_seconds()
 
-        interval_point = Decimal(
-            str(max(0, min(1, math.log2(previous_interval / (self.BASE_HOURS * 60)) / 8)))
-        )
+        interval_point = Decimal(str(max(0, min(1, math.log2(previous_interval / (self.BASE_HOURS * 60)) / 8))))
         return interval_point

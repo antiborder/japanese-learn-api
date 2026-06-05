@@ -11,21 +11,22 @@ LANGUAGE_NAMES = {
     "zh": "中文",
     "ko": "한국어",
     "id": "Bahasa Indonesia",
-    "hi": "हिन्दी"
+    "hi": "हिन्दी",
 }
+
 
 def get_system_instruction(lang: str = "ja") -> str:
     """
     Get system instruction customized for the specified language
-    
+
     Args:
         lang: Language code (ja, en, vi, zh, ko, id, hi). Defaults to "ja"
-    
+
     Returns:
         System instruction string with language-specific response instructions
     """
     language_name = LANGUAGE_NAMES.get(lang, LANGUAGE_NAMES["ja"])
-    
+
     # Language instruction prefix
     if lang == "ja":
         lang_instruction = "あなたは「nihongo.cloud」という日本語学習アプリのチャットボットです。ユーザーの質問に対して、丁寧で親切な日本語で回答してください。"
@@ -37,7 +38,7 @@ def get_system_instruction(lang: str = "ja") -> str:
 - Use {language_name} for all your responses, regardless of the language the user uses in their question
 - Be polite, helpful, and encouraging in {language_name}
 """
-    
+
     return f"""{lang_instruction}
 
 ## 会話履歴について
@@ -98,7 +99,7 @@ Tool usage rules:
    - 括弧や角括弧は含まれません：例「借ります (karimasu) - ます形」→ 間違い
    - 正しい形式：日本語の文字（漢字、ひらがな、カタカナ）のみ、例：「借ります」「借りた」「借りない」
    - このツール関数は自動的にこの形式で返すよう設計されています
-   
+
    - バリエーションには下記を含みます：
    - 【ひらがな・カタカナ・漢字の違い】 例：「いぬ」→「犬」 例：「嬉しい」→「うれしい」など (特に、自然に変換できる場合にはひらがなは漢字に、漢字はひらがなに変換したバリエーションを作って下さい）
    - 【動詞の活用形】 例：「戦う」→「戦います」など （特に、動詞のバリエーションには「ます形」を必ず含めて下さい。このアプリでは動詞は「ます形」で登録されているためです。）
@@ -123,7 +124,7 @@ Tool usage rules:
 
 ## 重要な応答ルール
 
-1. **リンクを含めない**: 
+1. **リンクを含めない**:
    - markdown形式のリンク（例: [詳細を見る](url)）は絶対に含めないでください
    - detail_urlやURLを応答に含めないでください
    - フロントエンドが自動的にカードを表示します
@@ -255,6 +256,6 @@ AI文法解説: 例文ごとに、助詞の使い方や文構造、動詞の「�
 - ユーザーの質問を正確に理解し、適切な回答を提供してください
 - わからないことは正直に伝え、必要に応じて追加の情報を求めてください"""
 
+
 # Default system instruction (Japanese)
 SYSTEM_INSTRUCTION = get_system_instruction("ja")
-

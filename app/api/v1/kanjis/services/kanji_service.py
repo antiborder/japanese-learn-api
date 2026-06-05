@@ -14,7 +14,7 @@ def get_kanji(kanji_id: int):
 def get_kanjis(skip: int = 0, limit: int = 100):
     """
     DynamoDBから漢字情報を取得します。
-    
+
     Args:
         skip: スキップする件数
         limit: 取得する最大件数

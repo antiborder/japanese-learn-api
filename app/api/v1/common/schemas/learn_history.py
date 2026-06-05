@@ -6,11 +6,13 @@ from common.config import MIN_LEVEL, MAX_LEVEL
 
 LearningMode = Literal["MJ", "JM"]
 
+
 class LearnHistoryRequest(BaseModel):
     word_id: int
     level: int
     confidence: int = Field(description="Easiness level (0-3)")
     time: Decimal = Field(description="Time taken to answer in seconds")
+
 
 class LearnHistoryResponse(BaseModel):
     user_id: Optional[str] = None
@@ -21,13 +23,18 @@ class LearnHistoryResponse(BaseModel):
     next_mode: Literal["MJ", "JM"]
     next_datetime: datetime
 
+
 class NextWordRequest(BaseModel):
-    level: Union[int, str] = Field(..., description=f"学習レベル（{MIN_LEVEL}-{MAX_LEVEL}）または'REVIEW_ALL'（全レベルから復習）")
+    level: Union[int, str] = Field(
+        ..., description=f"学習レベル（{MIN_LEVEL}-{MAX_LEVEL}）または'REVIEW_ALL'（全レベルから復習）"
+    )
+
 
 class NextWordResponse(BaseModel):
     answer_word_id: int
     mode: LearningMode
 
+
 class NoWordAvailableResponse(BaseModel):
     message: str = "現在学習可能な単語がありません"
-    next_available_datetime: Optional[datetime] = None 
+    next_available_datetime: Optional[datetime] = None

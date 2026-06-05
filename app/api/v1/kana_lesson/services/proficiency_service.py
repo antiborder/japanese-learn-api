@@ -14,12 +14,8 @@ class ProficiencyService:
     def __init__(self) -> None:
         self.datetime_service = DateTimeService()
 
-    def calculate_proficiency(
-        self, confidence: int, time: Decimal, current_data: Optional[Dict] = None
-    ) -> Decimal:
-        easiness_point = Decimal("0.1") + (
-            Decimal(str(confidence)) / Decimal("3")
-        ) * Decimal("0.8")
+    def calculate_proficiency(self, confidence: int, time: Decimal, current_data: Optional[Dict] = None) -> Decimal:
+        easiness_point = Decimal("0.1") + (Decimal(str(confidence)) / Decimal("3")) * Decimal("0.8")
 
         if current_data and "updated_at" in current_data:
             previous_datetime = datetime.fromisoformat(current_data["updated_at"])
@@ -32,11 +28,7 @@ class ProficiencyService:
         easiness_point = max(Decimal("0"), min(Decimal("1"), easiness_point))
         time_point = max(Decimal("0"), min(Decimal("1"), time_point))
 
-        proficiency = (
-            Decimal("0.4") * easiness_point
-            + Decimal("0.4") * interval_point
-            + Decimal("0.2") * time_point
-        )
+        proficiency = Decimal("0.4") * easiness_point + Decimal("0.4") * interval_point + Decimal("0.2") * time_point
 
         logger.debug(
             "Calculated proficiency: confidence=%s time=%s easiness=%s interval=%s time_point=%s result=%s",

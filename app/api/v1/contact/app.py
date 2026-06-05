@@ -30,6 +30,7 @@ if not os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
     )
 
 from endpoints.contact import router
+
 app.include_router(router, prefix="/api/v1/contact", tags=["contact"])
 
 handler = Mangum(app, lifespan="off")
@@ -55,13 +56,15 @@ def lambda_handler(event, context):
             allowed_origin = get_allowed_origin(event)
             headers = {"Content-Type": "application/json"}
             if allowed_origin:
-                headers.update({
-                    "Access-Control-Allow-Origin": allowed_origin,
-                    "Access-Control-Allow-Methods": "OPTIONS,POST",
-                    "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept",
-                    "Access-Control-Allow-Credentials": "true",
-                    "Access-Control-Max-Age": "86400",
-                })
+                headers.update(
+                    {
+                        "Access-Control-Allow-Origin": allowed_origin,
+                        "Access-Control-Allow-Methods": "OPTIONS,POST",
+                        "Access-Control-Allow-Headers": "Content-Type,Authorization,Origin,Accept",
+                        "Access-Control-Allow-Credentials": "true",
+                        "Access-Control-Max-Age": "86400",
+                    }
+                )
             return {"statusCode": 200, "headers": headers, "body": ""}
 
         stage = event.get("requestContext", {}).get("stage", "")
@@ -73,12 +76,14 @@ def lambda_handler(event, context):
             response["headers"] = {}
         allowed_origin = get_allowed_origin(event)
         if allowed_origin:
-            response["headers"].update({
-                "Access-Control-Allow-Origin": allowed_origin,
-                "Access-Control-Allow-Methods": "OPTIONS,POST",
-                "Access-Control-Allow-Headers": "Content-Type,Authorization",
-                "Access-Control-Allow-Credentials": "true",
-            })
+            response["headers"].update(
+                {
+                    "Access-Control-Allow-Origin": allowed_origin,
+                    "Access-Control-Allow-Methods": "OPTIONS,POST",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
 
         logger.info(f"Response: {json.dumps(response)}")
         return response

@@ -87,9 +87,7 @@ class DynamoDBKanaLessonClient:
             items = response.get("Items", [])
             return [self._convert_kana_item(item) for item in items]
         except ClientError as exc:
-            logger.error(
-                "Error querying kana learning data for user %s: %s", user_id, exc
-            )
+            logger.error("Error querying kana learning data for user %s: %s", user_id, exc)
             return []
 
     async def get_level_chars(self, level: int) -> List[Dict]:
@@ -109,14 +107,10 @@ class DynamoDBKanaLessonClient:
                     results.append(converted)
             return results
         except ClientError as exc:
-            logger.error(
-                "Error getting kana list for level %s from DynamoDB: %s", level, exc
-            )
+            logger.error("Error getting kana list for level %s from DynamoDB: %s", level, exc)
             return []
         except Exception as exc:
-            logger.error(
-                "Unexpected error getting kana list for level %s: %s", level, exc
-            )
+            logger.error("Unexpected error getting kana list for level %s: %s", level, exc)
             raise
 
     async def get_char_detail(self, char: str) -> Optional[Dict]:
@@ -136,9 +130,7 @@ class DynamoDBKanaLessonClient:
             logger.error("Error getting kana detail for char %s: %s", char, exc)
             return None
         except Exception as exc:
-            logger.error(
-                "Unexpected error getting kana detail for char %s: %s", char, exc
-            )
+            logger.error("Unexpected error getting kana detail for char %s: %s", char, exc)
             raise
 
     def _convert_kana_item(self, item: Dict) -> Dict:
@@ -146,9 +138,7 @@ class DynamoDBKanaLessonClient:
         from decimal import Decimal as _Decimal
 
         char_value = (
-            item.get("char")
-            or item.get("character")
-            or (item.get("SK").split("#")[-1] if item.get("SK") else None)
+            item.get("char") or item.get("character") or (item.get("SK").split("#")[-1] if item.get("SK") else None)
         )
 
         level_value = item.get("level")
@@ -174,5 +164,3 @@ class DynamoDBKanaLessonClient:
             result["updated_at"] = item["updated_at"]
 
         return result
-
-

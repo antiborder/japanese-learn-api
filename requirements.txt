@@ -54,4 +54,4 @@ uvloop
 watchfiles
 websockets
 tqdm
-tqdm
+ruff

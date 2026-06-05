@@ -55,5 +55,3 @@ def get_hiragana_audio_url(hiragana: str) -> str:
     except Exception as exc:
         logger.error("Unexpected error getting hiragana audio URL: %s", exc)
         raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}") from exc
-
-

@@ -13,11 +13,11 @@ tts_client = texttospeech.TextToSpeechClient()
 def synthesize_sentence_speech(sentence_text: str, reading: str = None) -> bytes:
     """
     例文を音声に変換する
-    
+
     Args:
         sentence_text: 例文テキスト（日本語）
         reading: 読み方（ひらがな、カタカナ、ローマ字など）
-    
+
     Returns:
         音声データ（MP3形式）
     """
@@ -29,7 +29,7 @@ def synthesize_sentence_speech(sentence_text: str, reading: str = None) -> bytes
     else:
         # 通常のテキスト入力
         input_text = texttospeech.SynthesisInput(text=sentence_text)
-    
+
     voice = texttospeech.VoiceSelectionParams(
         language_code="ja-JP",  # 日本語
         ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL,
@@ -38,7 +38,5 @@ def synthesize_sentence_speech(sentence_text: str, reading: str = None) -> bytes
         audio_encoding=texttospeech.AudioEncoding.MP3,
     )
 
-    response = tts_client.synthesize_speech(
-        input=input_text, voice=voice, audio_config=audio_config
-    )
+    response = tts_client.synthesize_speech(input=input_text, voice=voice, audio_config=audio_config)
     return response.audio_content

@@ -1,6 +1,7 @@
 """
 DynamoDB integrations package for Users API
 """
+
 from .progress import ProgressDynamoDB
 from .plan import PlanDynamoDB
 from .sentences_progress import SentencesProgressDynamoDB

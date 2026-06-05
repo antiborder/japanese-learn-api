@@ -2,6 +2,7 @@
 Admin authentication utilities
 Checks if user has admin role/group in Cognito
 """
+
 import os
 import requests
 from jose import jwt, JWTError
@@ -25,6 +26,7 @@ ADMIN_EMAILS = [email.strip() for email in ADMIN_EMAILS if email.strip()]
 bearer_scheme = HTTPBearer()
 _jwks = None
 
+
 def get_jwks():
     global _jwks
     if _jwks is None:
@@ -37,21 +39,22 @@ def get_jwks():
             raise
     return _jwks
 
+
 def require_admin_role(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
     """
     Verify JWT token and check if user has admin role
     Returns user_id (email) if admin, raises 403 if not admin, 401 if not authenticated
-    
+
     Admin check methods (in order of priority):
     1. Check if user email is in ADMIN_EMAILS environment variable
     2. Check if token has 'cognito:groups' claim with 'admin' group
     3. Check if token has custom 'admin' claim
     """
     token = credentials.credentials
-    
+
     try:
         jwks = get_jwks()
-        
+
         # Decode and validate token
         payload = jwt.decode(
             token,
@@ -59,59 +62,46 @@ def require_admin_role(credentials: HTTPAuthorizationCredentials = Depends(beare
             algorithms=["RS256"],
             audience=COGNITO_APP_CLIENT_ID,
             issuer=COGNITO_ISSUER,
-            options={"verify_at_hash": False}
+            options={"verify_at_hash": False},
         )
-        
+
         user_email = payload.get("email")
         if not user_email:
             logger.warning("No email found in token payload")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing user email"
-            )
-        
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: missing user email")
+
         # Check if user is admin
         is_admin = False
-        
+
         # Method 1: Check ADMIN_EMAILS list
         if ADMIN_EMAILS and user_email in ADMIN_EMAILS:
             is_admin = True
             logger.info(f"User {user_email} is admin (via ADMIN_EMAILS)")
-        
+
         # Method 2: Check Cognito groups
         if not is_admin:
             groups = payload.get("cognito:groups", [])
             if isinstance(groups, list) and "admin" in groups:
                 is_admin = True
                 logger.info(f"User {user_email} is admin (via Cognito group)")
-        
+
         # Method 3: Check custom admin claim
         if not is_admin:
-            if payload.get("admin") == True or payload.get("custom:admin") == "true":
+            if payload.get("admin") or payload.get("custom:admin") == "true":
                 is_admin = True
                 logger.info(f"User {user_email} is admin (via custom claim)")
-        
+
         if not is_admin:
             logger.warning(f"User {user_email} attempted to access admin endpoint but is not admin")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
-            )
-        
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
         return user_email
-        
+
     except HTTPException:
         raise
     except JWTError as e:
         logger.warning(f"JWT validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     except Exception as e:
         logger.error(f"Unexpected error during admin authentication: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed"
-        )
-
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")

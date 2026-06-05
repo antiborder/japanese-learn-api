@@ -17,15 +17,19 @@ def _get_optional_email(credentials: Optional[HTTPAuthorizationCredentials] = De
     if credentials is None:
         return None
     try:
-        import os, requests as req
-        from jose import jwt, JWTError
+        import os
+        import requests as req
+        from jose import jwt
+
         token = credentials.credentials
         region = os.environ.get("AWS_REGION", "ap-northeast-1")
         pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
         client_id = os.environ.get("COGNITO_APP_CLIENT_ID", "")
         issuer = f"https://cognito-idp.{region}.amazonaws.com/{pool_id}"
         jwks = req.get(f"{issuer}/.well-known/jwks.json").json()
-        payload = jwt.decode(token, jwks, algorithms=["RS256"], audience=client_id, issuer=issuer, options={"verify_at_hash": False})
+        payload = jwt.decode(
+            token, jwks, algorithms=["RS256"], audience=client_id, issuer=issuer, options={"verify_at_hash": False}
+        )
         return payload.get("email")
     except Exception:
         return None
@@ -45,7 +49,11 @@ async def submit_contact_form(
     # ログイン済みの場合はトークンのメールアドレスを優先
     email = authenticated_email if is_authenticated else str(body.email)
 
-    client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown").split(",")[0].strip()
+    client_ip = (
+        request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        .split(",")[0]
+        .strip()
+    )
 
     try:
         submit_contact(

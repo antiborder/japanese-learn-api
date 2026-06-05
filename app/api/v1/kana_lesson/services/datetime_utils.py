@@ -45,4 +45,3 @@ class DateTimeUtils:
         except Exception as exc:
             logger.warning("Failed to compute next available time: %s", exc)
             return None
-

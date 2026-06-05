@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
 import boto3
 import os
 import logging
-from schemas.user import AdminUserDetail
+from schemas.user import AdminUserDetail, AdminUsersPage
 from common.auth.admin_auth import require_admin_role
 
 logger = logging.getLogger(__name__)
@@ -25,45 +24,60 @@ def _get_table():
 
 def _get_user_settings(table, user_id: str) -> dict:
     try:
-        response = table.get_item(
-            Key={"PK": f"USER#{user_id}", "SK": "SETTINGS"}
-        )
+        response = table.get_item(Key={"PK": f"USER#{user_id}", "SK": "SETTINGS"})
         return response.get("Item", {})
     except Exception as e:
         logger.warning(f"Failed to get settings for user {user_id}: {e}")
         return {}
 
 
-@router.get("/users", response_model=List[AdminUserDetail])
-async def list_users(
-    limit: int = Query(60, ge=1, le=60),
-    pagination_token: Optional[str] = None,
+@router.get("/users/count")
+async def get_users_count(
     admin_user: str = Depends(require_admin_role),
 ):
-    """List all Cognito users with their settings (admin only)"""
+    """Return estimated total number of users in the Cognito User Pool"""
+    if not COGNITO_USER_POOL_ID:
+        raise HTTPException(status_code=500, detail="COGNITO_USER_POOL_ID not configured")
+    try:
+        response = cognito_client.describe_user_pool(UserPoolId=COGNITO_USER_POOL_ID)
+        count = response["UserPool"].get("EstimatedNumberOfUsers", 0)
+        return {"count": count}
+    except Exception as e:
+        logger.error(f"Error getting user count: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/users", response_model=AdminUsersPage)
+async def list_users(
+    page: int = Query(0, ge=0),
+    page_size: int = Query(60, ge=1, le=100),
+    admin_user: str = Depends(require_admin_role),
+):
+    """List all Cognito users sorted by last active date desc (admin only)"""
     if not COGNITO_USER_POOL_ID:
         raise HTTPException(status_code=500, detail="COGNITO_USER_POOL_ID not configured")
 
     table = _get_table()
 
     try:
-        kwargs = {
-            "UserPoolId": COGNITO_USER_POOL_ID,
-            "Limit": limit,
-        }
-        if pagination_token:
-            kwargs["PaginationToken"] = pagination_token
+        # Fetch all users from Cognito across all pages
+        all_cognito_users = []
+        kwargs: dict = {"UserPoolId": COGNITO_USER_POOL_ID, "Limit": 60}
+        while True:
+            response = cognito_client.list_users(**kwargs)
+            all_cognito_users.extend(response.get("Users", []))
+            next_token = response.get("PaginationToken")
+            if not next_token:
+                break
+            kwargs["PaginationToken"] = next_token
 
-        response = cognito_client.list_users(**kwargs)
-        cognito_users = response.get("Users", [])
-
+        # Build full result with DynamoDB settings
         result = []
-        for cu in cognito_users:
+        for cu in all_cognito_users:
             username = cu.get("Username", "")
             attrs = {a["Name"]: a["Value"] for a in cu.get("Attributes", [])}
             sub = attrs.get("sub", username)
             email = attrs.get("email")
-            # DynamoDB keys use USER#{email} (see common/auth/cognito_auth.py)
             db_key = email or sub
 
             settings = {}
@@ -91,7 +105,21 @@ async def list_users(
                 )
             )
 
-        return result
+        # Sort by lastLoginAt descending (None last)
+        result.sort(key=lambda u: u.lastLoginAt or "", reverse=True)
+
+        total = len(result)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        start = page * page_size
+        page_users = result[start : start + page_size]
+
+        return AdminUsersPage(
+            users=page_users,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
 
     except HTTPException:
         raise

@@ -17,10 +17,7 @@ logger.info(f"Bucket Name: {bucket_name}")
 logger.info(f"AWS Region: {aws_region}")
 
 # AWS認証情報を使用してS3クライアントを初期化
-s3_client = boto3.client(
-    "s3",
-    region_name=aws_region
-)
+s3_client = boto3.client("s3", region_name=aws_region)
 logger.info("S3 client initialized with credentials")
 
 
@@ -28,14 +25,15 @@ logger.info("S3 client initialized with credentials")
 # AI解説関連の関数
 # ============================================
 
+
 def check_kanji_ai_description_exists(kanji_id: int, lang_code: str) -> bool:
     """
     S3に漢字のAI解説が存在するかチェック
-    
+
     Args:
         kanji_id: 漢字ID
         lang_code: 言語コード（例：'en', 'vi', 'zh', 'hi'）
-    
+
     Returns:
         存在する場合True、存在しない場合False
     """
@@ -57,21 +55,21 @@ def check_kanji_ai_description_exists(kanji_id: int, lang_code: str) -> bool:
 def get_kanji_ai_description_from_s3(kanji_id: int, lang_code: str) -> str:
     """
     S3から漢字のAI解説テキストを取得
-    
+
     Args:
         kanji_id: 漢字ID
         lang_code: 言語コード
-    
+
     Returns:
         AI解説テキスト
     """
     try:
         object_key = f"ai_descriptions/kanjis/{kanji_id}_{lang_code}.txt"
         logger.info(f"Getting kanji AI description from S3: {object_key}")
-        
+
         response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
         description_text = response["Body"].read().decode("utf-8")
-        
+
         logger.info(f"Successfully retrieved kanji AI description from S3: {object_key}")
         return description_text
     except s3_client.exceptions.ClientError as e:
@@ -89,7 +87,7 @@ def get_kanji_ai_description_from_s3(kanji_id: int, lang_code: str) -> str:
 def save_kanji_ai_description_to_s3(kanji_id: int, lang_code: str, description_text: str):
     """
     漢字のAI解説テキストをS3に保存
-    
+
     Args:
         kanji_id: 漢字ID
         lang_code: 言語コード
@@ -98,14 +96,14 @@ def save_kanji_ai_description_to_s3(kanji_id: int, lang_code: str, description_t
     try:
         object_key = f"ai_descriptions/kanjis/{kanji_id}_{lang_code}.txt"
         logger.info(f"Saving kanji AI description to S3: {object_key}")
-        
+
         s3_client.put_object(
             Bucket=bucket_name,
             Key=object_key,
             Body=description_text.encode("utf-8"),
-            ContentType="text/plain; charset=utf-8"
+            ContentType="text/plain; charset=utf-8",
         )
-        
+
         logger.info(f"Kanji AI description saved successfully to S3: {object_key}")
     except Exception as e:
         logger.error(f"Error saving kanji AI description to S3: {str(e)}")

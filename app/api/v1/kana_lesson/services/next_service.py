@@ -31,9 +31,7 @@ class NextService:
                 return {"answer_char": selected}
 
             user_chars = await self.db_client.get_user_kana(user_id)
-            selection = self.selector.select_next_char(
-                level_chars, user_chars, user_id, level
-            )
+            selection = self.selector.select_next_char(level_chars, user_chars, user_id, level)
             if not selection:
                 logger.info(
                     "Kana selection returned empty for user %s level %s",
@@ -73,4 +71,3 @@ class NextService:
                 exc_info=True,
             )
             raise
-

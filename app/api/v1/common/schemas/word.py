@@ -1,6 +1,7 @@
 from typing import Optional, List
 from pydantic import BaseModel
 
+
 class Word(BaseModel):
     id: int
     name: str
@@ -20,14 +21,17 @@ class Word(BaseModel):
     class Config:
         orm_mode = True
 
+
 class WordCreate(Word):
     pass
+
 
 class Words(BaseModel):
     words: List[Word]
 
     class Config:
         orm_mode = True
+
 
 class WordKanji(BaseModel):
     id: int
@@ -36,6 +40,7 @@ class WordKanji(BaseModel):
     class Config:
         orm_mode = True
 
+
 class PaginationInfo(BaseModel):
     page: int
     limit: int
@@ -43,6 +48,7 @@ class PaginationInfo(BaseModel):
     total_pages: int
     has_next: bool
     has_previous: bool
+
 
 class PaginatedWordsResponse(BaseModel):
     data: List[Word]

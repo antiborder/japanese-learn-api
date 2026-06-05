@@ -1,12 +1,12 @@
 def create_sentence_grammar_prompt(sentence_text: str, jlpt_level: str, language_name: str) -> str:
     """
     例文の文法解説生成用のプロンプトを作成
-    
+
     Args:
         sentence_text: 例文テキスト（日本語）
         jlpt_level: JLPT級（例：'N5', 'N4', 'N3', 'N2', 'N1'）
         language_name: 言語名（例：'English', 'Vietnamese'）
-    
+
     Returns:
         プロンプトテキスト
     """

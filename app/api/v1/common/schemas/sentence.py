@@ -1,12 +1,14 @@
 from typing import Optional, List
 from pydantic import BaseModel
 
+
 class WordInSentence(BaseModel):
     word_id: Optional[int] = None
     word_name: str
 
     class Config:
         orm_mode = True
+
 
 class Sentence(BaseModel):
     sentence_id: int
@@ -26,14 +28,17 @@ class Sentence(BaseModel):
     class Config:
         orm_mode = True
 
+
 class SentenceCreate(Sentence):
     pass
+
 
 class Sentences(BaseModel):
     sentences: List[Sentence]
 
     class Config:
         orm_mode = True
+
 
 class SentenceGrammarDescription(BaseModel):
     sentence_id: int

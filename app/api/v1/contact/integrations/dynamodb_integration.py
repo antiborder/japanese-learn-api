@@ -25,18 +25,20 @@ def save_contact(category: str, email: str, subject: str, body: str, lang: str, 
     pk = f"CONTACT#{contact_id}"
     now = datetime.now(timezone.utc).isoformat()
 
-    _table().put_item(Item={
-        "PK": pk,
-        "SK": "METADATA",
-        "category": category,
-        "email": email,
-        "subject": subject,
-        "body": body,
-        "lang": lang,
-        "status": "open",
-        "created_at": now,
-        "is_authenticated": is_authenticated,
-    })
+    _table().put_item(
+        Item={
+            "PK": pk,
+            "SK": "METADATA",
+            "category": category,
+            "email": email,
+            "subject": subject,
+            "body": body,
+            "lang": lang,
+            "status": "open",
+            "created_at": now,
+            "is_authenticated": is_authenticated,
+        }
+    )
 
     logger.info(f"Contact saved: {pk}")
     return contact_id

@@ -1,11 +1,12 @@
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Optional
+from typing import Dict
 from decimal import Decimal
 from integrations.dynamodb.learn import LearnDynamoDB
 from services.review_logic import ReviewLogic
 
 logger = logging.getLogger(__name__)
+
 
 class LearningService:
     def __init__(self):
@@ -15,60 +16,51 @@ class LearningService:
         self.datetime_service = self.learn_db.datetime_service
         self.review_logic = ReviewLogic()
 
-    async def record_learning(self, 
-                            user_id: str, 
-                            word_id: int, 
-                            level: int,
-                            confidence: int,
-                            time: Decimal) -> Dict:
+    async def record_learning(self, user_id: str, word_id: int, level: int, confidence: int, time: Decimal) -> Dict:
         """学習履歴を記録します（ビジネスロジック）"""
         try:
             # ユーザーIDがない場合は記録をスキップ
             if not user_id:
                 logger.info("User ID is null or empty. Skipping DynamoDB record.")
                 return {
-                    'user_id': user_id,
-                    'word_id': word_id,
-                    'level': level,
-                    'proficiency_MJ': Decimal('0'),
-                    'proficiency_JM': Decimal('0'),
-                    'next_mode': "MJ",  # デフォルトモード
-                    'next_datetime': datetime.now(timezone.utc) + timedelta(minutes=5)  # デフォルトの次回学習時間
+                    "user_id": user_id,
+                    "word_id": word_id,
+                    "level": level,
+                    "proficiency_MJ": Decimal("0"),
+                    "proficiency_JM": Decimal("0"),
+                    "next_mode": "MJ",  # デフォルトモード
+                    "next_datetime": datetime.now(timezone.utc) + timedelta(minutes=5),  # デフォルトの次回学習時間
                 }
 
             # 現在のデータを取得
             current_data = self.learn_db.get_current_learning_data(user_id, word_id)
-                        
+
             # 現在のデータがある場合は更新、ない場合は新規作成
             if current_data:
-                proficiency_MJ = Decimal(str(current_data.get('proficiency_MJ', '0')))
-                proficiency_JM = Decimal(str(current_data.get('proficiency_JM', '0')))
+                proficiency_MJ = Decimal(str(current_data.get("proficiency_MJ", "0")))
+                proficiency_JM = Decimal(str(current_data.get("proficiency_JM", "0")))
             else:
-                proficiency_MJ = Decimal('0')
-                proficiency_JM = Decimal('0')
-            
+                proficiency_MJ = Decimal("0")
+                proficiency_JM = Decimal("0")
+
             # 次の学習モードを決定
             next_mode = self.mode_service.determine_next_mode(proficiency_MJ, proficiency_JM)
 
             # 習熟度を計算
-            new_proficiency = self.proficiency_service.calculate_proficiency(confidence, time, current_data)            
-            
+            new_proficiency = self.proficiency_service.calculate_proficiency(confidence, time, current_data)
+
             # 新しい習熟度を更新
             if next_mode == "MJ":
                 proficiency_MJ = new_proficiency
             else:
                 proficiency_JM = new_proficiency
-            
+
             # 復習可能単語数を取得
             reviewable_count = await self._get_reviewable_count(user_id)
-            
+
             # 次の学習時間を計算（復習可能単語数による補正を適用）
             next_datetime = self.datetime_service.calculate_next_datetime(
-                confidence, 
-                next_mode, 
-                proficiency_MJ, 
-                proficiency_JM, 
-                reviewable_count
+                confidence, next_mode, proficiency_MJ, proficiency_JM, reviewable_count
             )
 
             # 学習データを保存
@@ -79,36 +71,37 @@ class LearningService:
                 proficiency_MJ=proficiency_MJ,
                 proficiency_JM=proficiency_JM,
                 next_mode=next_mode,
-                next_datetime=next_datetime
+                next_datetime=next_datetime,
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error recording learning data: {str(e)}")
             raise
-    
+
     async def _get_reviewable_count(self, user_id: str) -> int:
         """ユーザーの復習可能単語数を取得します
-        
+
         Args:
             user_id: ユーザーID
-            
+
         Returns:
             int: 復習可能単語数
         """
         try:
             # ユーザーの全学習履歴を取得
             from integrations.dynamodb.next import NextDynamoDB
+
             next_db = NextDynamoDB()
             user_words = await next_db._get_user_words(user_id)
-            
+
             # 復習可能な単語をフィルタリング
             reviewable_words = self.review_logic.get_reviewable_words(user_words)
-            
+
             reviewable_count = len(reviewable_words)
             logger.info(f"User {user_id} has {reviewable_count} reviewable words")
-            
+
             return reviewable_count
         except Exception as e:
             logger.error(f"Error getting reviewable count: {str(e)}")

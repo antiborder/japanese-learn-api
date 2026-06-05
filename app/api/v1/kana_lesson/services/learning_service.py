@@ -39,15 +39,11 @@ class LearningService:
         try:
             current_data = self.db_client.get_current_learning_data(user_id, char)
 
-            new_proficiency = self.proficiency_service.calculate_proficiency(
-                confidence, time, current_data
-            )
+            new_proficiency = self.proficiency_service.calculate_proficiency(confidence, time, current_data)
 
             reviewable_count = await self._get_reviewable_count(user_id)
 
-            next_datetime = self.datetime_service.calculate_next_datetime(
-                confidence, new_proficiency, reviewable_count
-            )
+            next_datetime = self.datetime_service.calculate_next_datetime(confidence, new_proficiency, reviewable_count)
 
             result = await self.db_client.save_learning_data(
                 user_id=user_id,
