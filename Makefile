@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common lint
+.PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common lint test test-cov
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -253,6 +253,13 @@ setup-aws:
 lint:
 	ruff check app/ test/
 	ruff format --check app/ test/
+
+# Testing
+test:
+	pytest test/ --ignore=test/test_ssml_fixed.py
+
+test-cov:
+	pytest test/ --ignore=test/test_ssml_fixed.py --cov=app --cov-report=term-missing
 
 # ヘルプ
 help:

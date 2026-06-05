@@ -69,7 +69,17 @@ def convert_hiragana_to_romaji(hiragana: str) -> str:
         "りょ": "ryo",
     }
 
-    return "".join(romaji_map.get(char, char) for char in hiragana)
+    result = []
+    i = 0
+    while i < len(hiragana):
+        two = hiragana[i : i + 2]
+        if two in romaji_map:
+            result.append(romaji_map[two])
+            i += 2
+        else:
+            result.append(romaji_map.get(hiragana[i], hiragana[i]))
+            i += 1
+    return "".join(result)
 
 
 def convert_romaji_to_hiragana(romaji: str) -> str:

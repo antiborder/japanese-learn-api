@@ -1,3 +1,11 @@
+[tool.pytest.ini_options]
+testpaths = ["test"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/api/v1/chat/*"]  # Dockerベースのため除外
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
