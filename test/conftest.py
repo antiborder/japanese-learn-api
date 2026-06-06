@@ -10,7 +10,7 @@ V1 = os.path.join(BASE, "api", "v1")
 
 # learn_words のパスを最初に追加（既存テストが依存）
 sys.path.insert(0, os.path.join(V1, "learn_words"))
-sys.path.insert(0, os.path.join(V1))           # common.* の解決用
+sys.path.insert(0, os.path.join(V1))  # common.* の解決用
 sys.path.insert(0, os.path.join(BASE, "utils"))  # app/utils/utils.py が最優先
 
 TABLE_NAME = "japanese-learn-table"
@@ -121,6 +121,7 @@ def search_module(monkeypatch):
 
 # ─── テストデータ挿入ヘルパー ─────────────────────────────────────────────────
 
+
 def insert_words(table, words: list[dict]) -> None:
     """単語マスタをテーブルに挿入する。
     GSIキー（name, english）は空文字を許容しないため、値があるときだけ追加する。
@@ -143,17 +144,20 @@ def insert_words(table, words: list[dict]) -> None:
 def insert_user_history(table, user_id: str, entries: list[dict]) -> None:
     """ユーザー学習履歴をテーブルに挿入する。"""
     from datetime import datetime, timezone
+
     now = datetime.now(timezone.utc).isoformat()
     for e in entries:
-        table.put_item(Item={
-            "PK": f"USER#{user_id}",
-            "SK": f"WORD#{e['word_id']}",
-            "user_id": user_id,
-            "word_id": e["word_id"],
-            "level": e["level"],
-            "next_datetime": e["next_datetime"],
-            "next_mode": e.get("next_mode", "MJ"),
-            "proficiency_MJ": e.get("proficiency_MJ", "0"),
-            "proficiency_JM": e.get("proficiency_JM", "0"),
-            "updated_at": now,
-        })
+        table.put_item(
+            Item={
+                "PK": f"USER#{user_id}",
+                "SK": f"WORD#{e['word_id']}",
+                "user_id": user_id,
+                "word_id": e["word_id"],
+                "level": e["level"],
+                "next_datetime": e["next_datetime"],
+                "next_mode": e.get("next_mode", "MJ"),
+                "proficiency_MJ": e.get("proficiency_MJ", "0"),
+                "proficiency_JM": e.get("proficiency_JM", "0"),
+                "updated_at": now,
+            }
+        )

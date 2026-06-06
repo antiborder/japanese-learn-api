@@ -12,9 +12,7 @@ class TestRecordLearning:
     async def test_empty_user_id_skips_dynamodb(self, dynamodb_table):
         """user_idが空の場合DynamoDB書き込みをスキップしデフォルト値を返す"""
         service = LearningService()
-        result = await service.record_learning(
-            user_id="", word_id=1, level=5, confidence=2, time=Decimal("5")
-        )
+        result = await service.record_learning(user_id="", word_id=1, level=5, confidence=2, time=Decimal("5"))
 
         assert result["word_id"] == 1
         assert result["next_mode"] == "MJ"
@@ -41,9 +39,7 @@ class TestRecordLearning:
         assert Decimal("0") <= result["proficiency_MJ"] <= Decimal("1")
         assert Decimal("0") <= result["proficiency_JM"] <= Decimal("1")
 
-        item = dynamodb_table.get_item(
-            Key={"PK": "USER#test@example.com", "SK": "WORD#42"}
-        )["Item"]
+        item = dynamodb_table.get_item(Key={"PK": "USER#test@example.com", "SK": "WORD#42"})["Item"]
         assert item["word_id"] == 42
         assert item["level"] == 3
         assert "next_datetime" in item
@@ -52,16 +48,10 @@ class TestRecordLearning:
     async def test_existing_user_updates_record(self, dynamodb_table):
         """2回目の学習：既存レコードが更新される"""
         service = LearningService()
-        await service.record_learning(
-            user_id="test@example.com", word_id=10, level=2, confidence=1, time=Decimal("6")
-        )
-        await service.record_learning(
-            user_id="test@example.com", word_id=10, level=2, confidence=3, time=Decimal("2")
-        )
+        await service.record_learning(user_id="test@example.com", word_id=10, level=2, confidence=1, time=Decimal("6"))
+        await service.record_learning(user_id="test@example.com", word_id=10, level=2, confidence=3, time=Decimal("2"))
 
-        item = dynamodb_table.get_item(
-            Key={"PK": "USER#test@example.com", "SK": "WORD#10"}
-        )["Item"]
+        item = dynamodb_table.get_item(Key={"PK": "USER#test@example.com", "SK": "WORD#10"})["Item"]
         pMJ = Decimal(str(item["proficiency_MJ"]))
         pJM = Decimal(str(item["proficiency_JM"]))
         assert pMJ + pJM > Decimal("0")
@@ -84,12 +74,8 @@ class TestRecordLearning:
         await service.record_learning("user_a@example.com", 1, 1, 2, Decimal("5"))
         await service.record_learning("user_b@example.com", 1, 1, 3, Decimal("2"))
 
-        item_a = dynamodb_table.get_item(
-            Key={"PK": "USER#user_a@example.com", "SK": "WORD#1"}
-        )["Item"]
-        item_b = dynamodb_table.get_item(
-            Key={"PK": "USER#user_b@example.com", "SK": "WORD#1"}
-        )["Item"]
+        item_a = dynamodb_table.get_item(Key={"PK": "USER#user_a@example.com", "SK": "WORD#1"})["Item"]
+        item_b = dynamodb_table.get_item(Key={"PK": "USER#user_b@example.com", "SK": "WORD#1"})["Item"]
 
         assert item_a["user_id"] == "user_a@example.com"
         assert item_b["user_id"] == "user_b@example.com"

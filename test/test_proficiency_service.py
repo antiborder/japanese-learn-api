@@ -18,9 +18,7 @@ class TestCalculateProficiency:
 
     def test_no_previous_data_interval_is_zero(self):
         # current_dataなし → interval_point=0 の分だけスコアが下がる
-        result_no_history = self.service.calculate_proficiency(
-            confidence=3, time=Decimal("0"), current_data=None
-        )
+        result_no_history = self.service.calculate_proficiency(confidence=3, time=Decimal("0"), current_data=None)
         past = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
         result_with_history = self.service.calculate_proficiency(
             confidence=3, time=Decimal("0"), current_data={"updated_at": past}
