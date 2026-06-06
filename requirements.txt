@@ -54,4 +54,9 @@ uvloop
 watchfiles
 websockets
 tqdm
+# dev / test
 ruff
+pytest
+pytest-cov
+pytest-asyncio
+moto[dynamodb]
