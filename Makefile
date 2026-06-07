@@ -1,4 +1,4 @@
-include .env
+-include .env
 export
 
 .PHONY: deploy clean build build-chat-container check-env check-aws-env check-db-env check-deps check-structure backup verify help rollback setup-aws dev-setup prepare-build clean-common lint test test-cov
