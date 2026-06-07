@@ -60,3 +60,6 @@ pytest
 pytest-cov
 pytest-asyncio
 moto[dynamodb]
+python-jose[cryptography]
+httpx==0.23.3
+mangum==0.11.0
