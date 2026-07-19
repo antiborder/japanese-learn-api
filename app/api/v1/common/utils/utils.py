@@ -46,6 +46,34 @@ def convert_hiragana_to_romaji(hiragana: str) -> str:
         "わ": "wa",
         "を": "wo",
         "ん": "n",
+        # 濁音
+        "が": "ga",
+        "ぎ": "gi",
+        "ぐ": "gu",
+        "げ": "ge",
+        "ご": "go",
+        "ざ": "za",
+        "じ": "ji",
+        "ず": "zu",
+        "ぜ": "ze",
+        "ぞ": "zo",
+        "だ": "da",
+        "ぢ": "di",
+        "づ": "du",
+        "で": "de",
+        "ど": "do",
+        "ば": "ba",
+        "び": "bi",
+        "ぶ": "bu",
+        "べ": "be",
+        "ぼ": "bo",
+        # 半濁音
+        "ぱ": "pa",
+        "ぴ": "pi",
+        "ぷ": "pu",
+        "ぺ": "pe",
+        "ぽ": "po",
+        # 拗音（清音）
         "きゃ": "kya",
         "きゅ": "kyu",
         "きょ": "kyo",
@@ -67,9 +95,31 @@ def convert_hiragana_to_romaji(hiragana: str) -> str:
         "りゃ": "rya",
         "りゅ": "ryu",
         "りょ": "ryo",
+        # 拗音（濁音・半濁音）
+        "ぎゃ": "gya",
+        "ぎゅ": "gyu",
+        "ぎょ": "gyo",
+        "じゃ": "ja",
+        "じゅ": "ju",
+        "じょ": "jo",
+        "びゃ": "bya",
+        "びゅ": "byu",
+        "びょ": "byo",
+        "ぴゃ": "pya",
+        "ぴゅ": "pyu",
+        "ぴょ": "pyo",
     }
 
-    return "".join(romaji_map.get(char, char) for char in hiragana)
+    result = []
+    i = 0
+    while i < len(hiragana):
+        if i + 1 < len(hiragana) and hiragana[i : i + 2] in romaji_map:
+            result.append(romaji_map[hiragana[i : i + 2]])
+            i += 2
+        else:
+            result.append(romaji_map.get(hiragana[i], hiragana[i]))
+            i += 1
+    return "".join(result)
 
 
 def convert_romaji_to_hiragana(romaji: str) -> str:
