@@ -11,8 +11,8 @@ class KanaAttemptRequest(BaseModel):
 
     @validator("char")
     def validate_single_character(cls, value: str) -> str:
-        if len(value) != 1:
-            raise ValueError("char は1文字である必要があります")
+        if len(value) < 1 or len(value) > 2:
+            raise ValueError("char は1または2文字である必要があります")
         return value
 
 
