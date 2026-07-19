@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class KanaProgressDynamoDB(DynamoDBBase):
-    LEVELS = [-10, -7]  # ひらがな・カタカナ
+    LEVELS = [-10, -9, -7, -6]  # ひらがな1・ひらがな2・カタカナ1・カタカナ2
 
     def __init__(self) -> None:
         super().__init__()

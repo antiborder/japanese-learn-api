@@ -22,8 +22,12 @@ class RecommendationService:
         順番：
         1. kana(level = -10) reviewable >= 5
         2. kana(level = -10) unlearned >= 5
-        3. kana(level = -7) reviewable >= 5
-        4. kana(level = -7) unlearned >= 5
+        3. kana(level = -9) reviewable >= 5
+        4. kana(level = -9) unlearned >= 5
+        5. kana(level = -7) reviewable >= 5
+        6. kana(level = -7) unlearned >= 5
+        7. kana(level = -6) reviewable >= 5
+        8. kana(level = -6) unlearned >= 5
         5. words level N reviewable >= 10
         6. sentences level N reviewable >= 3
         7. words level N unlearned >= 10
@@ -46,40 +50,24 @@ class RecommendationService:
             kana_progress_list = await kana_progress_db.get_progress(user_id)
             kana_progress_by_level = {item["level"]: item for item in kana_progress_list}
             kana_neg10 = kana_progress_by_level.get(-10)
+            kana_neg9 = kana_progress_by_level.get(-9)
             kana_neg7 = kana_progress_by_level.get(-7)
+            kana_neg6 = kana_progress_by_level.get(-6)
+
+            def _add_kana_rec(level: int) -> bool:
+                rec = {"subject": "kana", "level": level}
+                if rec not in recommendations:
+                    recommendations.append(rec)
+                return len(recommendations) >= 2
 
             # base_levelが0以下の場合のみ、kanaをチェック（base_levelが1以上の場合、kanaは推奨しない）
             if base_level <= 0:
-                # 1. kana(level = -10) reviewable >= 5
-                if kana_neg10 and kana_neg10.get("reviewable", 0) >= 5:
-                    rec = {"subject": "kana", "level": -10}
-                    if rec not in recommendations:
-                        recommendations.append(rec)
-                        if len(recommendations) >= 2:
+                for kana, level in [(kana_neg10, -10), (kana_neg9, -9), (kana_neg7, -7), (kana_neg6, -6)]:
+                    if kana and kana.get("reviewable", 0) >= 5:
+                        if _add_kana_rec(level):
                             return recommendations
-
-                # 2. kana(level = -10) unlearned >= 5
-                if kana_neg10 and kana_neg10.get("unlearned", 0) >= 5:
-                    rec = {"subject": "kana", "level": -10}
-                    if rec not in recommendations:
-                        recommendations.append(rec)
-                        if len(recommendations) >= 2:
-                            return recommendations
-
-                # 3. kana(level = -7) reviewable >= 5
-                if kana_neg7 and kana_neg7.get("reviewable", 0) >= 5:
-                    rec = {"subject": "kana", "level": -7}
-                    if rec not in recommendations:
-                        recommendations.append(rec)
-                        if len(recommendations) >= 2:
-                            return recommendations
-
-                # 4. kana(level = -7) unlearned >= 5
-                if kana_neg7 and kana_neg7.get("unlearned", 0) >= 5:
-                    rec = {"subject": "kana", "level": -7}
-                    if rec not in recommendations:
-                        recommendations.append(rec)
-                        if len(recommendations) >= 2:
+                    if kana and kana.get("unlearned", 0) >= 5:
+                        if _add_kana_rec(level):
                             return recommendations
 
             # base_levelから順にレベル15まで見ていく
