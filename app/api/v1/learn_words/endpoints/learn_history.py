@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from common.integrations.daily_progress import DailyProgressDynamoDB
 from common.schemas.learn_history import (
     LearnHistoryRequest,
     LearnHistoryResponse,
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 # サービスのインスタンスを作成
 learning_service = LearningService()
 next_service = NextService()
+daily_progress_db = DailyProgressDynamoDB()
 
 
 def parse_datetime_with_tz(dt_str):
@@ -44,6 +46,7 @@ async def record_learning(request: LearnHistoryRequest, current_user_id: str = D
             confidence=request.confidence,
             time=request.time,
         )
+        daily_progress_db.increment(current_user_id)
         return result
     except Exception as e:
         logger.error(f"Error in record_learning endpoint: {str(e)}")

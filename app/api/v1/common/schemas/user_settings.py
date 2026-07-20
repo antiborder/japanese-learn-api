@@ -31,6 +31,7 @@ class UserSettingsBase(BaseModel):
     is_onboarding_modal_closed: bool = Field(
         default=False, description="オンボーディングモーダルが閉じられたかのフラグ"
     )
+    daily_goal: int = Field(default=10, ge=1, le=200, description="1日の目標問題数")
 
 
 class UserSettingsCreate(UserSettingsBase):
@@ -46,6 +47,7 @@ class UserSettingsUpdate(BaseModel):
     theme: ThemeEnum = Field(None, description="テーマ（Summer、Fall、またはWave）")
     language: LanguageEnum = Field(None, description="言語")
     is_onboarding_modal_closed: bool = Field(None, description="オンボーディングモーダルが閉じられたかのフラグ")
+    daily_goal: int = Field(None, ge=1, le=200, description="1日の目標問題数")
 
 
 class UserSettingsResponse(UserSettingsBase):

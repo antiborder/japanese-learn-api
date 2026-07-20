@@ -29,6 +29,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 theme=item["theme"],
                 language=item["language"],
                 is_onboarding_modal_closed=item.get("is_onboarding_modal_closed", False),
+                daily_goal=int(item.get("daily_goal", 10)),
                 created_at=item["created_at"],
                 updated_at=item["updated_at"],
                 last_login_at=item.get("last_login_at"),
@@ -51,6 +52,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 "theme": settings.theme.value,
                 "language": settings.language.value,
                 "is_onboarding_modal_closed": settings.is_onboarding_modal_closed,
+                "daily_goal": settings.daily_goal,
                 "created_at": now,
                 "updated_at": now,
             }
@@ -63,6 +65,7 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 theme=settings.theme,
                 language=settings.language,
                 is_onboarding_modal_closed=settings.is_onboarding_modal_closed,
+                daily_goal=settings.daily_goal,
                 created_at=now,
                 updated_at=now,
             )
@@ -104,6 +107,11 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 update_expression_parts.append("#is_onboarding_modal_closed = :is_onboarding_modal_closed")
                 expression_attribute_values[":is_onboarding_modal_closed"] = settings.is_onboarding_modal_closed
                 expression_attribute_names["#is_onboarding_modal_closed"] = "is_onboarding_modal_closed"
+
+            if settings.daily_goal is not None:
+                update_expression_parts.append("#daily_goal = :daily_goal")
+                expression_attribute_values[":daily_goal"] = settings.daily_goal
+                expression_attribute_names["#daily_goal"] = "daily_goal"
 
             if not update_expression_parts:
                 # 更新するフィールドがない場合は既存の設定を返す

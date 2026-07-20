@@ -3,6 +3,7 @@ from typing import Optional, Union
 import logging
 
 from integrations.dynamodb_integration import dynamodb_sentence_composition_client
+from common.integrations.daily_progress import DailyProgressDynamoDB
 from schemas.attempt import (
     SentenceAttemptRequest,
     SentenceAttemptResponse,
@@ -15,6 +16,7 @@ from services.next_service import NextService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+daily_progress_db = DailyProgressDynamoDB()
 
 
 @router.get("/random")
@@ -74,6 +76,7 @@ async def record_sentence_attempt(
         )
 
         logger.info(f"Successfully recorded sentence attempt for user {user_id}")
+        daily_progress_db.increment(user_id)
         return result
 
     except Exception as e:
