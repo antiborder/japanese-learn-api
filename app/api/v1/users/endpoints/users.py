@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
+from datetime import datetime, timezone, timedelta, date as date_type
 from integrations.dynamodb import (
     progress_db,
     plan_db,
@@ -7,6 +8,7 @@ from integrations.dynamodb import (
     kana_progress_db,
     kana_plan_db,
     user_settings_db,
+    daily_progress_db,
 )
 from common.schemas.user_settings import UserSettingsCreate, UserSettingsUpdate
 from common.config import VALID_GROUPS
@@ -424,4 +426,92 @@ async def update_user_settings_test(settings: UserSettingsUpdate):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error in update_user_settings_test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/streak")
+async def get_streak(current_user_id: str = Depends(get_current_user_id)):
+    """
+    ユーザーのストリーク情報を返す。
+    ストリーク = daily_goal を達成した連続日数（JST）。
+    """
+    try:
+        JST = timezone(timedelta(hours=9))
+        settings = await user_settings_db.get_user_settings(current_user_id)
+        daily_goal = settings.daily_goal if settings else 10
+
+        records = daily_progress_db.get_all(current_user_id)
+
+        # date_str -> questions_answered のマップを構築
+        progress_map: dict[str, int] = {}
+        for record in records:
+            date_str = record["SK"].replace("PROGRESS#", "")
+            progress_map[date_str] = int(record.get("questions_answered", 0))
+
+        today_jst: date_type = datetime.now(JST).date()
+        today_str = today_jst.strftime("%Y-%m-%d")
+        today_done = progress_map.get(today_str, 0) >= daily_goal
+
+        # 今日達成済みなら今日から、未達成なら昨日から遡って連続達成日数を計算
+        # （今日はまだ猶予中のためストリークを0にしない）
+        start = today_jst if today_done else today_jst - timedelta(days=1)
+        current_streak = 0
+        check = start
+        while True:
+            if progress_map.get(check.strftime("%Y-%m-%d"), 0) >= daily_goal:
+                current_streak += 1
+                check -= timedelta(days=1)
+            else:
+                break
+
+        # 最長ストリークを計算
+        goal_dates = sorted(d for d, qa in progress_map.items() if qa >= daily_goal)
+        longest_streak = 0
+        if goal_dates:
+            run = 1
+            longest_streak = 1
+            for i in range(1, len(goal_dates)):
+                prev = date_type.fromisoformat(goal_dates[i - 1])
+                curr = date_type.fromisoformat(goal_dates[i])
+                if (curr - prev).days == 1:
+                    run += 1
+                    if run > longest_streak:
+                        longest_streak = run
+                else:
+                    run = 1
+
+        last_study_date = max(progress_map.keys()) if progress_map else None
+
+        return {
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+            "today_done": today_done,
+            "last_study_date": last_study_date,
+        }
+    except Exception as e:
+        logger.error(f"Error in get_streak endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/daily-progress")
+async def get_daily_progress(current_user_id: str = Depends(get_current_user_id)):
+    """
+    今日の進捗（回答数・達成済みフラグ・目標問数）を返す
+    認証：必須（Bearerトークン）
+    """
+    try:
+        settings = await user_settings_db.get_user_settings(current_user_id)
+        daily_goal = settings.daily_goal if settings else 10
+
+        record = daily_progress_db.get(current_user_id)
+        questions_answered = int(record.get("questions_answered", 0)) if record else 0
+        goal_reached = questions_answered >= daily_goal
+
+        return {
+            "questions_answered": questions_answered,
+            "daily_goal": daily_goal,
+            "goal_reached": goal_reached,
+        }
+    except Exception as e:
+        logger.error(f"Error in get_daily_progress endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

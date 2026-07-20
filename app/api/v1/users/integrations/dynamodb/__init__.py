@@ -9,6 +9,7 @@ from .sentences_plan import SentencesPlanDynamoDB
 from .kana_progress import KanaProgressDynamoDB
 from .kana_plan import KanaPlanDynamoDB
 from .user_settings import UserSettingsDynamoDB
+from .daily_progress import DailyProgressDynamoDB
 
 # インスタンスを提供
 progress_db = ProgressDynamoDB()
@@ -18,3 +19,4 @@ sentences_plan_db = SentencesPlanDynamoDB()
 kana_progress_db = KanaProgressDynamoDB()
 kana_plan_db = KanaPlanDynamoDB()
 user_settings_db = UserSettingsDynamoDB()
+daily_progress_db = DailyProgressDynamoDB()

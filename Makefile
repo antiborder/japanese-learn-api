@@ -278,14 +278,14 @@ help:
 
 prepare-build:
 	@echo "共通コードをコピーしています..."
-	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson chat admin contact; do \
+	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson chat admin contact sentence_composition; do \
 		echo "$$dirにcommonをコピー中..."; \
 		cp -r "app/api/v1/common" "app/api/v1/$$dir/"; \
 	done
 
 clean-common:
 	@echo "共通コードをクリーンアップしています..."
-	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson chat admin contact; do \
+	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson chat admin contact sentence_composition; do \
 		echo "Removing app/api/v1/$$dir/common..."; \
 		if [ -d "app/api/v1/$$dir/common" ]; then \
 			rm -rf "app/api/v1/$$dir/common" && echo "Successfully removed $$dir/common" || echo "Failed to remove $$dir/common"; \

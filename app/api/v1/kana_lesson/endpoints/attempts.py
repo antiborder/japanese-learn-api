@@ -7,12 +7,14 @@ from schemas.attempt import KanaAttemptRequest, KanaAttemptResponse
 from schemas import KanaNextResponse, NoKanaAvailableResponse
 from services.learning_service import LearningService
 from services.next_service import NextService
+from common.integrations.daily_progress import DailyProgressDynamoDB
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 learning_service = LearningService()
 next_service = NextService()
+daily_progress_db = DailyProgressDynamoDB()
 
 
 @router.post("/users/{user_id}/attempts", response_model=KanaAttemptResponse)
@@ -44,6 +46,7 @@ async def record_kana_attempt(
             user_id,
             request.char,
         )
+        daily_progress_db.increment(user_id)
         return result
     except HTTPException:
         raise
