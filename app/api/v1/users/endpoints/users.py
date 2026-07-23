@@ -482,11 +482,18 @@ async def get_streak(current_user_id: str = Depends(get_current_user_id)):
 
         last_study_date = max(progress_map.keys()) if progress_map else None
 
+        # 直近7日の達成状況（今日を含む）
+        daily_results: dict[str, bool] = {}
+        for i in range(7):
+            d = (today_jst - timedelta(days=i)).strftime("%Y-%m-%d")
+            daily_results[d] = progress_map.get(d, 0) >= daily_goal
+
         return {
             "current_streak": current_streak,
             "longest_streak": longest_streak,
             "today_done": today_done,
             "last_study_date": last_study_date,
+            "daily_results": daily_results,
         }
     except Exception as e:
         logger.error(f"Error in get_streak endpoint: {str(e)}")
