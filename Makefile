@@ -39,6 +39,7 @@ deploy: check-env check-deps check-structure setup-aws prepare-build build-chat-
 		FrontendBaseUrl="$$FRONTEND_BASE_URL" \
 		ApiV1ResourceId="$$API_V1_RESOURCE_ID" \
 		RecaptchaSecretKey="$$RECAPTCHA_SECRET_KEY" \
+		VapidPrivateKey="$$VAPID_PRIVATE_KEY" \
 		--capabilities CAPABILITY_IAM \
 		--no-confirm-changeset \
 		--no-fail-on-empty-changeset \
