@@ -32,6 +32,8 @@ class UserSettingsBase(BaseModel):
         default=False, description="オンボーディングモーダルが閉じられたかのフラグ"
     )
     daily_goal: int = Field(default=10, ge=1, le=200, description="1日の目標問題数")
+    push_hour_jst: int = Field(default=20, ge=0, le=23, description="プッシュ通知送信時刻（JST, 0-23）")
+    is_push_active: bool = Field(default=False, description="プッシュ通知が有効かどうか")
 
 
 class UserSettingsCreate(UserSettingsBase):
@@ -48,6 +50,8 @@ class UserSettingsUpdate(BaseModel):
     language: LanguageEnum = Field(None, description="言語")
     is_onboarding_modal_closed: bool = Field(None, description="オンボーディングモーダルが閉じられたかのフラグ")
     daily_goal: int = Field(None, ge=1, le=200, description="1日の目標問題数")
+    push_hour_jst: Optional[int] = Field(None, ge=0, le=23, description="プッシュ通知送信時刻（JST, 0-23）")
+    is_push_active: Optional[bool] = Field(None, description="プッシュ通知が有効かどうか")
 
 
 class UserSettingsResponse(UserSettingsBase):

@@ -37,9 +37,11 @@ if not ROOT_PATH:
 # エンドポイントのインポート
 from endpoints.users import router as users_router
 from endpoints.recommendation import router as recommendation_router
+from endpoints.push import router as push_router
 
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(recommendation_router, prefix="/api/v1/users", tags=["recommendations"])
+app.include_router(push_router, prefix="/api/v1/users", tags=["push"])
 
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
