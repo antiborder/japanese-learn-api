@@ -2,11 +2,22 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   push:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
+  check-source-branch:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require PR from develop
+        run: |
+          if [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "PRs to main must come from develop (got: ${{ github.head_ref }})"
+            exit 1
+          fi
+
   lint-and-test:
     runs-on: ubuntu-latest
 
