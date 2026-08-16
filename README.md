@@ -328,6 +328,7 @@ make upload   # AWSにアップロード
      - `GEMINI_API_KEY`: AI解説機能に必要
      - `S3_BUCKET_NAME`: S3操作に必要
      - `AWS_REGION`: AWS操作に必要
+     - `VAPID_PRIVATE_KEY`: プッシュ通知（NotificationFunction）に必要
    - 環境変数が設定されていない場合、API呼び出し時に500エラーが発生する
 
 2. **パッケージ依存関係の確認**

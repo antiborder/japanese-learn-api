@@ -30,6 +30,8 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 language=item["language"],
                 is_onboarding_modal_closed=item.get("is_onboarding_modal_closed", False),
                 daily_goal=int(item.get("daily_goal", 10)),
+                push_hour_jst=int(item.get("push_hour_jst", 20)),
+                is_push_active=bool(item.get("is_push_active", False)),
                 created_at=item["created_at"],
                 updated_at=item["updated_at"],
                 last_login_at=item.get("last_login_at"),
@@ -53,6 +55,8 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 "language": settings.language.value,
                 "is_onboarding_modal_closed": settings.is_onboarding_modal_closed,
                 "daily_goal": settings.daily_goal,
+                "push_hour_jst": settings.push_hour_jst,
+                "is_push_active": settings.is_push_active,
                 "created_at": now,
                 "updated_at": now,
             }
@@ -66,6 +70,8 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 language=settings.language,
                 is_onboarding_modal_closed=settings.is_onboarding_modal_closed,
                 daily_goal=settings.daily_goal,
+                push_hour_jst=settings.push_hour_jst,
+                is_push_active=settings.is_push_active,
                 created_at=now,
                 updated_at=now,
             )
@@ -112,6 +118,16 @@ class UserSettingsDynamoDB(DynamoDBBase):
                 update_expression_parts.append("#daily_goal = :daily_goal")
                 expression_attribute_values[":daily_goal"] = settings.daily_goal
                 expression_attribute_names["#daily_goal"] = "daily_goal"
+
+            if settings.push_hour_jst is not None:
+                update_expression_parts.append("#push_hour_jst = :push_hour_jst")
+                expression_attribute_values[":push_hour_jst"] = settings.push_hour_jst
+                expression_attribute_names["#push_hour_jst"] = "push_hour_jst"
+
+            if settings.is_push_active is not None:
+                update_expression_parts.append("#is_push_active = :is_push_active")
+                expression_attribute_values[":is_push_active"] = settings.is_push_active
+                expression_attribute_names["#is_push_active"] = "is_push_active"
 
             if not update_expression_parts:
                 # 更新するフィールドがない場合は既存の設定を返す

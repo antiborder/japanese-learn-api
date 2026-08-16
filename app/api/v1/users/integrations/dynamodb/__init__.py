@@ -10,6 +10,7 @@ from .kana_progress import KanaProgressDynamoDB
 from .kana_plan import KanaPlanDynamoDB
 from .user_settings import UserSettingsDynamoDB
 from .daily_progress import DailyProgressDynamoDB
+from .push_subscriptions import PushSubscriptionsDynamoDB
 
 # インスタンスを提供
 progress_db = ProgressDynamoDB()
@@ -20,3 +21,4 @@ kana_progress_db = KanaProgressDynamoDB()
 kana_plan_db = KanaPlanDynamoDB()
 user_settings_db = UserSettingsDynamoDB()
 daily_progress_db = DailyProgressDynamoDB()
+push_subscriptions_db = PushSubscriptionsDynamoDB()
