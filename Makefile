@@ -132,11 +132,12 @@ check-db-env:
 	@test -n "$$GOOGLE_API_KEY" || { echo "Error: GOOGLE_API_KEYが設定されていません"; exit 1; }
 	@test -n "$$GOOGLE_SEARCH_ENGINE_ID" || { echo "Error: GOOGLE_SEARCH_ENGINE_IDが設定されていません"; exit 1; }
 	@test -n "$$GEMINI_API_KEY" || { echo "Error: GEMINI_API_KEYが設定されていません"; exit 1; }
+	@test -n "$$VAPID_PRIVATE_KEY" || { echo "Error: VAPID_PRIVATE_KEYが設定されていません"; exit 1; }
 
 # 依存関係チェック
 check-deps:
 	@echo "依存関係を確認しています..."
-	@for dir in app/api/v1/words app/api/v1/kanjis app/api/v1/learn_words app/api/v1/search app/api/v1/sentences app/api/v1/users app/api/v1/hiragana app/api/v1/kana_lesson app/api/v1/chat app/api/v1/admin app/api/v1/contact; do \
+	@for dir in app/api/v1/words app/api/v1/kanjis app/api/v1/learn_words app/api/v1/search app/api/v1/sentences app/api/v1/users app/api/v1/hiragana app/api/v1/kana_lesson app/api/v1/chat app/api/v1/admin app/api/v1/contact app/api/v1/notification; do \
 		if [ ! -f $$dir/requirements.txt ]; then \
 			echo "Error: $$dir/requirements.txtが見つかりません"; \
 			exit 1; \
@@ -169,6 +170,14 @@ check-structure:
 			exit 1; \
 		fi \
 	done
+	@if [ ! -f "app/api/v1/notification/app.py" ]; then \
+		echo "Error: app/api/v1/notification/app.pyが見つかりません"; \
+		exit 1; \
+	fi
+	@if [ ! -f "app/api/v1/notification/requirements.txt" ]; then \
+		echo "Error: app/api/v1/notification/requirements.txtが見つかりません"; \
+		exit 1; \
+	fi
 	@for dir in words kanjis learn_words search sentences users hiragana kana_lesson chat contact; do \
 		for subdir in endpoints; do \
 			if [ ! -d "app/api/v1/$$dir/$$subdir" ]; then \
@@ -239,6 +248,8 @@ verify:
 	fi
 	@echo "Admin Functionのデプロイを確認中..."
 	@aws lambda get-function --function-name japanese-learn-AdminFunction > /dev/null
+	@echo "Notification Functionのデプロイを確認中..."
+	@aws lambda get-function --function-name japanese-learn-NotificationFunction > /dev/null
 	@echo "デプロイの確認が完了しました"
 
 # AWS認証情報の設定
