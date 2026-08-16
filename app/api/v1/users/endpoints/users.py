@@ -482,11 +482,12 @@ async def get_streak(current_user_id: str = Depends(get_current_user_id)):
 
         last_study_date = max(progress_map.keys()) if progress_map else None
 
-        # 直近7日の達成状況（今日を含む）
-        daily_results: dict[str, bool] = {}
+        # 直近7日の達成率（0.0〜1.0）を返す（今日を含む）
+        daily_results: dict[str, float] = {}
         for i in range(7):
             d = (today_jst - timedelta(days=i)).strftime("%Y-%m-%d")
-            daily_results[d] = progress_map.get(d, 0) >= daily_goal
+            answered = progress_map.get(d, 0)
+            daily_results[d] = round(min(1.0, answered / daily_goal), 3) if daily_goal > 0 else 0.0
 
         return {
             "current_streak": current_streak,
