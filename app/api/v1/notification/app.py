@@ -5,6 +5,7 @@ is_push_active=True のユーザーを走査し、以下の条件を満たす場
   - 復習可能な単語数 > 10
   - 今日の学習進捗が daily_goal 未満
 """
+
 import json
 import logging
 import os
@@ -37,9 +38,7 @@ def lambda_handler(event, context):
 
     # is_push_active=True のユーザー設定を全件スキャン
     users = []
-    scan_kwargs = {
-        "FilterExpression": Attr("SK").eq("SETTINGS") & Attr("is_push_active").eq(True)
-    }
+    scan_kwargs = {"FilterExpression": Attr("SK").eq("SETTINGS") & Attr("is_push_active").eq(True)}
     while True:
         response = table.scan(**scan_kwargs)
         users.extend(response["Items"])
@@ -97,11 +96,13 @@ def lambda_handler(event, context):
         if not subscriptions:
             continue
 
-        payload = json.dumps({
-            "title": "にほんご学習",
-            "body": f"今日の目標まであと{daily_remaining}問！復習単語が{reviewable_count}語あります。",
-            "url": f"/{user_lang}/me/dashboard",
-        })
+        payload = json.dumps(
+            {
+                "title": "にほんご学習",
+                "body": f"今日の目標まであと{daily_remaining}問！復習単語が{reviewable_count}語あります。",
+                "url": f"/{user_lang}/me/dashboard",
+            }
+        )
 
         logger.info(
             f"sending push to {user_id}: reviewable={reviewable_count}, "
@@ -129,9 +130,6 @@ def lambda_handler(event, context):
                     table.delete_item(Key={"PK": user_pk, "SK": sub_sk})
                     logger.info(f"deleted expired subscription {sub_sk} for {user_id}")
                 else:
-                    logger.error(
-                        f"ERROR: push failed for {user_id} ({sub_sk}): "
-                        f"status={status_code} error={e}"
-                    )
+                    logger.error(f"ERROR: push failed for {user_id} ({sub_sk}): status={status_code} error={e}")
             except Exception as e:
                 logger.error(f"ERROR: unexpected push exception for {user_id} ({sub_sk}): {e}")
