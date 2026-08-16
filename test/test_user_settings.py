@@ -29,6 +29,8 @@ class TestUserSettingsCRUD:
         assert result.theme == ThemeEnum.SPRING
         assert result.language == LanguageEnum.EN
         assert result.is_onboarding_modal_closed is False
+        assert result.push_hour_jst == 20  # デフォルト値
+        assert result.is_push_active is False  # デフォルト値
 
     async def test_update_partial_fields(self, dynamodb_table, users_module):
         from integrations.dynamodb.user_settings import UserSettingsDynamoDB
@@ -52,6 +54,14 @@ class TestUserSettingsCRUD:
         assert result.theme == ThemeEnum.SUMMER
         assert result.base_level == 5  # 変更なし
         assert result.language == LanguageEnum.EN  # 変更なし
+
+        # push fields の更新
+        result2 = await db.update_user_settings(
+            "user@example.com",
+            UserSettingsUpdate(push_hour_jst=9, is_push_active=True),
+        )
+        assert result2.push_hour_jst == 9
+        assert result2.is_push_active is True
 
     async def test_update_not_existing_raises(self, dynamodb_table, users_module):
         from integrations.dynamodb.user_settings import UserSettingsDynamoDB

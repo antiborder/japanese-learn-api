@@ -54,6 +54,7 @@ def lambda_handler(event, context):
         user_id = user_pk.removeprefix("USER#")
         push_hour_jst = int(user.get("push_hour_jst", 20))
         daily_goal = int(user.get("daily_goal", 10))
+        user_lang = user.get("language", "en")
 
         if not force_send and current_hour_jst != push_hour_jst:
             continue
@@ -99,7 +100,7 @@ def lambda_handler(event, context):
         payload = json.dumps({
             "title": "にほんご学習",
             "body": f"今日の目標まであと{daily_remaining}問！復習単語が{reviewable_count}語あります。",
-            "url": "/en/me/dashboard",
+            "url": f"/{user_lang}/me/dashboard",
         })
 
         logger.info(
