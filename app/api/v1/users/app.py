@@ -25,7 +25,9 @@ app = FastAPI(
 )
 
 # ローカル開発時のみ CORS を許可（Lambda では lambda_handler が処理する）
-if not ROOT_PATH:
+# AWS_LAMBDA_FUNCTION_NAME は Lambda ランタイムが自動で設定する
+IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+if not IS_LAMBDA:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://localhost:3001"],
