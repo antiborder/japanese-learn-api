@@ -25,9 +25,7 @@ app = FastAPI(
 )
 
 # ローカル開発時のみ CORS を許可（Lambda では lambda_handler が処理する）
-# AWS_LAMBDA_FUNCTION_NAME は Lambda ランタイムが自動で設定する
-IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
-if not IS_LAMBDA:
+if not ROOT_PATH:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://localhost:3001"],
@@ -49,7 +47,7 @@ app.include_router(push_router, prefix="/api/v1/users", tags=["push"])
 handler = Mangum(app, lifespan="off")
 
 # 許可されたオリジンのリスト
-ALLOWED_ORIGINS = ["http://localhost:3000", "https://nihongo.cloud"]
+ALLOWED_ORIGINS = ["https://nihongo.cloud"]
 
 
 def get_allowed_origin(event):
