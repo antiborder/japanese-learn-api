@@ -3,7 +3,6 @@ import logging
 import os
 from mangum import Mangum
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # .envファイルを読み込み
@@ -24,18 +23,6 @@ app = FastAPI(
     root_path=ROOT_PATH,
 )
 
-# ローカル開発時のみ CORS を許可（Lambda では lambda_handler が処理する）
-# AWS_LAMBDA_FUNCTION_NAME は Lambda ランタイムが自動で設定する
-IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
-if not IS_LAMBDA:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost:3001"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
 # エンドポイントのインポート
 from endpoints.users import router as users_router
 from endpoints.recommendation import router as recommendation_router
@@ -48,7 +35,17 @@ app.include_router(push_router, prefix="/api/v1/users", tags=["push"])
 # Mangumハンドラーの作成
 handler = Mangum(app, lifespan="off")
 
-# 許可されたオリジンのリスト
+# ──────────────────────────────────────────────────────────────────────────────
+# CORS に関する重要な注意事項
+#
+# このファイルでは CORSMiddleware を使用してはいけない。
+# 理由: Lambda 上では lambda_handler が OPTIONS プリフライトを Mangum より先に処理し、
+#       さらにすべてのレスポンスに CORS ヘッダーを付与している。
+#       CORSMiddleware を追加すると Access-Control-Allow-Origin が二重に付与され、
+#       ブラウザが CORS エラーを起こす（過去に発生した不具合）。
+#
+# CORS の変更が必要な場合は、下記 ALLOWED_ORIGINS と lambda_handler のみを修正すること。
+# ──────────────────────────────────────────────────────────────────────────────
 ALLOWED_ORIGINS = ["http://localhost:3000", "https://nihongo.cloud"]
 
 
