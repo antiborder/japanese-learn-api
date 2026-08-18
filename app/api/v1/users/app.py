@@ -3,7 +3,6 @@ import logging
 import os
 from mangum import Mangum
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # .envファイルを読み込み
@@ -23,18 +22,6 @@ app = FastAPI(
     version="1.0.0",
     root_path=ROOT_PATH,
 )
-
-# ローカル開発時のみ CORS を許可（Lambda では lambda_handler が処理する）
-# AWS_LAMBDA_FUNCTION_NAME は Lambda ランタイムが自動で設定する
-IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
-if not IS_LAMBDA:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost:3001"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
 # エンドポイントのインポート
 from endpoints.users import router as users_router

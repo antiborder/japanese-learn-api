@@ -3,7 +3,6 @@ import logging
 import os
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 # ロギング設定
@@ -18,16 +17,6 @@ app = FastAPI(
     version="1.0.0",
     root_path=ROOT_PATH,
 )
-
-# ローカル開発時のみ CORS を許可（Lambda では lambda_handler が処理する）
-if not ROOT_PATH:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost:3001"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
 from endpoints import router  # noqa: E402
 
