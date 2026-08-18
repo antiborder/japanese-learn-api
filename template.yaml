@@ -301,12 +301,13 @@ Resources:
             Path: /api/v1/learn_words/{proxy+}
             Method: ANY
       Policies:
-        # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, Query, BatchGetItem）
+        # 最小権限: LearnWordsFunctionは読み書き（GetItem, PutItem, UpdateItem, Query, BatchGetItem）
         - Statement:
           - Effect: Allow
             Action:
               - dynamodb:GetItem
               - dynamodb:PutItem
+              - dynamodb:UpdateItem
               - dynamodb:Query
               - dynamodb:BatchGetItem
             Resource:
