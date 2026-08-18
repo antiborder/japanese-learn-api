@@ -23,6 +23,21 @@ PUSH_TTL_SECONDS = 6 * 60 * 60
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIMS = {"sub": "mailto:noreply@nihongo.cloud"}
 
+PUSH_MESSAGES = {
+    "en":      ("Japanese Study",  "You have {n} more questions to reach today's goal!"),
+    "ko":      ("일본어 학습",       "오늘 목표까지 {n}문제 남았습니다!"),
+    "zh-Hans": ("日语学习",          "距今日目标还有 {n} 题！"),
+    "vi":      ("Học tiếng Nhật",  "Còn {n} câu nữa là đạt mục tiêu hôm nay!"),
+    "hi":      ("जापानी अध्ययन",   "आज के लक्ष्य तक {n} और प्रश्न बाकी हैं!"),
+    "id":      ("Belajar Bahasa Jepang", "Tinggal {n} soal lagi untuk mencapai target hari ini!"),
+    "ja":      ("にほんご学習",      "今日の目標まであと{n}問です！"),
+}
+
+
+def get_push_message(lang, daily_remaining):
+    title, body_template = PUSH_MESSAGES.get(lang, PUSH_MESSAGES["en"])
+    return title, body_template.format(n=daily_remaining)
+
 
 def lambda_handler(event, context):
     now_utc = datetime.now(timezone.utc)
@@ -96,10 +111,11 @@ def lambda_handler(event, context):
         if not subscriptions:
             continue
 
+        title, body = get_push_message(user_lang, daily_remaining)
         payload = json.dumps(
             {
-                "title": "にほんご学習",
-                "body": f"今日の目標まであと{daily_remaining}問！復習単語が{reviewable_count}語あります。",
+                "title": title,
+                "body": body,
                 "url": f"/{user_lang}/me/dashboard",
             }
         )
