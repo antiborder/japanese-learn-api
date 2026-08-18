@@ -349,6 +349,7 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
+                - dynamodb:UpdateItem
                 - dynamodb:Query
               Resource:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
@@ -617,13 +618,14 @@ Resources:
             Path: /api/v1/quizzes/{proxy+}
             Method: ANY
       Policies:
-        # 最小権限: SentenceCompositionFunctionは読み書き（GetItem, PutItem, Query）
+        # 最小権限: SentenceCompositionFunctionは読み書き（GetItem, PutItem, UpdateItem, Query）
         # Scan権限は削除（コスト削減とセキュリティ向上）
         - Statement:
           - Effect: Allow
             Action:
               - dynamodb:GetItem
               - dynamodb:PutItem
+              - dynamodb:UpdateItem
               - dynamodb:Query
             Resource:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
