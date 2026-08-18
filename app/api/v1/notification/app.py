@@ -24,13 +24,13 @@ VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIMS = {"sub": "mailto:noreply@nihongo.cloud"}
 
 PUSH_MESSAGES = {
-    "en":      ("Japanese Study",  "You have {n} more questions to reach today's goal!"),
-    "ko":      ("일본어 학습",       "오늘 목표까지 {n}문제 남았습니다!"),
-    "zh-Hans": ("日语学习",          "距今日目标还有 {n} 题！"),
-    "vi":      ("Học tiếng Nhật",  "Còn {n} câu nữa là đạt mục tiêu hôm nay!"),
-    "hi":      ("जापानी अध्ययन",   "आज के लक्ष्य तक {n} और प्रश्न बाकी हैं!"),
-    "id":      ("Belajar Bahasa Jepang", "Tinggal {n} soal lagi untuk mencapai target hari ini!"),
-    "ja":      ("にほんご学習",      "今日の目標まであと{n}問です！"),
+    "en": ("Japanese Study", "You have {n} more questions to reach today's goal!"),
+    "ko": ("일본어 학습", "오늘 목표까지 {n}문제 남았습니다!"),
+    "zh-Hans": ("日语学习", "距今日目标还有 {n} 题！"),
+    "vi": ("Học tiếng Nhật", "Còn {n} câu nữa là đạt mục tiêu hôm nay!"),
+    "hi": ("जापानी अध्ययन", "आज के लक्ष्य तक {n} और प्रश्न बाकी हैं!"),
+    "id": ("Belajar Bahasa Jepang", "Tinggal {n} soal lagi untuk mencapai target hari ini!"),
+    "ja": ("にほんご学習", "今日の目標まであと{n}問です！"),
 }
 
 
