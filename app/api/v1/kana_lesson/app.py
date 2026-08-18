@@ -24,7 +24,17 @@ app.include_router(router, prefix="/api/v1/kana-lesson", tags=["kana-lesson"])
 
 handler = Mangum(app, lifespan="off")
 
-# 許可されたオリジンのリスト
+# ──────────────────────────────────────────────────────────────────────────────
+# CORS に関する重要な注意事項
+#
+# このファイルでは CORSMiddleware を使用してはいけない。
+# 理由: Lambda 上では lambda_handler が OPTIONS プリフライトを Mangum より先に処理し、
+#       さらにすべてのレスポンスに CORS ヘッダーを付与している。
+#       CORSMiddleware を追加すると Access-Control-Allow-Origin が二重に付与され、
+#       ブラウザが CORS エラーを起こす（過去に発生した不具合）。
+#
+# CORS の変更が必要な場合は、下記 ALLOWED_ORIGINS と lambda_handler のみを修正すること。
+# ──────────────────────────────────────────────────────────────────────────────
 ALLOWED_ORIGINS = ["http://localhost:3000", "https://nihongo.cloud"]
 
 
