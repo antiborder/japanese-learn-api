@@ -30,7 +30,6 @@ PUSH_MESSAGES = {
     "vi": ("Học tiếng Nhật", "Còn {n} câu nữa là đạt mục tiêu hôm nay!"),
     "hi": ("जापानी अध्ययन", "आज के लक्ष्य तक {n} और प्रश्न बाकी हैं!"),
     "id": ("Belajar Bahasa Jepang", "Tinggal {n} soal lagi untuk mencapai target hari ini!"),
-    "ja": ("にほんご学習", "今日の目標まであと{n}問です！"),
 }
 
 
