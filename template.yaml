@@ -229,6 +229,10 @@ Resources:
       CodeUri: ./app/api/v1/words
       Handler: app.lambda_handler
       Description: "Lambda function for words-related endpoints"
+      # /words/ の一覧取得は最大1000件をDynamoDBから読んでPydanticモデルに変換するため、
+      # デフォルトのGlobals(256MB)ではCPU割り当てが少なすぎて30秒のタイムアウトに達していた
+      # （実測: 256MBでlimit=500以上が必ずタイムアウト、2048MBでlimit=1000が約10秒に短縮）。
+      MemorySize: 2048
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
@@ -414,6 +418,9 @@ Resources:
       CodeUri: ./app/api/v1/kanjis
       Handler: app.lambda_handler
       Description: "Lambda function for kanjis-related endpoints"
+      # /kanjis/ の一覧取得も同じ理由でメモリを増やしている。WordsFunctionの
+      # コメント参照（実測: 256MBでlimit=500以上が必ずタイムアウト）。
+      MemorySize: 2048
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
