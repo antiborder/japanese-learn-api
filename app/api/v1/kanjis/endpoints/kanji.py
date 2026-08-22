@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from common.schemas.kanji_component import Kanji, KanjiWord, PaginatedKanjisResponse, PaginationInfo
-from services.kanji_service import get_kanji, get_kanjis
+from services.kanji_service import get_kanji, get_kanjis_page
 import logging
 from pydantic import BaseModel
 from integrations.dynamodb.kanji import dynamodb_kanji_client
 from services.ai_description_service import get_kanji_ai_description
 from schemas.ai_description_schema import KanjiAIDescriptionResponse
-import math
 
 
 class KanjiIdResponse(BaseModel):
@@ -20,37 +19,29 @@ logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=PaginatedKanjisResponse)
 def read_kanjis_endpoint(
-    page: int = Query(1, ge=1, description="ページ番号（1から開始）"),
     limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）"),
+    cursor: Optional[str] = Query(
+        None, description="前回のレスポンスのpagination.next_cursorを渡すと続きから取得します。未指定時は先頭ページ。"
+    ),
 ):
     """
-    漢字一覧を取得します（ページネーション対応）。
+    漢字一覧を取得します（カーソルベースのページネーション対応）。
     DynamoDBから漢字データを取得し、指定された形式に変換して返します。
+
+    ページ番号（?page=N）でのランダムアクセスは提供していない。DynamoDBは
+    「N件目から」を直接引けないため、それを実現しようとすると先頭から
+    毎回読み直すことになり、末尾に近いページほど遅くなる。全件を順番に
+    列挙したい場合はhas_next=falseになるまでnext_cursorを渡し続けること。
     """
     try:
-        # ページネーション計算
-        skip = (page - 1) * limit
-
-        # 総件数を取得
-        total = dynamodb_kanji_client.count_kanjis()
-
-        # DynamoDBから漢字データを取得
-        kanjis = get_kanjis(skip=skip, limit=limit)
-
-        # ページネーション情報を計算
-        total_pages = math.ceil(total / limit) if total > 0 else 0
-        has_next = page < total_pages
-        has_previous = page > 1
+        kanjis, next_cursor, has_next = get_kanjis_page(limit=limit, cursor=cursor)
 
         return PaginatedKanjisResponse(
             data=kanjis,
             pagination=PaginationInfo(
-                page=page,
                 limit=limit,
-                total=total,
-                total_pages=total_pages,
                 has_next=has_next,
-                has_previous=has_previous,
+                next_cursor=next_cursor,
             ),
         )
     except Exception as e:

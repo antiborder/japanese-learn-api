@@ -6,7 +6,6 @@ from services.image_service import get_word_images
 from services.ai_description_service import get_ai_description
 import logging
 from integrations.dynamodb_integration import dynamodb_client
-import math
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -14,38 +13,31 @@ logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=PaginatedWordsResponse)
 def read_words(
-    page: int = Query(1, ge=1, description="ページ番号（1から開始）"),
     limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）"),
     level: Optional[int] = Query(None, description="レベルフィルタ"),
+    cursor: Optional[str] = Query(
+        None, description="前回のレスポンスのpagination.next_cursorを渡すと続きから取得します。未指定時は先頭ページ。"
+    ),
 ):
     """
-    単語一覧を取得します（ページネーション対応）。
-    DynamoDBから単語データを取得し、MySQLのモデル形式に変換して返します。
+    単語一覧を取得します（カーソルベースのページネーション対応）。
+    DynamoDBから単語データを取得し、モデル形式に変換して返します。
+
+    ページ番号（?page=N）でのランダムアクセスは提供していない。DynamoDBは
+    「N件目から」を直接引けないため、それを実現しようとすると先頭から
+    毎回読み直すことになり、末尾に近いページほど遅くなる（実測で最大60秒近く
+    かかりAPI Gatewayの29秒制限を超えていた）。全件を順番に列挙したい場合は
+    has_next=falseになるまでnext_cursorを渡し続けること。
     """
     try:
-        # ページネーション計算
-        skip = (page - 1) * limit
-
-        # 総件数を取得
-        total = dynamodb_client.count_words(level=level)
-
-        # DynamoDBから単語データを取得
-        words = dynamodb_client.get_words(skip=skip, limit=limit, level=level)
-
-        # ページネーション情報を計算
-        total_pages = math.ceil(total / limit) if total > 0 else 0
-        has_next = page < total_pages
-        has_previous = page > 1
+        words, next_cursor, has_next = dynamodb_client.get_words_page(limit=limit, level=level, cursor=cursor)
 
         return PaginatedWordsResponse(
             data=words,
             pagination=PaginationInfo(
-                page=page,
                 limit=limit,
-                total=total,
-                total_pages=total_pages,
                 has_next=has_next,
-                has_previous=has_previous,
+                next_cursor=next_cursor,
             ),
         )
     except Exception as e:

@@ -4,6 +4,7 @@ import logging
 from typing import List, Dict, Optional
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
+from common.utils.pagination_cursor import encode_cursor, decode_cursor
 
 logger = logging.getLogger(__name__)
 
@@ -14,75 +15,41 @@ class DynamoDBClient:
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(self.table_name)
 
-    def get_words(self, skip: int = 0, limit: int = 100, level: Optional[int] = None) -> List[Dict]:
+    def get_words_page(
+        self, limit: int = 100, level: Optional[int] = None, cursor: Optional[str] = None
+    ) -> tuple[List[Dict], Optional[str], bool]:
         """
-        単語一覧を取得します（レベルフィルタ対応）
+        単語一覧を1ページ分だけ取得します（カーソルベース、レベルフィルタ対応）。
+
+        以前はDynamoDBの「WORD」パーティション全体を毎回読み切ってからPython側で
+        skip/limitを適用していたため、単語数が数千件規模になった際に必ずタイムアウト
+        するようになっていた（sitemap生成が504で失敗し、wordページがサイトマップから
+        欠落する原因になっていた）。
+        その後skip/limitをこの関数内で打ち切る改善を入れたが、skipが大きいページ
+        （＝サイトマップが末尾に近づくほど）は結局「先頭からskip件目まで」を毎回
+        読み直す必要があり、依然としてタイムアウトしていた。
+        ここではDynamoDB自身のカーソル（ExclusiveStartKey）をそのままAPIの外に
+        `cursor`として渡すことで、どのページであっても「前回の続きから limit+1件」
+        だけを読めば済むようにしている。
 
         Args:
-            skip: スキップする件数
             limit: 取得する最大件数
             level: レベルフィルタ（オプション）
+            cursor: 前回のレスポンスで返した next_cursor（先頭ページの場合はNone）
+
+        Returns:
+            (このページの単語リスト, 次ページ用カーソル（最終ページはNone）, 次ページが存在するか)
         """
         try:
-            # すべての単語を取得（DynamoDBのqueryはページネーションが必要な場合がある）
-            all_items = []
-            last_evaluated_key = None
+            needed = limit + 1  # 次ページの有無を判定するため1件多く読む
+            all_items: List[Dict] = []
+            last_evaluated_key = decode_cursor(cursor)
 
-            while True:
-                query_params = {"KeyConditionExpression": "PK = :pk", "ExpressionAttributeValues": {":pk": "WORD"}}
-
-                # レベルフィルタを適用
-                if level is not None:
-                    query_params["FilterExpression"] = "#level = :level"
-                    query_params["ExpressionAttributeNames"] = {"#level": "level"}
-                    query_params["ExpressionAttributeValues"][":level"] = level
-
-                if last_evaluated_key:
-                    query_params["ExclusiveStartKey"] = last_evaluated_key
-
-                response = self.table.query(**query_params)
-                items = response.get("Items", [])
-                all_items.extend(items)
-
-                last_evaluated_key = response.get("LastEvaluatedKey")
-                if not last_evaluated_key:
-                    break
-
-            # アイテムを変換
-            words = []
-            for item in all_items:
-                try:
-                    word = self._convert_dynamodb_to_model(item)
-                    words.append(word)
-                except (ValueError, TypeError) as e:
-                    logger.error(f"Error converting item {item['SK']}: {str(e)}")
-                    continue
-
-            # skip/limitを適用
-            return words[skip : skip + limit]
-        except ClientError as e:
-            logger.error(f"Error getting words from DynamoDB: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            raise
-
-    def count_words(self, level: Optional[int] = None) -> int:
-        """
-        単語の総件数を取得します（レベルフィルタ対応）
-
-        Args:
-            level: レベルフィルタ（オプション）
-        """
-        try:
-            count = 0
-            last_evaluated_key = None
-
-            while True:
+            while len(all_items) < needed:
                 query_params = {
                     "KeyConditionExpression": "PK = :pk",
                     "ExpressionAttributeValues": {":pk": "WORD"},
-                    "Select": "COUNT",
+                    "Limit": limit,
                 }
 
                 # レベルフィルタを適用
@@ -95,18 +62,39 @@ class DynamoDBClient:
                     query_params["ExclusiveStartKey"] = last_evaluated_key
 
                 response = self.table.query(**query_params)
-                count += response.get("Count", 0)
+                all_items.extend(response.get("Items", []))
 
                 last_evaluated_key = response.get("LastEvaluatedKey")
                 if not last_evaluated_key:
                     break
 
-            return count
+            has_next = len(all_items) > limit
+            page_raw_items = all_items[:limit]
+
+            # 次ページ用カーソルは、このページの最後のアイテムの主キーそのもの。
+            # DynamoDB内部の読み取り単位（Limit分の内部ページ）とは無関係に、
+            # 「このページの最後の1件」から続きを取得できる。
+            next_cursor = None
+            if has_next and page_raw_items:
+                last_item = page_raw_items[-1]
+                next_cursor = encode_cursor({"PK": last_item["PK"], "SK": last_item["SK"]})
+
+            # アイテムを変換（このページ分のみ）
+            words = []
+            for item in page_raw_items:
+                try:
+                    word = self._convert_dynamodb_to_model(item)
+                    words.append(word)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting item {item['SK']}: {str(e)}")
+                    continue
+
+            return words, next_cursor, has_next
         except ClientError as e:
-            logger.error(f"Error counting words from DynamoDB: {str(e)}")
+            logger.error(f"Error getting words from DynamoDB: {str(e)}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error counting words: {str(e)}")
+            logger.error(f"Unexpected error: {str(e)}")
             raise
 
     def get_word_by_id(self, word_id: int) -> Optional[Dict]:

@@ -51,12 +51,16 @@ class KanjiWord(BaseModel):
 
 
 class PaginationInfo(BaseModel):
-    page: int
     limit: int
-    total: int
-    total_pages: int
     has_next: bool
-    has_previous: bool
+    next_cursor: Optional[str] = None
+    # 以下は後方互換のために残しているが、カーソルベースのページネーションに
+    # 移行したため正確な値ではない（algorithm上、全件スキャンなしに正確な値を
+    # 算出できないため）。ページ送りには has_next / next_cursor を使うこと。
+    page: Optional[int] = None
+    total: Optional[int] = None
+    total_pages: Optional[int] = None
+    has_previous: Optional[bool] = None
 
 
 class PaginatedKanjisResponse(BaseModel):
