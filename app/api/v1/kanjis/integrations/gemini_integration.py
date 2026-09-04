@@ -73,8 +73,10 @@ def generate_kanji_ai_description(kanji_character: str, lang_code: str) -> str:
 
         logger.info(f"Generating AI description for kanji: {kanji_character} in language: {lang_code}")
 
-        # Gemini 2.0 Flash-Liteモデルを使用
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        # Gemini 3.5 Flash-Liteモデルを使用
+        # 注: "gemini-2.0-flash-lite"はGoogleにより廃止済み（404 NotFound）。
+        # エラーメッセージ上で案内された後継モデルに切り替えている。
+        model = genai.GenerativeModel("gemini-3.5-flash-lite")
 
         # プロンプトを作成
         language_name = get_language_name(lang_code)

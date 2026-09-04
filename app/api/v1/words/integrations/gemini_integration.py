@@ -66,10 +66,10 @@ def generate_ai_description(word_name: str, word_hiragana: str, lang_code: str) 
 
         logger.info(f"Generating AI description for word: {word_name} in language: {lang_code}")
 
-        # Gemini 2.5 Flash-Liteモデルを使用
-        # 注: 実際のモデル名は"gemini-2.5-flash-lite"の可能性があります
-        # リリース時の正式なモデル名に応じて調整が必要です
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        # Gemini 3.5 Flash-Liteモデルを使用
+        # 注: "gemini-2.0-flash-lite"はGoogleにより廃止済み（404 NotFound）。
+        # エラーメッセージ上で案内された後継モデルに切り替えている。
+        model = genai.GenerativeModel("gemini-3.5-flash-lite")
 
         # プロンプトを作成
         language_name = get_language_name(lang_code)
