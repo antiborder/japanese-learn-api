@@ -87,6 +87,10 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
           RequireUppercase: true
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/nihongo.cloud
+        From: !Sub "Japanese Learn <${SesFromEmail}>"
 
   # Cognito User Pool Client
   UserPoolClient:
