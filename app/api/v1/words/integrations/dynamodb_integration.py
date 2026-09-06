@@ -16,7 +16,11 @@ class DynamoDBClient:
         self.table = self.dynamodb.Table(self.table_name)
 
     def get_words_page(
-        self, limit: int = 100, level: Optional[int] = None, cursor: Optional[str] = None
+        self,
+        limit: int = 100,
+        level: Optional[int] = None,
+        tag: Optional[int] = None,
+        cursor: Optional[str] = None,
     ) -> tuple[List[Dict], Optional[str], bool]:
         """
         単語一覧を1ページ分だけ取得します（カーソルベース、レベルフィルタ対応）。
@@ -35,6 +39,7 @@ class DynamoDBClient:
         Args:
             limit: 取得する最大件数
             level: レベルフィルタ（オプション）
+            tag: タグIDフィルタ（オプション）。tagsリスト属性にIDを含む単語のみ返す
             cursor: 前回のレスポンスで返した next_cursor（先頭ページの場合はNone）
 
         Returns:
@@ -52,11 +57,20 @@ class DynamoDBClient:
                     "Limit": limit,
                 }
 
-                # レベルフィルタを適用
+                # レベル・タグフィルタを適用（両方指定時はAND条件）
+                filter_expressions = []
+                expression_attribute_names = {}
                 if level is not None:
-                    query_params["FilterExpression"] = "#level = :level"
-                    query_params["ExpressionAttributeNames"] = {"#level": "level"}
+                    filter_expressions.append("#level = :level")
+                    expression_attribute_names["#level"] = "level"
                     query_params["ExpressionAttributeValues"][":level"] = level
+                if tag is not None:
+                    filter_expressions.append("contains(#tags, :tag)")
+                    expression_attribute_names["#tags"] = "tags"
+                    query_params["ExpressionAttributeValues"][":tag"] = tag
+                if filter_expressions:
+                    query_params["FilterExpression"] = " AND ".join(filter_expressions)
+                    query_params["ExpressionAttributeNames"] = expression_attribute_names
 
                 if last_evaluated_key:
                     query_params["ExclusiveStartKey"] = last_evaluated_key
@@ -169,6 +183,7 @@ class DynamoDBClient:
             "lexical_category": item.get("lexical_category", ""),
             "accent_up": int(item.get("accent_up")) if item.get("accent_up") else None,
             "accent_down": int(item.get("accent_down")) if item.get("accent_down") else None,
+            "tags": [int(t) for t in item.get("tags", [])],
         }
 
 

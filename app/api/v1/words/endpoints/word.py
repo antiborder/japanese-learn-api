@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def read_words(
     limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）"),
     level: Optional[int] = Query(None, description="レベルフィルタ"),
+    tag: Optional[int] = Query(None, description="タグIDフィルタ"),
     cursor: Optional[str] = Query(
         None, description="前回のレスポンスのpagination.next_cursorを渡すと続きから取得します。未指定時は先頭ページ。"
     ),
@@ -30,7 +31,7 @@ def read_words(
     has_next=falseになるまでnext_cursorを渡し続けること。
     """
     try:
-        words, next_cursor, has_next = dynamodb_client.get_words_page(limit=limit, level=level, cursor=cursor)
+        words, next_cursor, has_next = dynamodb_client.get_words_page(limit=limit, level=level, tag=tag, cursor=cursor)
 
         return PaginatedWordsResponse(
             data=words,

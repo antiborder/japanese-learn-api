@@ -73,3 +73,7 @@ pyrightconfig.json
 your_database.db
 
 .cursor
+
+# Tag suggestion script (local scratch data, not source of truth)
+scripts/output/
+scripts/.cache/

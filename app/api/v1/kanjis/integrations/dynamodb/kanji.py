@@ -41,9 +41,11 @@ class DynamoDBKanjiClient:
             logger.error(f"Error getting all kanjis from DynamoDB: {str(e)}")
             raise
 
-    def get_kanjis_page(self, limit: int = 100, cursor: Optional[str] = None) -> tuple[list, Optional[str], bool]:
+    def get_kanjis_page(
+        self, limit: int = 100, cursor: Optional[str] = None, level: Optional[int] = None
+    ) -> tuple[list, Optional[str], bool]:
         """
-        漢字情報を1ページ分だけ取得します（カーソルベース）。
+        漢字情報を1ページ分だけ取得します（カーソルベース、レベルフィルタ対応）。
 
         以前はDynamoDBの「KANJI」パーティション全体を毎回読み切ってからPython側で
         skip/limitを適用していたため、漢字数が2,000件を超える規模になった際に
@@ -58,6 +60,7 @@ class DynamoDBKanjiClient:
         Args:
             limit: 取得する最大件数
             cursor: 前回のレスポンスで返した next_cursor（先頭ページの場合はNone）
+            level: レベルフィルタ（オプション）
 
         Returns:
             (このページの漢字リスト, 次ページ用カーソル（最終ページはNone）, 次ページが存在するか)
@@ -73,6 +76,11 @@ class DynamoDBKanjiClient:
                     "ExpressionAttributeValues": {":pk": "KANJI"},
                     "Limit": limit,
                 }
+
+                if level is not None:
+                    query_params["FilterExpression"] = "#level = :level"
+                    query_params["ExpressionAttributeNames"] = {"#level": "level"}
+                    query_params["ExpressionAttributeValues"][":level"] = level
 
                 if last_evaluated_key:
                     query_params["ExclusiveStartKey"] = last_evaluated_key

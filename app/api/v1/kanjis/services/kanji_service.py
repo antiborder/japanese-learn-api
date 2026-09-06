@@ -12,15 +12,16 @@ def get_kanji(kanji_id: int):
     return dynamodb_kanji_client.get_kanji_by_id(kanji_id)
 
 
-def get_kanjis_page(limit: int = 100, cursor: Optional[str] = None):
+def get_kanjis_page(limit: int = 100, cursor: Optional[str] = None, level: Optional[int] = None):
     """
-    DynamoDBから漢字情報を1ページ分だけ取得します（カーソルベース）。
+    DynamoDBから漢字情報を1ページ分だけ取得します（カーソルベース、レベルフィルタ対応）。
 
     Args:
         limit: 取得する最大件数
         cursor: 前回のレスポンスで返した next_cursor（先頭ページの場合はNone）
+        level: レベルフィルタ（オプション）
 
     Returns:
         (このページの漢字リスト, 次ページ用カーソル（最終ページはNone）, 次ページが存在するか)
     """
-    return dynamodb_kanji_client.get_kanjis_page(limit=limit, cursor=cursor)
+    return dynamodb_kanji_client.get_kanjis_page(limit=limit, cursor=cursor, level=level)

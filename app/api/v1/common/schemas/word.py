@@ -17,6 +17,7 @@ class Word(BaseModel):
     lexical_category: Optional[str] = None
     accent_up: Optional[int] = None
     accent_down: Optional[int] = None
+    tags: List[int] = []
 
     class Config:
         orm_mode = True

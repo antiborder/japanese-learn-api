@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @router.get("/", response_model=PaginatedKanjisResponse)
 def read_kanjis_endpoint(
     limit: int = Query(1000, ge=1, le=1000, description="1ページあたりの件数（最大: 1000）"),
+    level: Optional[int] = Query(None, description="レベルフィルタ"),
     cursor: Optional[str] = Query(
         None, description="前回のレスポンスのpagination.next_cursorを渡すと続きから取得します。未指定時は先頭ページ。"
     ),
@@ -34,7 +35,7 @@ def read_kanjis_endpoint(
     列挙したい場合はhas_next=falseになるまでnext_cursorを渡し続けること。
     """
     try:
-        kanjis, next_cursor, has_next = get_kanjis_page(limit=limit, cursor=cursor)
+        kanjis, next_cursor, has_next = get_kanjis_page(limit=limit, cursor=cursor, level=level)
 
         return PaginatedKanjisResponse(
             data=kanjis,
