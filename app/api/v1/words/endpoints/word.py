@@ -79,7 +79,7 @@ async def fetch_word_audio(word_id: int):
         logger.info(f"Fetching audio URL for word_id: {word_id}")
         word = dynamodb_client.get_word_by_id(word_id)
         audio_url = get_audio_url(word_id, word.get("name"), word.get("hiragana"))
-        return {"url": audio_url, "expires_in": 3600}
+        return {"url": audio_url}
     except Exception as e:
         logger.error(f"Error fetching audio URL for word_id {word_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

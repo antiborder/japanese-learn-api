@@ -47,13 +47,17 @@ Parameters:
     Description: "VAPID private key for web push notifications (base64url-encoded)"
     NoEcho: true
     Default: ""
+  ResourceCdnBaseUrl:
+    Type: String
+    Description: "CloudFront domain serving bucket-japanese-learn-resource (word audio/images), no trailing slash"
+    Default: "https://d2dzdke1bis6g3.cloudfront.net"
 
 Globals:
   Function:
     Runtime: python3.11
     MemorySize: 256
     Timeout: 30
-    Tracing: Active
+    Tracing: PassThrough
     LoggingConfig:
       LogFormat: JSON
     Environment:
@@ -241,6 +245,7 @@ Resources:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           S3_BUCKET_NAME: !Ref S3BucketName
+          RESOURCE_CDN_BASE_URL: !Ref ResourceCdnBaseUrl
           GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
           DATABASE_URL: !Ref DatabaseUrl
           GOOGLE_API_KEY: !Ref GoogleApiKey

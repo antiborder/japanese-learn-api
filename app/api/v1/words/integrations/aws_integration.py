@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # S3クライアントの設定
 bucket_name = os.getenv("S3_BUCKET_NAME")
 aws_region = os.getenv("AWS_REGION", "ap-northeast-1")
+resource_cdn_base_url = os.getenv("RESOURCE_CDN_BASE_URL", "")
 
 logger.info(f"Bucket Name: {bucket_name}")
 logger.info(f"AWS Region: {aws_region}")
@@ -48,24 +49,10 @@ def save_word_audio_to_s3(word_id: int, audio_content: bytes):
 
 
 def generate_presigned_url(word_id: int) -> str:
-    try:
-        object_key = f"sounds/words/{word_id}.mp3"
-        logger.info(f"Generating presigned URL for: {object_key}")
-        url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={
-                "Bucket": bucket_name,
-                "Key": object_key,
-                "ResponseContentType": "audio/mpeg",
-                "ResponseContentDisposition": f"inline; filename=audio_{word_id}.mp3",
-            },
-            ExpiresIn=3600,  # 1時間有効
-        )
-        logger.info("Presigned URL generated successfully")
-        return url
-    except Exception as e:
-        logger.error(f"Error generating presigned URL: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {str(e)}")
+    # bucket-japanese-learn-resourceはCloudFront(OAC)経由で公開読み取り可能なため、
+    # 署名付きURLではなくCDNの直接URLを返す（無期限にキャッシュさせるため）
+    object_key = f"sounds/words/{word_id}.mp3"
+    return f"{resource_cdn_base_url}/{object_key}"
 
 
 # ============================================
@@ -144,27 +131,17 @@ def save_word_image_to_s3(word_id: int, image_index: int, image_content: bytes, 
 
 def generate_presigned_url_for_image(image_key: str) -> str:
     """
-    画像の署名付きURLを生成
+    画像のCDN直接URLを生成する
+    （bucket-japanese-learn-resourceはCloudFront(OAC)経由で公開読み取り可能なため、
+    署名付きURLではなくCDNの直接URLを返し、無期限にキャッシュさせる）
 
     Args:
         image_key: S3オブジェクトキー（例：'images/words/100/image_1.jpg'）
 
     Returns:
-        署名付きURL
+        CDN経由の直接URL
     """
-    try:
-        logger.info(f"Generating presigned URL for image: {image_key}")
-
-        url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket_name, "Key": image_key},
-            ExpiresIn=604800,  # 7日間有効
-        )
-        logger.info("Presigned URL generated successfully for image")
-        return url
-    except Exception as e:
-        logger.error(f"Error generating presigned URL for image: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {str(e)}")
+    return f"{resource_cdn_base_url}/{image_key}"
 
 
 # ============================================

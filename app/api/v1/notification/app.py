@@ -136,7 +136,7 @@ def lambda_handler(event, context):
                     subscription_info=subscription_info,
                     data=payload,
                     vapid_private_key=VAPID_PRIVATE_KEY,
-                    vapid_claims=VAPID_CLAIMS,
+                    vapid_claims=dict(VAPID_CLAIMS),
                     ttl=PUSH_TTL_SECONDS,
                 )
                 logger.info(f"push sent to {user_id} ({sub_sk})")
