@@ -97,8 +97,43 @@ Resources:
         EmailSendingAccount: DEVELOPER
         SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/nihongo.cloud
         From: !Sub "Japanese Learn <${SesFromEmail}>"
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpFunction.Arn
       UserPoolTags:
         app: japanese-learn
+
+  # Cognito Pre sign-up トリガー（reCAPTCHA 検証でボットのサインアップを拒否）
+  PreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-PreSignUpFunction"
+      CodeUri: ./app/triggers/pre_signup
+      Handler: app.lambda_handler
+      Description: "Cognito Pre sign-up trigger: reCAPTCHA verification"
+      MemorySize: 128
+      # Cognito はトリガーの応答を 5 秒までしか待たない
+      Timeout: 5
+      Environment:
+        Variables:
+          RECAPTCHA_SECRET_KEY: !Ref RecaptchaSecretKey
+
+  PreSignUpFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PreSignUpFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  PreSignUpFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${PreSignUpFunction}"
+      RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
+    DependsOn: PreSignUpFunction
 
   # Cognito User Pool Client
   UserPoolClient:
