@@ -60,6 +60,8 @@ Globals:
     Tracing: PassThrough
     LoggingConfig:
       LogFormat: JSON
+    Tags:
+      app: japanese-learn
     Environment:
       Variables:
         POWERTOOLS_SERVICE_NAME: japanese-learn
@@ -95,6 +97,8 @@ Resources:
         EmailSendingAccount: DEVELOPER
         SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/nihongo.cloud
         From: !Sub "Japanese Learn <${SesFromEmail}>"
+      UserPoolTags:
+        app: japanese-learn
 
   # Cognito User Pool Client
   UserPoolClient:
@@ -222,6 +226,8 @@ Resources:
       Tags:
         - Key: Environment
           Value: !Ref AWS::StackName
+        - Key: app
+          Value: japanese-learn
 
   # Lambda Functions
   WordsFunction:
@@ -654,6 +660,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${WordsFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: WordsFunction
 
   KanjisFunctionLogGroup:
@@ -661,6 +670,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KanjisFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: KanjisFunction
 
   LearnWordsFunctionLogGroup:
@@ -668,6 +680,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${LearnWordsFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: LearnWordsFunction
 
   UsersFunctionLogGroup:
@@ -675,6 +690,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${UsersFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: UsersFunction
 
   SearchFunctionLogGroup:
@@ -682,6 +700,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SearchFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SearchFunction
 
   SentencesFunctionLogGroup:
@@ -689,6 +710,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SentencesFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SentencesFunction
 
   HiraganaFunctionLogGroup:
@@ -696,6 +720,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${HiraganaFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: HiraganaFunction
 
   SentenceCompositionFunctionLogGroup:
@@ -703,6 +730,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SentenceCompositionFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SentenceCompositionFunction
 
   # Chat Function IAM Role
@@ -718,6 +748,9 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: app
+          Value: japanese-learn
       Policies:
         - PolicyName: ChatFunctionPolicy
           PolicyDocument:
@@ -777,6 +810,9 @@ Resources:
       Role: !GetAtt ChatFunctionRole.Arn
       MemorySize: 2048
       Timeout: 300
+      Tags:
+        - Key: app
+          Value: japanese-learn
       Environment:
         Variables:
           GEMINI_API_KEY: !Ref GeminiApiKey
@@ -865,6 +901,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ChatFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: ChatFunction
 
   # Conversation Logs Table
@@ -900,6 +939,8 @@ Resources:
       Tags:
         - Key: Environment
           Value: !Sub "${AWS::StackName}"
+        - Key: app
+          Value: japanese-learn
 
   # Admin Function for viewing conversation logs
   AdminFunction:
@@ -1011,6 +1052,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ContactFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: ContactFunction
 
   AdminFunctionLogGroup:
@@ -1018,6 +1062,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AdminFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: AdminFunction
 
   NotificationFunction:
@@ -1062,6 +1109,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${NotificationFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: NotificationFunction
 
 Outputs:
