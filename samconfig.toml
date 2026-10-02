@@ -13,3 +13,4 @@ confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = false
 image_repositories = []
+tags = "app=\"japanese-learn\""

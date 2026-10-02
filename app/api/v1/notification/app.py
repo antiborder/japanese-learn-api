@@ -124,6 +124,7 @@ def lambda_handler(event, context):
             f"remaining={daily_remaining}, subs={len(subscriptions)}"
         )
 
+        expired_count = 0
         for sub in subscriptions:
             sub_sk = sub["SK"]
             subscription_info = {
@@ -135,7 +136,7 @@ def lambda_handler(event, context):
                     subscription_info=subscription_info,
                     data=payload,
                     vapid_private_key=VAPID_PRIVATE_KEY,
-                    vapid_claims=VAPID_CLAIMS,
+                    vapid_claims=dict(VAPID_CLAIMS),
                     ttl=PUSH_TTL_SECONDS,
                 )
                 logger.info(f"push sent to {user_id} ({sub_sk})")
@@ -143,8 +144,18 @@ def lambda_handler(event, context):
                 status_code = e.response.status_code if e.response is not None else None
                 if status_code in (404, 410):
                     table.delete_item(Key={"PK": user_pk, "SK": sub_sk})
+                    expired_count += 1
                     logger.info(f"deleted expired subscription {sub_sk} for {user_id}")
                 else:
                     logger.error(f"ERROR: push failed for {user_id} ({sub_sk}): status={status_code} error={e}")
             except Exception as e:
                 logger.error(f"ERROR: unexpected push exception for {user_id} ({sub_sk}): {e}")
+
+        # 全サブスクリプションが期限切れで削除された場合は is_push_active を False に更新する
+        if expired_count == len(subscriptions):
+            table.update_item(
+                Key={"PK": user_pk, "SK": "SETTINGS"},
+                UpdateExpression="SET is_push_active = :false",
+                ExpressionAttributeValues={":false": False},
+            )
+            logger.info(f"disabled push for {user_id}: all subscriptions expired")

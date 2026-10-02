@@ -86,8 +86,10 @@ def generate_sentence_grammar_description(sentence_text: str, jlpt_level: str, l
             f"Generating AI grammar description for sentence: {sentence_text} at {jlpt_level} level in language: {lang_code}"
         )
 
-        # Gemini 2.0 Flash-Liteモデルを使用
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        # Gemini 3.5 Flash-Liteモデルを使用
+        # 注: "gemini-2.0-flash-lite"はGoogleにより廃止済み（404 NotFound）。
+        # エラーメッセージ上で案内された後継モデルに切り替えている。
+        model = genai.GenerativeModel("gemini-3.5-flash-lite")
 
         # プロンプトを作成
         language_name = get_language_name(lang_code)

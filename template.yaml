@@ -47,15 +47,21 @@ Parameters:
     Description: "VAPID private key for web push notifications (base64url-encoded)"
     NoEcho: true
     Default: ""
+  ResourceCdnBaseUrl:
+    Type: String
+    Description: "CloudFront domain serving bucket-japanese-learn-resource (word audio/images), no trailing slash"
+    Default: "https://d2dzdke1bis6g3.cloudfront.net"
 
 Globals:
   Function:
     Runtime: python3.11
     MemorySize: 256
     Timeout: 30
-    Tracing: Active
+    Tracing: PassThrough
     LoggingConfig:
       LogFormat: JSON
+    Tags:
+      app: japanese-learn
     Environment:
       Variables:
         POWERTOOLS_SERVICE_NAME: japanese-learn
@@ -87,6 +93,47 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
           RequireUppercase: true
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/nihongo.cloud
+        From: !Sub "Japanese Learn <${SesFromEmail}>"
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpFunction.Arn
+      UserPoolTags:
+        app: japanese-learn
+
+  # Cognito Pre sign-up トリガー（reCAPTCHA 検証でボットのサインアップを拒否）
+  PreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-PreSignUpFunction"
+      CodeUri: ./app/triggers/pre_signup
+      Handler: app.lambda_handler
+      Description: "Cognito Pre sign-up trigger: reCAPTCHA verification"
+      MemorySize: 128
+      # Cognito はトリガーの応答を 5 秒までしか待たない
+      Timeout: 5
+      Environment:
+        Variables:
+          RECAPTCHA_SECRET_KEY: !Ref RecaptchaSecretKey
+
+  PreSignUpFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PreSignUpFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  PreSignUpFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${PreSignUpFunction}"
+      RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
+    DependsOn: PreSignUpFunction
 
   # Cognito User Pool Client
   UserPoolClient:
@@ -214,6 +261,8 @@ Resources:
       Tags:
         - Key: Environment
           Value: !Ref AWS::StackName
+        - Key: app
+          Value: japanese-learn
 
   # Lambda Functions
   WordsFunction:
@@ -229,10 +278,15 @@ Resources:
       CodeUri: ./app/api/v1/words
       Handler: app.lambda_handler
       Description: "Lambda function for words-related endpoints"
+      # /words/ の一覧取得は最大1000件をDynamoDBから読んでPydanticモデルに変換するため、
+      # デフォルトのGlobals(256MB)ではCPU割り当てが少なすぎて30秒のタイムアウトに達していた
+      # （実測: 256MBでlimit=500以上が必ずタイムアウト、2048MBでlimit=1000が約10秒に短縮）。
+      MemorySize: 2048
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           S3_BUCKET_NAME: !Ref S3BucketName
+          RESOURCE_CDN_BASE_URL: !Ref ResourceCdnBaseUrl
           GOOGLE_APPLICATION_CREDENTIALS: google-tts-key.json
           DATABASE_URL: !Ref DatabaseUrl
           GOOGLE_API_KEY: !Ref GoogleApiKey
@@ -414,6 +468,9 @@ Resources:
       CodeUri: ./app/api/v1/kanjis
       Handler: app.lambda_handler
       Description: "Lambda function for kanjis-related endpoints"
+      # /kanjis/ の一覧取得も同じ理由でメモリを増やしている。WordsFunctionの
+      # コメント参照（実測: 256MBでlimit=500以上が必ずタイムアウト）。
+      MemorySize: 2048
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
@@ -638,6 +695,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${WordsFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: WordsFunction
 
   KanjisFunctionLogGroup:
@@ -645,6 +705,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KanjisFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: KanjisFunction
 
   LearnWordsFunctionLogGroup:
@@ -652,6 +715,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${LearnWordsFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: LearnWordsFunction
 
   UsersFunctionLogGroup:
@@ -659,6 +725,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${UsersFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: UsersFunction
 
   SearchFunctionLogGroup:
@@ -666,6 +735,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SearchFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SearchFunction
 
   SentencesFunctionLogGroup:
@@ -673,6 +745,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SentencesFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SentencesFunction
 
   HiraganaFunctionLogGroup:
@@ -680,6 +755,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${HiraganaFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: HiraganaFunction
 
   SentenceCompositionFunctionLogGroup:
@@ -687,6 +765,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SentenceCompositionFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: SentenceCompositionFunction
 
   # Chat Function IAM Role
@@ -702,6 +783,9 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: app
+          Value: japanese-learn
       Policies:
         - PolicyName: ChatFunctionPolicy
           PolicyDocument:
@@ -761,6 +845,9 @@ Resources:
       Role: !GetAtt ChatFunctionRole.Arn
       MemorySize: 2048
       Timeout: 300
+      Tags:
+        - Key: app
+          Value: japanese-learn
       Environment:
         Variables:
           GEMINI_API_KEY: !Ref GeminiApiKey
@@ -849,6 +936,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ChatFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: ChatFunction
 
   # Conversation Logs Table
@@ -884,6 +974,8 @@ Resources:
       Tags:
         - Key: Environment
           Value: !Sub "${AWS::StackName}"
+        - Key: app
+          Value: japanese-learn
 
   # Admin Function for viewing conversation logs
   AdminFunction:
@@ -995,6 +1087,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ContactFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: ContactFunction
 
   AdminFunctionLogGroup:
@@ -1002,6 +1097,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AdminFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: AdminFunction
 
   NotificationFunction:
@@ -1036,6 +1134,7 @@ Resources:
               - dynamodb:Query
               - dynamodb:GetItem
               - dynamodb:DeleteItem
+              - dynamodb:UpdateItem
             Resource:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}"
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}/index/*"
@@ -1045,6 +1144,9 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${NotificationFunction}"
       RetentionInDays: 14
+      Tags:
+        - Key: app
+          Value: japanese-learn
     DependsOn: NotificationFunction
 
 Outputs:

@@ -1,0 +1,297 @@
+{
+  "CallerReference": "japanese-learn-resource-cdn-2026-09-07",
+  "Aliases": {
+    "Quantity": 0
+  },
+  "DefaultRootObject": "",
+  "Origins": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "Id": "words-api-origin",
+        "DomainName": "omqihdsdi1.execute-api.ap-northeast-1.amazonaws.com",
+        "OriginPath": "/Prod",
+        "CustomHeaders": {
+          "Quantity": 0
+        },
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "https-only",
+          "OriginSslProtocols": {
+            "Quantity": 1,
+            "Items": [
+              "TLSv1.2"
+            ]
+          },
+          "OriginReadTimeout": 30,
+          "OriginKeepaliveTimeout": 5
+        },
+        "ConnectionAttempts": 3,
+        "ConnectionTimeout": 10,
+        "OriginShield": {
+          "Enabled": false
+        },
+        "OriginAccessControlId": ""
+      },
+      {
+        "Id": "bucket-japanese-learn-resource",
+        "DomainName": "bucket-japanese-learn-resource.s3.ap-northeast-1.amazonaws.com",
+        "OriginPath": "",
+        "CustomHeaders": {
+          "Quantity": 0
+        },
+        "S3OriginConfig": {
+          "OriginAccessIdentity": ""
+        },
+        "ConnectionAttempts": 3,
+        "ConnectionTimeout": 10,
+        "OriginShield": {
+          "Enabled": false
+        },
+        "OriginAccessControlId": "E1AUNU2JUQ39JX"
+      }
+    ]
+  },
+  "OriginGroups": {
+    "Quantity": 0
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "bucket-japanese-learn-resource",
+    "TrustedSigners": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "TrustedKeyGroups": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "AllowedMethods": {
+      "Quantity": 2,
+      "Items": [
+        "HEAD",
+        "GET"
+      ],
+      "CachedMethods": {
+        "Quantity": 2,
+        "Items": [
+          "HEAD",
+          "GET"
+        ]
+      }
+    },
+    "SmoothStreaming": false,
+    "Compress": true,
+    "LambdaFunctionAssociations": {
+      "Quantity": 0
+    },
+    "FunctionAssociations": {
+      "Quantity": 0
+    },
+    "FieldLevelEncryptionId": "",
+    "CachePolicyId": "36f31ee6-370a-45fa-91e3-a069b8bf045a",
+    "ResponseHeadersPolicyId": "fdf6413e-3b11-426b-829d-b1d77bf01f16",
+    "GrpcConfig": {
+      "Enabled": false
+    }
+  },
+  "CacheBehaviors": {
+    "Quantity": 4,
+    "Items": [
+      {
+        "PathPattern": "/api/v1/words*",
+        "TargetOriginId": "words-api-origin",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "TrustedKeyGroups": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+          "Quantity": 3,
+          "Items": [
+            "GET",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": [
+              "GET",
+              "HEAD"
+            ]
+          }
+        },
+        "SmoothStreaming": false,
+        "Compress": true,
+        "LambdaFunctionAssociations": {
+          "Quantity": 0
+        },
+        "FunctionAssociations": {
+          "Quantity": 0
+        },
+        "FieldLevelEncryptionId": "",
+        "CachePolicyId": "102d02e1-aa55-40b2-ad54-5de7b7d47485",
+        "GrpcConfig": {
+          "Enabled": false
+        }
+      },
+      {
+        "PathPattern": "/api/v1/kanjis*",
+        "TargetOriginId": "words-api-origin",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "TrustedKeyGroups": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+          "Quantity": 3,
+          "Items": [
+            "GET",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": [
+              "GET",
+              "HEAD"
+            ]
+          }
+        },
+        "SmoothStreaming": false,
+        "Compress": true,
+        "LambdaFunctionAssociations": {
+          "Quantity": 0
+        },
+        "FunctionAssociations": {
+          "Quantity": 0
+        },
+        "FieldLevelEncryptionId": "",
+        "CachePolicyId": "102d02e1-aa55-40b2-ad54-5de7b7d47485",
+        "GrpcConfig": {
+          "Enabled": false
+        }
+      },
+      {
+        "PathPattern": "/api/v1/hiragana*",
+        "TargetOriginId": "words-api-origin",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "TrustedKeyGroups": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+          "Quantity": 3,
+          "Items": [
+            "GET",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": [
+              "GET",
+              "HEAD"
+            ]
+          }
+        },
+        "SmoothStreaming": false,
+        "Compress": true,
+        "LambdaFunctionAssociations": {
+          "Quantity": 0
+        },
+        "FunctionAssociations": {
+          "Quantity": 0
+        },
+        "FieldLevelEncryptionId": "",
+        "CachePolicyId": "102d02e1-aa55-40b2-ad54-5de7b7d47485",
+        "GrpcConfig": {
+          "Enabled": false
+        }
+      },
+      {
+        "PathPattern": "/api/v1/sentences*",
+        "TargetOriginId": "words-api-origin",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "TrustedKeyGroups": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+          "Quantity": 3,
+          "Items": [
+            "GET",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": [
+              "GET",
+              "HEAD"
+            ]
+          }
+        },
+        "SmoothStreaming": false,
+        "Compress": true,
+        "LambdaFunctionAssociations": {
+          "Quantity": 0
+        },
+        "FunctionAssociations": {
+          "Quantity": 0
+        },
+        "FieldLevelEncryptionId": "",
+        "CachePolicyId": "102d02e1-aa55-40b2-ad54-5de7b7d47485",
+        "GrpcConfig": {
+          "Enabled": false
+        }
+      }
+    ]
+  },
+  "CustomErrorResponses": {
+    "Quantity": 0
+  },
+  "Comment": "japanese-learn word audio/images public CDN (bucket-japanese-learn-resource)",
+  "Logging": {
+    "Enabled": false,
+    "IncludeCookies": false,
+    "Bucket": "",
+    "Prefix": ""
+  },
+  "PriceClass": "PriceClass_All",
+  "Enabled": true,
+  "ViewerCertificate": {
+    "CloudFrontDefaultCertificate": true,
+    "SSLSupportMethod": "vip",
+    "MinimumProtocolVersion": "TLSv1",
+    "CertificateSource": "cloudfront"
+  },
+  "Restrictions": {
+    "GeoRestriction": {
+      "RestrictionType": "none",
+      "Quantity": 0
+    }
+  },
+  "WebACLId": "",
+  "HttpVersion": "http2",
+  "IsIPV6Enabled": true,
+  "ContinuousDeploymentPolicyId": "",
+  "Staging": false
+}
