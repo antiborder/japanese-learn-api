@@ -38,10 +38,6 @@ Parameters:
     Type: String
     Description: "Frontend base URL for word/kanji detail page links"
     Default: "https://nihongo.cloud"
-  ApiV1ResourceId:
-    Type: String
-    Description: "API Gateway /api/v1 resource ID (get it with: aws apigateway get-resources --rest-api-id <api-id> --query \"items[?path=='/api/v1'].Id\" --output text)"
-    Default: "w4iw1z"
   VapidPrivateKey:
     Type: String
     Description: "VAPID private key for web push notifications (base64url-encoded)"
@@ -835,19 +831,19 @@ Resources:
   # Note: Docker image must be built and pushed to ECR first
   # Run: ./scripts/build_and_push_chat_function.sh
   ChatFunction:
-    Type: AWS::Lambda::Function
+    Type: AWS::Serverless::Function
+    # Globals の Runtime はコンテナイメージ関数に指定できないため、Globals を適用しない
+    IgnoreGlobals: "*"
     Properties:
       # FunctionName: !Sub "${AWS::StackName}-ChatFunction"  # Temporarily commented to allow replacement
       PackageType: Image
-      Code:
-        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWS::StackName}-chat-function:latest"
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWS::StackName}-chat-function:latest"
       Description: "Lambda function for AI chatbot with RAG (Phase 3)"
       Role: !GetAtt ChatFunctionRole.Arn
       MemorySize: 2048
       Timeout: 300
       Tags:
-        - Key: app
-          Value: japanese-learn
+        app: japanese-learn
       Environment:
         Variables:
           GEMINI_API_KEY: !Ref GeminiApiKey
@@ -859,77 +855,25 @@ Resources:
           FAISS_INDEX_S3_KEY: "faiss_index/index.faiss"
           FAISS_INDEX_METADATA_S3_KEY: "faiss_index/metadata.pkl"
           LOG_LEVEL: INFO
+      # 他の関数と同じく SAM の Api イベントでルートを定義する。
+      # 生の AWS::ApiGateway::Resource で定義すると、ServerlessRestApi 更新時に
+      # SAM 生成の API 定義で上書きされて /api/v1/chat が消える。
+      # CORS（OPTIONS 含む）は他の関数と同様に Lambda 内（app.py）で制御する。
+      # Note: API Gateway maximum timeout is 29 seconds
+      Events:
+        ChatApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/chat
+            Method: ANY
+        ChatApiProxyEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/chat/{proxy+}
+            Method: ANY
 
   # ChatFunction IAM Role
   # Note: ChatFunctionRole is now defined above as a CloudFormation resource
-
-  # API Gateway Integration for ChatFunction
-  # Note: /api/v1 resource already exists, we reference it via parameter
-  # Resources renamed to V3 to force recreation (previous resources were orphaned)
-  ChatApiResourceV3:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ParentId: !Ref ApiV1ResourceId
-      PathPart: chat
-    DependsOn: ServerlessRestApi
-
-  ChatApiProxyResourceV3:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ParentId: !Ref ChatApiResourceV3
-      PathPart: "{proxy+}"
-
-  # API Gateway Methods
-  # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
-  ChatApiRootMethodV3:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiResourceV3
-      HttpMethod: ANY
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
-        TimeoutInMillis: 29000
-        # Note: API Gateway maximum timeout is 29 seconds
-        # For longer operations, consider using async invocation or increasing Lambda timeout
-
-  # Note: OPTIONS requests are handled by the ANY method, which routes to Lambda function
-  ChatApiProxyMethodV3:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ResourceId: !Ref ChatApiProxyResourceV3
-      HttpMethod: ANY
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatFunction.Arn}/invocations"
-        TimeoutInMillis: 29000
-        # Note: API Gateway maximum timeout is 29 seconds
-        # For longer operations, consider using async invocation or increasing Lambda timeout
-
-  # Lambda Permissions for API Gateway
-  ChatApiRootEventPermissionV3:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref ChatFunction
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat"
-
-  ChatApiProxyEventPermissionV3:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref ChatFunction
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessRestApi}/*/*/api/v1/chat/*"
 
   ChatFunctionLogGroup:
     Type: AWS::Logs::LogGroup

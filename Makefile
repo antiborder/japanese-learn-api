@@ -18,15 +18,6 @@ deploy: check-env check-deps check-structure setup-aws prepare-build build-chat-
 	@echo "デプロイ開始..."
 	@AWS_ACCOUNT_ID=$$(aws sts get-caller-identity --query Account --output text); \
 	AWS_REGION=$${CUSTOM_AWS_REGION:-ap-northeast-1}; \
-	API_V1_RESOURCE_ID="w4iw1z"; \
-	API_ID=$$(aws cloudformation describe-stacks --stack-name japanese-learn --query "Stacks[0].Outputs[?OutputKey=='ApiId'].OutputValue" --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
-	if [ -n "$$API_ID" ]; then \
-		RESOURCE_ID=$$(aws apigateway get-resources --rest-api-id $$API_ID --region $$AWS_REGION --query "items[?path=='/api/v1'].Id" --output text 2>/dev/null || echo ""); \
-		if [ -n "$$RESOURCE_ID" ]; then \
-			API_V1_RESOURCE_ID="$$RESOURCE_ID"; \
-		fi; \
-	fi; \
-	echo "Using ApiV1ResourceId: $$API_V1_RESOURCE_ID"; \
 	sam deploy \
 		--stack-name japanese-learn \
 		--resolve-s3 \
@@ -37,7 +28,6 @@ deploy: check-env check-deps check-structure setup-aws prepare-build build-chat-
 		GoogleSearchEngineId="$$GOOGLE_SEARCH_ENGINE_ID" \
 		GeminiApiKey="$$GEMINI_API_KEY" \
 		FrontendBaseUrl="$$FRONTEND_BASE_URL" \
-		ApiV1ResourceId="$$API_V1_RESOURCE_ID" \
 		RecaptchaSecretKey="$$RECAPTCHA_SECRET_KEY" \
 		VapidPrivateKey="$$VAPID_PRIVATE_KEY" \
 		--capabilities CAPABILITY_IAM \
@@ -67,33 +57,6 @@ deploy: check-env check-deps check-structure setup-aws prepare-build build-chat-
 		fi; \
 	else \
 		echo "⚠️  Warning: ChatFunction not found in Lambda functions list"; \
-	fi
-	@echo "API Gatewayリソースを確認しています..."
-	@API_ID=$$(aws cloudformation describe-stacks --stack-name japanese-learn --query "Stacks[0].Outputs[?OutputKey=='ApiId'].OutputValue" --output text --region $$AWS_REGION 2>/dev/null || echo ""); \
-	if [ -n "$$API_ID" ]; then \
-		echo "Checking API Gateway resources for /api/v1/chat..."; \
-		CHAT_RESOURCES=$$(aws apigateway get-resources --rest-api-id $$API_ID --region $$AWS_REGION --query "items[?contains(path, '/chat')]" --output json 2>/dev/null || echo "[]"); \
-		CHAT_COUNT=$$(echo "$$CHAT_RESOURCES" | python3 -c "import sys, json; data = json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "0"); \
-		if [ "$$CHAT_COUNT" -eq "0" ]; then \
-			echo "⚠️  Warning: /api/v1/chat resources not found in API Gateway"; \
-		else \
-			echo "✅ Found $$CHAT_COUNT chat resource(s) in API Gateway"; \
-		fi; \
-		echo "Creating/updating API Gateway deployment for Prod stage..."; \
-		DEPLOYMENT_ID=$$(aws apigateway create-deployment \
-			--rest-api-id $$API_ID \
-			--stage-name Prod \
-			--region $$AWS_REGION \
-			--description "Deploy ChatFunction resources - $$(date +%Y-%m-%d\ %H:%M:%S)" \
-			--output text \
-			--query 'id' 2>/dev/null || echo ""); \
-		if [ -n "$$DEPLOYMENT_ID" ]; then \
-			echo "✅ API Gateway deployment created/updated: $$DEPLOYMENT_ID"; \
-		else \
-			echo "⚠️  Warning: Failed to create deployment (may already exist or need manual deployment)"; \
-		fi; \
-	else \
-		echo "⚠️  Warning: API ID not found"; \
 	fi
 	@echo "デプロイが完了しました"
 	@make verify
